@@ -1,34 +1,39 @@
-package amf.core
+package amf
 
-import amf.core.model.domain
+import amf.core.AMF
+import amf.core.client.{Generator, Parser}
 import amf.core.unsafe.PlatformSecrets
 import amf.model.document.{Document, Fragment, Module}
 import amf.model.domain.{CustomDomainProperty, DomainElement, DomainExtension, PropertyShape}
 
-object PluginWrapper extends PlatformSecrets{
+object Core extends PlatformSecrets{
 
   def init() = {
     platform.registerWrapper(amf.core.metamodel.document.ModuleModel) {
-      case m: model.document.Module => Module(m)
+      case m: amf.core.model.document.Module => Module(m)
     }
     platform.registerWrapper(amf.core.metamodel.document.DocumentModel) {
-      case m: model.document.Document => Document(m)
+      case m: amf.core.model.document.Document => Document(m)
     }
     platform.registerWrapper(amf.core.metamodel.document.FragmentModel) {
-      case f: model.document.Fragment => Fragment(f)
+      case f: amf.core.model.document.Fragment => Fragment(f)
     }
     platform.registerWrapper(amf.core.metamodel.domain.DomainElementModel) {
-      case e: model.domain.DomainElement => DomainElement(e)
+      case e: amf.core.model.domain.DomainElement => DomainElement(e)
     }
     platform.registerWrapper(amf.core.metamodel.domain.extensions.CustomDomainPropertyModel) {
-      case e: domain.extensions.CustomDomainProperty => CustomDomainProperty(e)
+      case e: amf.core.model.domain.extensions.CustomDomainProperty => CustomDomainProperty(e)
     }
     platform.registerWrapper(amf.core.metamodel.domain.extensions.DomainExtensionModel) {
-      case e: domain.extensions.DomainExtension => DomainExtension(e)
+      case e: amf.core.model.domain.extensions.DomainExtension => DomainExtension(e)
     }
     platform.registerWrapper(amf.core.metamodel.domain.extensions.PropertyShapeModel) {
-      case e: domain.extensions.PropertyShape => PropertyShape(e)
+      case e: amf.core.model.domain.extensions.PropertyShape => PropertyShape(e)
     }
+
+    AMF.init()
   }
 
+  def parser(vendor: String, mediaType: String): Parser = new Parser(vendor, mediaType)
+  def generator(vendor: String, mediaType: String): Generator = new Generator(vendor, mediaType)
 }

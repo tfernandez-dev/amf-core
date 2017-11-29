@@ -1,4 +1,4 @@
-package amf.core
+package amf.core.client
 
 import scala.scalajs.js.{Dynamic, isUndefined}
 

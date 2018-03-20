@@ -1,6 +1,4 @@
-package amf
-
-import amf.core.client.Resolver
+package amf.client.resolve
 
 import scala.scalajs.js.annotation.JSExportAll
 

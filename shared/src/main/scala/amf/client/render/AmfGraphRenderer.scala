@@ -1,16 +1,14 @@
-package amf
+package amf.client.render
 
-import amf.core.client.Parser
 import amf.core.registries.AMFPluginsRegistry
-import amf.core.remote.Amf
 import amf.plugins.document.graph.AMFGraphPlugin
 
 import scala.scalajs.js.annotation.JSExportAll
 
 /**
-  * [[Amf]] parser.
+  * Amf generator.
   */
 @JSExportAll
-class AmfGraphParser extends Parser("AMF Graph", "application/ld+json") {
+class AmfGraphRenderer extends Renderer("AMF Graph", "application/ld+json") {
   AMFPluginsRegistry.registerDocumentPlugin(AMFGraphPlugin)
 }

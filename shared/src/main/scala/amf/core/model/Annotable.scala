@@ -1,8 +1,7 @@
-package amf.client.model
+package amf.core.model
 
-import scala.scalajs.js.annotation.JSExportAll
+import amf.core.parser.Annotations
 
-@JSExportAll
 trait Annotable {
 
   /** Return annotations. */

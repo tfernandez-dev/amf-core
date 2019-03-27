@@ -42,6 +42,7 @@ object CoreRegister {
     platform.registerWrapper(amf.core.metamodel.domain.ScalarNodeModel) {
       case d: amf.core.model.domain.ScalarNode => ScalarNodeMatcher.asClient(d)
     }
+    // hack for variable value accessor
     platform.registerWrapper(amf.core.metamodel.domain.ArrayNodeModel) {
       case d: amf.core.model.domain.ArrayNode => ArrayNodeMatcher.asClient(d)
     }

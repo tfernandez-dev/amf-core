@@ -30,30 +30,17 @@ setSonarProperties := {
   val values = Map(
     "sonar.host.url" -> url,
     "sonar.login" -> token,
-    "sonar.projectKey" -> "mulesoft.amf",
-    "sonar.projectName" -> "AMF",
-    "sonar.projectVersion" -> "1.0.0",
+    "sonar.projectKey" -> "mulesoft.amf-core",
+    "sonar.projectName" -> "AMF-CORE",
+    "sonar.projectVersion" -> "4.0.0",
 
     "sonar.sourceEncoding" -> "UTF-8",
-    "sonar.github.repository" -> "mulesoft/amf",
+    "sonar.github.repository" -> "mulesoft/amf-core",
 
-    "sonar.modules" -> "amf-core,amf-webapi,amf-aml,amf-validation,amf-client",
-
-    "amf-core.sonar.sources" -> "shared/src/main/scala",
-    "amf-core.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml",
-
-    "amf-webapi.sonar.sources" -> "shared/src/main/scala",
-    "amf-webapi.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml",
-
-    "amf-aml.sonar.sources" -> "shared/src/main/scala",
-    "amf-aml.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml",
-
-    "amf-validation.sonar.sources" -> "shared/src/main/scala",
-    "amf-validation.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml",
-
-    "amf-client.sonar.sources" -> "shared/src/main/scala",
-    "amf-client.sonar.tests" -> "shared/src/test/scala",
-    "amf-client.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
+    "sonar.sources" -> "shared/src/main/scala",
+    "sonar.tests" -> "shared/src/test/scala",
+    "amf-core.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
+    
   )
 
   sonarProperties := values

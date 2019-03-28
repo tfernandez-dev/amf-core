@@ -5,6 +5,7 @@ import amf.core.Root
 import amf.core.client.ParsingOptions
 import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Obj
+import amf.core.metamodel.domain._
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AnnotationGraphLoader
 import amf.core.parser._
@@ -15,7 +16,7 @@ import amf.core.unsafe.PlatformSecrets
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.{GraphDependenciesReferenceHandler, GraphParser, JsonLdEmitter}
 import org.yaml.builder.DocBuilder
-import org.yaml.model.{YDocument, YMap, YSequence, YScalar}
+import org.yaml.model.{YDocument, YMap, YScalar, YSequence}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -29,7 +30,13 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
 
   val vendors = Seq(Amf.name)
 
-  override def modelEntities: Seq[Obj] = Nil
+  override def modelEntities: Seq[Obj] = Seq(
+    ObjectNodeModel,
+    ScalarNodeModel,
+    ArrayNodeModel,
+    LinkNodeModel,
+    RecursiveShapeModel
+  )
 
   override def serializableAnnotations(): Map[String, AnnotationGraphLoader] = Map.empty
 

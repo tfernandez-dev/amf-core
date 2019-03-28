@@ -4,6 +4,7 @@ import amf.core.metamodel.Field
 import amf.core.metamodel.Type.{Any, Array, Bool, Double, Int, SortedArray, Str}
 import amf.core.model._
 import amf.core.model.domain.{AmfArray, AmfScalar}
+import amf.core.parser.Fields
 import amf.core.vocabulary.Namespace.{Http, Meta, Shacl}
 import org.scalatest.{FunSuite, Matchers}
 

@@ -36,8 +36,8 @@ pipeline {
         branch 'build/develop'
       }
       steps {
-        echo "Starting AMF Applications/AMF/amf/extract-core"
-        build job: 'application/AMF//amf/extract-core', wait: false
+        echo "Starting AMF Applications/AMF/amf-aml/build/develop"
+        build job: 'application/AMF//amf-aml/build/develop', wait: false
       }
     }
   }

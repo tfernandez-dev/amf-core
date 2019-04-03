@@ -33,7 +33,7 @@ pipeline {
     }
     stage('Trigger amf project') {
       when {
-        branch 'build/develop'
+        branch 'develop'
       }
       steps {
         echo "Starting AMF Applications/AMF/amf-aml/develop"

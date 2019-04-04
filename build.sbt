@@ -8,9 +8,31 @@ val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/lo
 
 name := "amf-core"
 
-version in ThisBuild := "4.0.0-SNAPSHOT"
 
-publish := {}
+
+version in ThisBuild := {
+  val mayor = 4
+  val minor = 0
+
+  lazy val buildNumber = sys.env.getOrElse("BUILD_NUMBER", "0")
+  lazy val branchName = sys.env.getOrElse("BRANCH_NAME", "aa")
+  println("Build number is: "+buildNumber)
+
+  println("Branch number is: "+branchName)
+
+  val v = {
+    if(branchName == "master")
+      mayor.toString + "." + minor.toString + "." + buildNumber
+    else
+      mayor.toString + "." + (minor +1).toString + ".0-SNAPSHOT"
+  }
+  println("Setting version to : "+v)
+  v
+}
+
+publish := {
+
+}
 
 jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv()
 
@@ -40,7 +62,7 @@ setSonarProperties := {
     "sonar.sources" -> "shared/src/main/scala",
     "sonar.tests" -> "shared/src/test/scala",
     "amf-core.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
-    
+
   )
 
   sonarProperties := values
@@ -80,6 +102,7 @@ val settings = Common.settings ++ Common.publish ++ Seq(
     "com.github.scopt" %%% "scopt"     % "3.7.0"
   )
 )
+
 
 /** **********************************************
   * AMF-Core

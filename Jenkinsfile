@@ -21,7 +21,7 @@ pipeline {
       when {
         anyOf {
           branch 'master'
-          branch 'build/develop'
+          branch 'develop'
           branch 'release/*'
         }
       }
@@ -31,7 +31,8 @@ pipeline {
         }
       }
     }
-    stage('Trigger amf project') {
+    /* enable triggers when snapshots branch be created*/
+    /*stage('Trigger amf project') {
       when {
         branch 'develop'
       }
@@ -39,6 +40,6 @@ pipeline {
         echo "Starting AMF Applications/AMF/amf-aml/develop"
         build job: 'application/AMF/amf-aml/develop', wait: false
       }
-    }
+    }*/
   }
 }

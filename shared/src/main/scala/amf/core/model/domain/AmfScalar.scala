@@ -32,8 +32,7 @@ case class AmfScalar(value: Any, annotations: Annotations = new Annotations()) e
 
   def toNumberOption: Option[Number] = {
     Option(value).map {
-      case v: String if v.indexOf(".") > -1 => v.toDouble
-      case v: String                        => v.toInt
+      case v: String                        => v.toDouble
       case v                                => v.asInstanceOf[Number]
     }
   }

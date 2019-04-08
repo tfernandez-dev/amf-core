@@ -99,7 +99,7 @@ object VariableReplacer {
           None
       }
 
-    textOption
+    val replacement = textOption
       .flatMap { text =>
         Option(m.group(2))
           .map { transformations =>
@@ -116,6 +116,9 @@ object VariableReplacer {
         }
       )
       .replace("$", "\\$")
+
+    // used to maintain a literal replacement for backslashes (`\`) and dollar signs (`$`).
+    Regex.quoteReplacement(replacement)
   }
 
   protected[amf] def variableTransformation(

@@ -22,8 +22,7 @@ object IgnoreValidationsMerger extends ValidationsMerger {
   override def merge(result: AMFValidationResult): Boolean = false
 }
 
-object AllValidationsMerger extends ValidationsMerger {
-  override val parserRun: Int                              = -1
+case class AllValidationsMerger(parserRun: Int) extends ValidationsMerger {
   override def merge(result: AMFValidationResult): Boolean = true
 }
 

@@ -22,6 +22,11 @@ object IgnoreValidationsMerger extends ValidationsMerger {
   override def merge(result: AMFValidationResult): Boolean = false
 }
 
+object AllValidationsMerger extends ValidationsMerger {
+  override val parserRun: Int                              = -1
+  override def merge(result: AMFValidationResult): Boolean = true
+}
+
 /**
   * Validation of AMF models
   */

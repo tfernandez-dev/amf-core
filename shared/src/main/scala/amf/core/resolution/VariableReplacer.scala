@@ -24,10 +24,10 @@ object VariableReplacer {
       case VariableRegex(name, transformations) =>
         values.find(_.name == name) match {
           case Some(Variable(_, scalar: ScalarNode))
-              if scalar.dataType.isEmpty || scalar.dataType.get.endsWith("#string") =>
+            if scalar.dataType.isEmpty || scalar.dataType.get.endsWith("#string") =>
             s.value = VariableRegex.replaceAllIn(
               s.value,
-              replaceMatch(values.map(v => v.name -> v.value).toMap)(_, errorFunction))
+              replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
             s
           case Some(_) if transformations.nonEmpty =>
             errorFunction(s"Cannot apply transformations '$transformations' to variable '$name'.")
@@ -43,17 +43,29 @@ object VariableReplacer {
         }
 
       case text =>
-        s.value =
-          VariableRegex.replaceAllIn(text, replaceMatch(values.map(v => v.name -> v.value).toMap)(_, errorFunction))
+        s.value = VariableRegex.replaceAllIn(
+          text,
+          replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
         s
     }
   }
 
   def replaceVariables(s: String, values: Set[Variable], errorFunction: String => Unit): String =
-    VariableRegex.replaceAllIn(s, replaceMatch(values.map(v => v.name -> v.value).toMap)(_, errorFunction))
+    VariableRegex.replaceAllIn(
+      s,
+      replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
 
-  private def replaceMatch(values: Map[String, DataNode])(m: Match, errorFunction: String => Unit): String = {
-    val name = m.group(1)
+  def replaceVariablesInKey(key: String, values: Set[Variable], errorFunction: String => Unit): String =
+    VariableRegex.replaceAllIn(
+      key,
+      replaceMatch(values.map(v => v.name -> v.value).toMap, strict = true, isKey = true)(_, errorFunction))
+
+  private def replaceMatch(values: Map[String, DataNode], strict: Boolean, isKey: Boolean)(
+    m: Match,
+    errorFunction: String => Unit): String = {
+    val nameWithChevrons = m.group(0)
+    val name             = m.group(1)
+    var emptyVariable    = false
     val textOption = values
       .get(name)
       .flatMap {
@@ -62,10 +74,24 @@ object VariableReplacer {
             .find(classOf[SourceAST])
             .map(_.ast)
             .collectFirst({
-              case s: YScalar if s.mark.isInstanceOf[QuotedMark] => YamlRender.render(YScalar(s.text))
+              case s: YScalar if s.mark.isInstanceOf[QuotedMark] => {
+                val variableValue = YamlRender.render(YScalar(s.text))
+                if (variableValue.matches(" *") && isKey && strict) {
+                  errorFunction(s"Variable '$name' cannot have an empty value")
+                  None
+                }
+                variableValue
+              }
               /* this calls quotedmark.marktext*/
             })
-            .orElse(Some(v.value))
+            .orElse {
+              if (v.value.matches(" *") && isKey && strict) {
+                errorFunction(s"Variable '$name' cannot have an empty value")
+                emptyVariable = true
+                None
+              } else
+                Some(v.value)
+            }
 
         case r: ResolvedLinkNode => Some(r.source.alias)
         case node =>
@@ -73,7 +99,7 @@ object VariableReplacer {
           None
       }
 
-    val replacement = textOption
+    textOption
       .flatMap { text =>
         Option(m.group(2))
           .map { transformations =>
@@ -81,15 +107,19 @@ object VariableReplacer {
           }
           .orElse(Some(text))
       }
-      .getOrElse(name)
+      .getOrElse(
+        if (strict && !emptyVariable) {
+          errorFunction(s"Cannot find variable '$name'.")
+          nameWithChevrons
+        } else {
+          nameWithChevrons
+        }
+      )
       .replace("$", "\\$")
-
-    // used to maintain a literal replacement for backslashes (`\`) and dollar signs (`$`).
-    Regex.quoteReplacement(replacement)
   }
 
   protected[amf] def variableTransformation(
-      errorFunction: String => Unit)(value: String, transformation: String): String = transformation match {
+                                             errorFunction: String => Unit)(value: String, transformation: String): String = transformation match {
     case "singularize"         => value.singularize
     case "pluralize"           => value.pluralize
     case "uppercase"           => value.toUpperCase

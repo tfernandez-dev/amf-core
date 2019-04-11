@@ -15,7 +15,6 @@ import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
-import amf.plugins.features.validation.ParserSideValidations.{UnableToParseNode, UnableToParseRdfDocument}
 import org.mulesoft.common.time.SimpleDateTime
 
 import scala.collection.mutable

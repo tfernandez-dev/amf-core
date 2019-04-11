@@ -1,7 +1,6 @@
 package amf.core.parser
 
 import amf.core.model.domain.{DomainElement, Linkable}
-import amf.plugins.features.validation.ParserSideValidations.UnresolvedReference
 
 trait UnresolvedReference { this: DomainElement =>
   val reference: String

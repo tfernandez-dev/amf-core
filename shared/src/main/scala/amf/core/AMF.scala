@@ -4,7 +4,6 @@ import amf.client.plugins._
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.validation.AMFPayloadValidationPlugin
 import amf.plugins.document.graph.AMFGraphPlugin
-import amf.plugins.features.validation.ParserSideValidationPlugin
 import amf.plugins.syntax.SYamlSyntaxPlugin
 
 import scala.collection.mutable

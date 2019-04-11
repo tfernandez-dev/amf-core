@@ -5,7 +5,6 @@ import amf.core.model.{BoolField, StrField}
 import amf.core.parser.{Annotations, DeclarationPromise, Fields, ParserContext}
 import org.yaml.model.YPart
 import amf.core.utils._
-import amf.plugins.features.validation.ParserSideValidations.UnresolvedReference
 
 trait Linkable extends AmfObject { this: DomainElement with Linkable =>
 

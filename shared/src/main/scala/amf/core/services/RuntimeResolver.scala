@@ -4,7 +4,6 @@ import amf.core.model.document.BaseUnit
 import amf.client.plugins.AMFDocumentPlugin
 import amf.core.parser.ErrorHandler
 import amf.core.registries.AMFPluginsRegistry
-import amf.plugins.features.validation.ResolutionSideValidations.ResolutionValidation
 
 object RuntimeResolver {
 

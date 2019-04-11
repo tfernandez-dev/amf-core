@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import amf._
 import amf.core.validation.SeverityLevels

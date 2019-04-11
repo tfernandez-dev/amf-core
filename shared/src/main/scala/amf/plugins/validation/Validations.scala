@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import amf.{ProfileName, ProfileNames}
 import amf.core.validation.SeverityLevels.VIOLATION

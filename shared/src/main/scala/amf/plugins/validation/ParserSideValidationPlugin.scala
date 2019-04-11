@@ -1,4 +1,4 @@
-package amf.plugins.features.validation
+package amf.plugins.validation
 
 import amf.client.plugins.{AMFFeaturePlugin, AMFPlugin}
 import amf.core.annotations.LexicalInformation

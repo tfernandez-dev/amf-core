@@ -6,7 +6,6 @@ import amf.core.model.domain
 import amf.core.model.domain._
 import amf.core.parser.{Annotations, ParserContext, YMapOps}
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.ParserSideValidations.UnableToParseNode
 import org.yaml.model.{YMap, YNode}
 
 import scala.collection.mutable

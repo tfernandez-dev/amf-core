@@ -44,6 +44,7 @@ trait Platform extends FileMediaType {
 
   /** Underlying file system for platform. */
   val fs: FileSystem
+
   var testingCommandLine: Boolean = false
 
   def exit(code: Int): Unit = System.exit(code)

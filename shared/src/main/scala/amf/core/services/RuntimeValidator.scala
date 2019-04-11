@@ -93,9 +93,11 @@ trait RuntimeValidator {
 }
 
 object RuntimeValidator {
-  var validatorOption: Option[RuntimeValidator] = None
-  def register(runtimeValidator: RuntimeValidator): Unit = {
-    validatorOption = Some(runtimeValidator)
+
+  private var validators: Seq[RuntimeValidator] = Seq.empty
+
+  def register(validator: RuntimeValidator): Unit = {
+    validators = validators :+  validator
   }
 
   private def validator: RuntimeValidator = {
@@ -105,8 +107,8 @@ object RuntimeValidator {
     }
   }
 
-  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment()): Future[ProfileName] =
-    validator.loadValidationProfile(validationProfilePath, env)
+//  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment()): Future[ProfileName] =
+//    validator.loadValidationProfile(validationProfilePath, env)
 
   def shaclValidation(model: BaseUnit,
                       validations: EffectiveValidations,

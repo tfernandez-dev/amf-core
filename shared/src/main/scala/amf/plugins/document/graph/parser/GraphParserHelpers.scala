@@ -9,7 +9,6 @@ import amf.core.model.domain.{AmfElement, Annotation}
 import amf.core.parser.{Annotations, _}
 import amf.core.vocabulary.Namespace
 import amf.core.vocabulary.Namespace.SourceMaps
-import amf.plugins.features.validation.ParserSideValidations.{MissingIdInNode, MissingTypeInNode}
 import org.yaml.convert.YRead.SeqNodeYRead
 import org.yaml.model._
 

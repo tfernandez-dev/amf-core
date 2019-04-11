@@ -5,7 +5,6 @@ import amf.core.model.domain.DomainElement
 import amf.core.model.domain.extensions.CustomDomainProperty
 import amf.core.parser.SearchScope.{All, Fragments, Named}
 import amf.core.utils.QName
-import amf.plugins.features.validation.ParserSideValidations.DeclarationNotFound
 import org.yaml.model.YPart
 
 class Declarations(var libraries: Map[String, Declarations] = Map(),

@@ -24,13 +24,6 @@ import amf.core.remote._
 import amf.core.services.RuntimeCompiler
 import amf.core.utils.Strings
 import amf.internal.environment.Environment
-import amf.plugins.features.validation.ParserSideValidations.{
-  CycleReferenceError,
-  InvalidCrossSpec,
-  UnresolvedReference,
-  UriSyntaxError,
-  InvalidFragmentRef
-}
 import org.yaml.model.YNode
 
 import scala.concurrent.ExecutionContext.Implicits.global

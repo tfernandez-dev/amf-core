@@ -66,17 +66,9 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           case _ => // Nothing to do
         }
 
-        obj match {
-          case _: DynamicObj =>
-            modelFields.foreach { f =>
-              emitDynamicFieldModel(f, id, element.asInstanceOf[DynamicDomainElement], obj)
-            }
-          case _ =>
-            modelFields.foreach { f =>
-              emitStaticField(f, id, element, obj, sources)
-            }
+        modelFields.foreach { f =>
+          emitStaticField(f, id, element, obj, sources)
         }
-
         createCustomExtensions(element)
 
         val sourceMapId = if (id.endsWith("/")) {
@@ -87,19 +79,6 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           id + "#/source-map"
         }
         createSourcesNode(id, sources, sourceMapId)
-      }
-    }
-
-    def emitDynamicFieldModel(f: Field, id: String, element: DynamicDomainElement, obj: Obj): Unit = {
-
-      element.valueForField(f).foreach { amfValue =>
-        val url = f.value.iri()
-        element match {
-          case schema: DynamicDomainElement if !schema.isInstanceOf[ExternalSourceElement] =>
-            objectValue(id, url, f.`type`, Value(amfValue.value, amfValue.value.annotations))
-          case _ =>
-            objectValue(id, url, f.`type`, amfValue)
-        }
       }
     }
 
@@ -201,18 +180,18 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           }
         case Bool =>
           rdfmodel.addTriple(subject,
-                             property,
-                             v.value.asInstanceOf[AmfScalar].toString,
-                             Some((Namespace.Xsd + "boolean").iri()))
+            property,
+            v.value.asInstanceOf[AmfScalar].toString,
+            Some((Namespace.Xsd + "boolean").iri()))
         case Type.Int =>
           emitIntLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case Type.Double =>
           // this will transform the value to double and will not emit @type TODO: ADD YType.Double
           // @TODO: see also in the Type.Any emitter
           rdfmodel.addTriple(subject,
-                             property,
-                             v.value.asInstanceOf[AmfScalar].toString,
-                             Some((Namespace.Xsd + "double").iri()))
+            property,
+            v.value.asInstanceOf[AmfScalar].toString,
+            Some((Namespace.Xsd + "double").iri()))
         case Type.Float =>
           emitFloatLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case Type.DateTime =>
@@ -232,23 +211,24 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
             objectValue(subject, property, a.element, Value(e, Annotations()))
           }
 
-        case Type.Any => {
+        case Type.Any =>
           v.value.asInstanceOf[AmfScalar].value match {
             case bool: Boolean =>
               rdfmodel.addTriple(subject,
-                                 property,
-                                 v.value.asInstanceOf[AmfScalar].toString,
-                                 Some((Namespace.Xsd + "boolean").iri()))
+                property,
+                v.value.asInstanceOf[AmfScalar].toString,
+                Some((Namespace.Xsd + "boolean").iri()))
             case i: Int =>
               emitIntLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
             case f: Float =>
               emitFloatLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
             case d: Double =>
               rdfmodel.addTriple(subject,
-                                 property,
-                                 v.value.asInstanceOf[AmfScalar].toString,
-                                 Some((Namespace.Xsd + "double").iri()))
+                property,
+                v.value.asInstanceOf[AmfScalar].toString,
+                Some((Namespace.Xsd + "double").iri()))
             case _ =>
+
               v.annotations.find(classOf[ScalarType]) match {
                 case Some(annotation) =>
                   typedScalar(subject, property, v.value.asInstanceOf[AmfScalar].toString, annotation.datatype)
@@ -256,7 +236,6 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
                   rdfmodel.addTriple(subject, property, v.value.asInstanceOf[AmfScalar].toString, None)
               }
           }
-        }
       }
     }
 
@@ -319,13 +298,6 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           rdfmodel.addTriple(subject, property, content, Some((Namespace.Xsd + "long").iri()))
         case _ => rdfmodel.addTriple(subject, property, content, Some(dataType))
       }
-    }
-
-    private def createDynamicTypeNode(id: String, obj: DynamicDomainElement): Unit = {
-      if (obj.isInstanceOf[DynamicObj])
-        obj.meta.`type`.foreach { t =>
-          rdfmodel.addTriple(id, (Namespace.Rdf + "type").iri(), t.iri())
-        }
     }
 
     private def createTypeNode(id: String, obj: Obj, maybeElement: Option[AmfObject] = None): Unit = {

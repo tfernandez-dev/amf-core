@@ -8,16 +8,13 @@ val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/lo
 
 name := "amf-core"
 
-
-
 version in ThisBuild := {
   val mayor = 4
   val minor = 0
 
   lazy val buildNumber = sys.env.getOrElse("BUILD_NUMBER", "0")
-  lazy val branchName = sys.env.getOrElse("BRANCH_NAME", "aa")
+  lazy val branchName = sys.env.getOrElse("BRANCH_NAME", "fake")
   println("Build number is: "+buildNumber)
-
   println("Branch number is: "+branchName)
 
   val v = {

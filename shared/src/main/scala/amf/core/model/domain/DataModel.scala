@@ -7,7 +7,7 @@ import amf.core.metamodel.domain.{ScalarNodeModel, _}
 import amf.core.metamodel.{DynamicObj, Field, ModelDefaultBuilder, Obj}
 import amf.core.model.StrField
 import amf.core.model.domain.templates.Variable
-import amf.core.parser.{Annotations, Fields, Value}
+import amf.core.parser.{Annotations, Fields}
 import amf.core.resolution.VariableReplacer
 import amf.core.utils._
 import amf.core.vocabulary.Namespace.Data
@@ -20,7 +20,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * Base class for all dynamic DataNodes
   */
-abstract class DataNode(annotations: Annotations) extends DynamicDomainElement {
+abstract class DataNode(annotations: Annotations) extends DomainElement {
 
   def name: StrField = fields.field(Name)
 
@@ -73,7 +73,7 @@ object DataNodeOps {
 class ObjectNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
 
   val properties
-    : mutable.LinkedHashMap[String, DataNode] = mutable.LinkedHashMap() // i need to keep the order of some nodes (like params defined in traits). I could order by position at resolution time, but with this structure i avoid one more traverse.
+  : mutable.LinkedHashMap[String, DataNode] = mutable.LinkedHashMap() // i need to keep the order of some nodes (like params defined in traits). I could order by position at resolution time, but with this structure i avoid one more traverse.
   val propertyAnnotations: mutable.Map[String, Annotations] =
     annotations.find(classOf[DataNodePropertiesAnnotations]) match {
       case Some(ann) => mutable.HashMap() ++ ann.properties.map(t => t._1 -> Annotations(t._2))
@@ -102,15 +102,16 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations) exte
 
   override val meta: Obj = new ObjectNodeDynamicModel()
 
-  override def valueForField(f: Field): Option[Value] = {
-    val maybeNode = f.value.ns match {
-      case Namespace.Data => properties.get(f.value.name)
-      case _              => None // this or fields.get(f)
-    }
-    maybeNode map { Value(_, Annotations()) }
-  }
+  //  override def valueForField(f: Field): Option[Value] = {
+  //    val maybeNode = f.value.ns match {
+  //      case Namespace.Data => properties.get(f.value.name)
+  //      case _              => None // this or fields.get(f)
+  //    }
+  //    maybeNode map { Value(_, Annotations()) }
+  //  }
 
-  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode = {
+  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(
+    reportError: String => Unit): DataNode = {
     properties.keys.toSeq.foreach { key =>
       val decodedKey = key.urlComponentDecoded
       val finalKey: String =
@@ -188,36 +189,24 @@ object ObjectNode {
 /**
   * Scalar values with associated data type
   */
-class ScalarNode(var value: String,
-                 var dataType: Option[String],
-                 override val fields: Fields,
-                 val annotations: Annotations)
-    extends DataNode(annotations) {
+class ScalarNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
+
+  def withValue(v:String): this.type = set(ScalarNodeModel.Value, v)
+
+  def withDataType(dataType:String): this.type = set(ScalarNodeModel.DataType, dataType)
+
+  def value: StrField = fields.field(ScalarNodeModel.Value)
+
+  def dataType: StrField = fields.field(ScalarNodeModel.DataType)
 
   override def meta: Obj = ScalarNodeModel
 
-  override def valueForField(f: Field): Option[Value] = f match { // TODO
-    case ScalarNodeModel.Value =>
-      val annotations = dataType match {
-        case Some(dt) => Annotations() += ScalarType(dt)
-        case None     => Annotations()
-      }
-      Some(amf.core.parser.Value(AmfScalar(value, annotations), Annotations()))
-    case _ => None
-  }
-
-  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode = {
+  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(
+    reportError: String => Unit): DataNode = {
     VariableReplacer.replaceNodeVariables(this, values, reportError)
   }
 
-  override def cloneNode(): ScalarNode = {
-    val cloned = ScalarNode(annotations)
-
-    cloned.value = value
-    cloned.dataType = dataType
-
-    cloned
-  }
+  override def cloneNode(): ScalarNode = new ScalarNode(fields, annotations)
 }
 
 object ScalarNode {
@@ -230,8 +219,12 @@ object ScalarNode {
   def apply(value: String, dataType: Option[String], ast: YPart): ScalarNode =
     apply(value, dataType, Annotations(ast))
 
-  def apply(value: String, dataType: Option[String], annotations: Annotations): ScalarNode =
-    new ScalarNode(value, dataType, Fields(), annotations)
+  def apply(value: String, dataType: Option[String], annotations: Annotations): ScalarNode = {
+    val scalar = new ScalarNode(Fields(), annotations)
+    dataType.foreach(annotations += ScalarType(_))
+    scalar.set(ScalarNodeModel.DataType, AmfScalar(dataType,Annotations()))
+    scalar.set(ScalarNodeModel.Value, AmfScalar(value, annotations))
+  }
 }
 
 /**
@@ -243,18 +236,15 @@ class ArrayNode(override val fields: Fields, val annotations: Annotations) exten
 
   var members: ListBuffer[DataNode] = ListBuffer()
 
-  def addMember(member: DataNode): ListBuffer[DataNode] = members += member.adopted(this.id)
-
-  override def valueForField(f: Field): Option[Value] = f match {
-    case Member => Some(Value(AmfArray(members), Annotations()))
-    case _ if f.value.iri().startsWith((Namespace.Data + "pos").iri()) =>
-      val pos    = Integer.parseInt(f.value.iri().replace((Namespace.Data + "pos").iri(), ""))
-      val member = members(pos)
-      Some(Value(AmfScalar(member.id), Annotations()))
-    case _ => None
+  def addMember(member: DataNode): Seq[DataNode] = {
+    val array: Seq[DataNode] = fields.field(ArrayNodeModel.Member)
+    val newArray             = array :+ member
+    set(ArrayNodeModel.Member, AmfArray(newArray))
+    newArray
   }
 
-  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode = {
+  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(
+    reportError: String => Unit): DataNode = {
     members = members.map(_.replaceVariables(values, keys)(reportError))
     this
   }
@@ -294,37 +284,25 @@ object ArrayNode {
 
 /**
   * Dynamic node representing a link to another dynamic node
-  * @param alias human readable value for the link
-  * @param value actual URI value for the link
   * @param fields default fields for the dynamic node
   * @param annotations deafult annotations for the dynamic node
   */
-class LinkNode(var alias: String, var value: String, override val fields: Fields, val annotations: Annotations)
-    extends DataNode(annotations) {
+class LinkNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
+
+  def link: StrField  = fields.field(LinkNodeModel.Value)
+  def alias: StrField = fields.field(LinkNodeModel.Alias)
+
+  def withLink(link: String): this.type   = set(LinkNodeModel.Value, link)
+  def withAlias(alias: String): this.type = set(LinkNodeModel.Alias, alias)
 
   var linkedDomainElement: Option[DomainElement] = None
-
-  override def valueForField(f: Field): Option[Value] = {
-    val maybeScalar = f match {
-      case LinkNodeModel.Value =>
-        Some(AmfScalar(value, annotations))
-      case LinkNodeModel.Alias =>
-        Some(AmfScalar(alias, annotations))
-      case _ => None
-    }
-    maybeScalar map { amf.core.parser.Value(_, Annotations()) }
-  }
 
   override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode =
     this
 
   override def cloneNode(): LinkNode = {
-    val cloned = LinkNode(annotations)
-
-    cloned.value = value
-    cloned.alias = alias
+    val cloned = new LinkNode(fields, annotations)
     cloned.linkedDomainElement = linkedDomainElement
-
     cloned
   }
 
@@ -345,11 +323,14 @@ object LinkNode {
 
   def apply(annotations: Annotations): LinkNode = apply("", "", annotations)
 
-  def apply(alias: String, value: String): LinkNode =
-    new LinkNode(alias, value, Fields(), Annotations())
+  def apply(alias: String, value: String): LinkNode = apply(alias, value, Annotations())
 
-  def apply(alias: String, value: String, annotations: Annotations): LinkNode =
-    new LinkNode(alias, value, Fields(), annotations)
+  def apply(alias: String, value: String, annotations: Annotations): LinkNode = {
+    val linkNode = new LinkNode(Fields(), annotations)
+    linkNode.set(LinkNodeModel.Value, value)
+    linkNode.set(LinkNodeModel.Alias, alias)
+    linkNode
+  }
 }
 
 case class ElementTree(key: String, subtrees: Seq[ElementTree])

@@ -10,8 +10,8 @@ import org.mulesoft.common.core.Strings
 import scala.collection.mutable
 
 class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[String, DomainElement] = mutable.Map())(
-  override implicit val errorHandler: ErrorHandler)
-  extends ResolutionStage {
+    override implicit val errorHandler: ErrorHandler)
+    extends ResolutionStage {
 
   var modelResolver: Option[ModelReferenceResolver] = None
 
@@ -76,7 +76,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
         element.add(tracked)
     }
 
-  // Links traversion to expand annotations and add links to 'cache'
+// Links traversion to expand annotations and add links to 'cache'
   private def traverseLinks(element: DomainElement,
                             resolved: DomainElement,
                             visited: mutable.Set[String] = mutable.Set()): Unit = {
@@ -168,7 +168,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
   private def isExample(r: DomainElement) =
     r.meta.`type`.headOption.contains(Namespace.Document + "Example")
 
-  // Customisation of the resolution transformation for different domains
+// Customisation of the resolution transformation for different domains
   protected def customDomainElementTransformation(d: DomainElement, source: Linkable): DomainElement = d
 
   def resolveDomainElement[T <: DomainElement](element: T): T = {
@@ -190,8 +190,8 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
 }
 
 class LinkNodeResolutionStage(keepEditingInfo: Boolean, val visited: mutable.Set[String] = mutable.Set())(
-  override implicit val errorHandler: ErrorHandler)
-  extends ResolutionStage {
+    override implicit val errorHandler: ErrorHandler)
+    extends ResolutionStage {
 
   var modelResolver: Option[ModelReferenceResolver] = None
 
@@ -228,7 +228,7 @@ class LinkNodeResolutionStage(keepEditingInfo: Boolean, val visited: mutable.Set
   */
 class ResolvedLinkNode(val source: LinkNode, val resolved: DomainElement)
 // resolved so alias -> value
-  extends LinkNode(source.fields, source.annotations) {
+    extends LinkNode(source.value, source.value, source.fields, source.annotations) {
   linkedDomainElement = Some(resolved)
 
   override def cloneNode(): ResolvedLinkNode = new ResolvedLinkNode(source, resolved)
@@ -241,7 +241,7 @@ class ResolvedLinkNode(val source: LinkNode, val resolved: DomainElement)
   * @param vals map of names and named entities
   */
 case class ResolvedNamedEntity(vals: mutable.HashMap[String, Seq[NamedDomainElement]] = mutable.HashMap())
-  extends Annotation
+    extends Annotation
 
 class ModelReferenceResolver(model: BaseUnit) {
 
@@ -273,7 +273,7 @@ object LinkNodeResolver {
     l match {
       case r: ResolvedLinkNode => Some(r)
       case _ =>
-        l.link.option().flatMap(modelResolver.get.findFragment) match {
+        modelResolver.get.findFragment(l.value) match {
           case Some(elem) =>
             val resolved = new ResolvedLinkNode(l, elem).withId(l.id)
             if (keepEditingInfo) resolved.annotations += ResolvedLinkAnnotation(l.id)

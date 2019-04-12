@@ -82,7 +82,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   }
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(
-    implicit errorHandler: ErrorHandler): BaseUnit = {
+      implicit errorHandler: ErrorHandler): BaseUnit = {
     val domainElementAdapter = (o: AmfObject) => {
       o match {
         case e: DomainElement => selector(e)
@@ -96,9 +96,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
       }
     }
     transformByCondition(this,
-      domainElementAdapter,
-      transformationAdapter,
-      cycleRecoverer = defaultCycleRecoverer(errorHandler))
+                         domainElementAdapter,
+                         transformationAdapter,
+                         cycleRecoverer = defaultCycleRecoverer(errorHandler))
     this
   }
 
@@ -161,7 +161,22 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
         acc
       } else {
         // elements are the values in the properties for the not found object
-        val elements = element.fields.fields().map(_.element).toSeq
+        val elements = element.meta match {
+          case _: DynamicObj =>
+            val values =
+              (element.meta.fields :+ DomainElementModel.CustomDomainProperties)
+                .flatMap(f => element.asInstanceOf[DynamicDomainElement].valueForField(f))
+                .map(_.value)
+            val effectiveValues = values.map {
+              case d: DomainElement => Seq(d) // set(
+              case a: AmfArray =>
+                a.values.filter(_.isInstanceOf[DomainElement]).asInstanceOf[Seq[DomainElement]] // setArray(
+              case _ => Seq() // ignore literals
+            }
+            effectiveValues.flatten
+          case _ =>
+            element.fields.fields().map(_.element).toSeq
+        }
         findModelByConditionInSeq(predicate, elements, first, acc, cycles + element.id)
       }
     } else {
@@ -202,8 +217,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   }
 
   protected def defaultCycleRecoverer(errorHandler: ErrorHandler = DefaultParserSideErrorHandler(this))(
-    old: AmfObject,
-    transformed: AmfObject): Option[AmfObject] = {
+      old: AmfObject,
+      transformed: AmfObject): Option[AmfObject] = {
     transformed match {
       case s: Shape =>
         Some(RecursiveShape(s))
@@ -258,10 +273,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
               .flatMap { elem: DataNode =>
                 Option(
                   transformByCondition(elem,
-                    predicate,
-                    transformation,
-                    cycles + element.id,
-                    cycleRecoverer = cycleRecoverer))
+                                       predicate,
+                                       transformation,
+                                       cycles + element.id,
+                                       cycleRecoverer = cycleRecoverer))
               }
               .map(_.adopted(arrayNode.id))
               .collect { case d: DataNode => d }
@@ -274,7 +289,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                   doc.fields.fields().filter(f => f.field == DocumentModel.Declares) ++
                   doc.fields
                     .fields()
-                    .filter(f => f.field != DocumentModel.Declares && f.field != DocumentModel.References)
+                    .filterNot(f => f.field == DocumentModel.Declares || f.field == DocumentModel.References)
+              case bu: BaseUnit =>
+                bu.fields.fields().filter(_.field == DocumentModel.References) ++
+                  bu.fields.fields().filterNot(_.field == DocumentModel.References)
               case _ => element.fields.fields()
             }
             effectiveFields
@@ -285,10 +303,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                 case (f, v: Value) if v.value.isInstanceOf[AmfObject] =>
                   Option(
                     transformByCondition(v.value.asInstanceOf[AmfObject],
-                      predicate,
-                      transformation,
-                      cycles + element.id,
-                      cycleRecoverer = cycleRecoverer)) match {
+                                         predicate,
+                                         transformation,
+                                         cycles + element.id,
+                                         cycleRecoverer = cycleRecoverer)) match {
                     case Some(transformedValue: AmfObject) =>
                       element.fields.setWithoutId(f, transformedValue)
                       element match {
@@ -310,10 +328,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                       case elem: AmfObject =>
                         val transformedValue =
                           transformByCondition(elem,
-                            predicate,
-                            transformation,
-                            cycles + element.id,
-                            cycleRecoverer = cycleRecoverer)
+                                               predicate,
+                                               transformation,
+                                               cycles + element.id,
+                                               cycleRecoverer = cycleRecoverer)
                         element match {
                           case s: Shape if transformedValue.isInstanceOf[RecursiveShape] =>
                             transformedValue

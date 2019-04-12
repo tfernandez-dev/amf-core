@@ -6,7 +6,6 @@ import amf.core.metamodel.domain.common.NameFieldSchema
 import amf.core.model.domain._
 import amf.core.vocabulary.Namespace.Data
 import amf.core.vocabulary.{Namespace, ValueType}
-import com.sun.prism.PixelFormat.DataType
 
 /**
   * Data Model to parse any generic data structure defined
@@ -50,10 +49,7 @@ object ScalarNodeModel extends DomainElementModel with DynamicObj {
   val Value =
     Field(Str, Namespace.Data + "value", ModelDoc(ModelVocabularies.Data, "value", "value for an scalar dynamic node"))
 
-  val DataType =
-    Field(Str, Namespace.Data + "dataType", ModelDoc(ModelVocabularies.Data, "dataType", "Data type of value for an scalar dynamic node"))
-
-  override def fields: List[Field]      = Value :: DataType :: DataNodeModel.fields
+  override def fields: List[Field]      = Value :: DataNodeModel.fields
   override val `type`: List[ValueType]  = Data + "Scalar" :: DataNodeModel.`type`
   override def modelInstance: AmfObject = ScalarNode()
 

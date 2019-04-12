@@ -24,10 +24,10 @@ object VariableReplacer {
       case VariableRegex(name, transformations) =>
         values.find(_.name == name) match {
           case Some(Variable(_, scalar: ScalarNode))
-            if scalar.dataType.option().isEmpty || scalar.dataType.option().contains("#string") =>
-            s.withValue(VariableRegex.replaceAllIn(
-              s.value.value(),
-              replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction)))
+            if scalar.dataType.isEmpty || scalar.dataType.get.endsWith("#string") =>
+            s.value = VariableRegex.replaceAllIn(
+              s.value,
+              replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
             s
           case Some(_) if transformations.nonEmpty =>
             errorFunction(s"Cannot apply transformations '$transformations' to variable '$name'.")
@@ -43,9 +43,9 @@ object VariableReplacer {
         }
 
       case text =>
-        s.withValue(VariableRegex.replaceAllIn(
-          text.value(),
-          replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction)))
+        s.value = VariableRegex.replaceAllIn(
+          text,
+          replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
         s
     }
   }
@@ -85,15 +85,15 @@ object VariableReplacer {
               /* this calls quotedmark.marktext*/
             })
             .orElse {
-              if (v.value.option().exists(_.matches(" *")) && isKey && strict) {
+              if (v.value.matches(" *") && isKey && strict) {
                 errorFunction(s"Variable '$name' cannot have an empty value")
                 emptyVariable = true
                 None
               } else
-                v.value.option()
+                Some(v.value)
             }
 
-        case r: ResolvedLinkNode => r.source.alias.option()
+        case r: ResolvedLinkNode => Some(r.source.alias)
         case node =>
           errorFunction(s"Variable '$name' cannot be replaced with type ${node.getClass.getName}")
           None

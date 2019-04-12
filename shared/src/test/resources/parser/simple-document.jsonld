@@ -17,12 +17,8 @@
         ],
         "http://a.ml/vocabularies/data#value": [
           {
-            "@value": "myValue"
-          }
-        ],
-        "http://a.ml/vocabularies/data#dataType": [
-          {
-            "@value": "Some(http://www.w3.org/2001/XMLSchema#String)"
+            "@value": "myValue",
+            "@type": "http://www.w3.org/2001/XMLSchema#String"
           }
         ]
       }
@@ -46,14 +42,15 @@
             ],
             "http://a.ml/vocabularies/data#value": [
               {
-                "@value": "myValue2"
-              }
-            ],
-            "http://a.ml/vocabularies/data#dataType": [
-              {
-                "@value": "Some(http://www.w3.org/2001/XMLSchema#String)"
+                "@value": "myValue2",
+                "@type": "http://www.w3.org/2001/XMLSchema#String"
               }
             ]
+          }
+        ],
+        "http://a.ml/vocabularies/data#pos0": [
+          {
+            "@id": "amf://id4"
           }
         ]
       }

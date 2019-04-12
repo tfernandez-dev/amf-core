@@ -21,7 +21,7 @@ import scala.collection.mutable.ListBuffer
 class DynamicGraphParser(var nodes: Map[String, AmfElement],
                          referencesMap: mutable.Map[String, DomainElement],
                          unresolvedReferences: mutable.Map[String, Seq[DomainElement]])(implicit ctx: ParserContext)
-  extends GraphParserHelpers {
+    extends GraphParserHelpers {
 
   /**
     * Finds the type of dynamic node model to build based on the JSON-LD @type information
@@ -57,7 +57,7 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
               val uri = entry.key.as[String]
               val v   = entry.value
               if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
-                uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
+                  uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
 
                 val dataNode = v match {
                   case _ if isJSONLDScalar(v) => parseJSONLDScalar(v)
@@ -84,10 +84,8 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
                  */
                 case _ if uri == ScalarNodeModel.Value.value.iri() =>
                   val parsedScalar = parseJSONLDScalar(entry.value)
-                  parsedScalar.dataType.option().foreach(d => scalar.set(ScalarNodeModel.DataType, d))
-                  parsedScalar.value.option().foreach { s =>
-                    scalar.set(ScalarNodeModel.Value,s)
-                  }
+                  scalar.value = parsedScalar.value
+                  scalar.dataType = parsedScalar.dataType
                 case _ => // ignore
               }
           }
@@ -101,20 +99,20 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
 
               case _ if uri == LinkNodeModel.Alias.value.iri() =>
                 val parsedScalar = parseJSONLDScalar(entry.value)
-                parsedScalar.value.option().foreach(link.withAlias)
+                link.alias = parsedScalar.value
 
               case _ if uri == LinkNodeModel.Value.value.iri() =>
                 val parsedScalar = parseJSONLDScalar(entry.value)
-                parsedScalar.value.option().foreach(link.withLink)
+                link.value = parsedScalar.value
 
               case _ => // ignore
             }
           }
-          referencesMap.get(link.alias.value()) match {
+          referencesMap.get(link.alias) match {
             case Some(target) => link.withLinkedDomainElement(target)
             case None =>
-              val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(link.alias.value(), Nil)
-              unresolvedReferences += (link.alias.value() -> (unresolved ++ Seq(link)))
+              val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(link.alias, Nil)
+              unresolvedReferences += (link.alias -> (unresolved ++ Seq(link)))
           }
           Some(link)
 
@@ -133,9 +131,9 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
 
         case other =>
           ctx.violation(UnableToParseNode,
-            id,
-            s"Cannot parse object data node from non object JSON structure $other",
-            map)
+                        id,
+                        s"Cannot parse object data node from non object JSON structure $other",
+                        map)
           None
       }
     })
@@ -159,15 +157,18 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
     */
   private def parseJSONLDScalar(node: YNode): ScalarNode = {
     val scalar = node.as[Seq[YMap]].head
-
-    val dataType = scalar
-      .key("@type")
-      .map(_.value.toString())
+    val result = ScalarNode()
     scalar
       .key("@value")
-      .map(entry => {
-        ScalarNode(entry.value.toString(), dataType)
-      }).getOrElse(ScalarNode())
+      .foreach(entry => {
+        result.value = entry.value
+      })
+    scalar
+      .key("@type")
+      .foreach(entry => {
+        result.dataType = Some(entry.value)
+      })
+    result
   }
 
   /**

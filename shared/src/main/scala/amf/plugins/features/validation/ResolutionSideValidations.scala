@@ -50,6 +50,11 @@ object ResolutionSideValidations extends Validations {
     "Nested endpoints"
   )
 
+  val UnequalMediaTypeDefinitionsInExtendsPayloads = validation(
+    "unequal-media-type-definitions-in-extends-payloads",
+    "Cannot merge payloads with explicit and implicit media types"
+  )
+
   val ParseResourceTypeFail = validation(
     "parse-resource-type-fail",
     "Failed while parsing an endpoint from a resource type"
@@ -75,6 +80,7 @@ object ResolutionSideValidations extends Validations {
     InvalidTypeInheritanceErrorSpecification,
     InvalidTypeInheritanceWarningSpecification,
     NestedEndpoint,
+    UnequalMediaTypeDefinitionsInExtendsPayloads,
     ParseResourceTypeFail,
     UnsupportedPipeline
   )

@@ -25,9 +25,9 @@ object Namespace {
 
   val Shacl = Namespace("http://www.w3.org/ns/shacl#")
 
-  val Schema = Namespace("http://schema.org/")
+  // val Schema = Namespace("http://schema.org/")
 
-  val Hydra = Namespace("http://www.w3.org/ns/hydra/core#")
+  // val Hydra = Namespace("http://www.w3.org/ns/hydra/core#")
 
   val Xsd = Namespace("http://www.w3.org/2001/XMLSchema#")
 
@@ -61,8 +61,6 @@ object Namespace {
     "sh"             -> Shacl,
     "shacl"          -> Shacl,
     "security"       -> Security,
-    "schema-org"     -> Schema,
-    "schema"         -> Schema,
     "raml-http"      -> Http,
     "http"           -> Http,
     "raml-doc"       -> Document,
@@ -73,7 +71,6 @@ object Namespace {
     "amf-resolution" -> AmfResolution,
     "amf-validation" -> AmfValidation,
     "amf-render"     -> AmfRender,
-    "hydra"          -> Hydra,
     "raml-shapes"    -> Shapes,
     "data"           -> Data,
     "sourcemaps"     -> SourceMaps,
@@ -148,9 +145,9 @@ object Namespace {
 
     case "http://www.w3.org/ns/shacl" => Some(Shacl)
 
-    case "http://schema.org/" => Some(Schema)
+    // case "http://schema.org/" => Some(Schema)
 
-    case "http://www.w3.org/ns/hydra/core" => Some(Hydra)
+    // case "http://www.w3.org/ns/hydra/core" => Some(Hydra)
 
     case "http://www.w3.org/2001/XMLSchema" => Some(Xsd)
 

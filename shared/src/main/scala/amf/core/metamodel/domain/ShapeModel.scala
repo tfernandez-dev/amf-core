@@ -5,7 +5,7 @@ import amf.core.metamodel.Type.{Array, Iri, SortedArray, Str}
 import amf.core.metamodel.domain.common.{DescriptionField, DisplayNameField}
 import amf.core.metamodel.domain.extensions.{PropertyShapeModel, ShapeExtensionModel}
 import amf.core.metamodel.domain.templates.KeyField
-import amf.core.vocabulary.Namespace.{Schema, Shacl, Shapes}
+import amf.core.vocabulary.Namespace.{Shacl, Shapes, Document}
 import amf.core.vocabulary.ValueType
 
 /**
@@ -18,7 +18,7 @@ trait ShapeModel extends DomainElementModel with LinkableElementModel with KeyFi
   val Name = Field(Str, Shacl + "name", ModelDoc(ExternalModelVocabularies.Shacl, "name", "Name for a data shape"))
 
   val DisplayName =
-    Field(Str, Schema + "name", ModelDoc(ExternalModelVocabularies.SchemaOrg, "name", "Name for a data shape"))
+    Field(Str, Document + "name", ModelDoc(ModelVocabularies.AmlDoc, "name", "Name for a data shape"))
 
   val Default = Field(
     DataNodeModel,

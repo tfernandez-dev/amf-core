@@ -30,14 +30,14 @@ object ModelVocabularies {
 }
 
 object ExternalModelVocabularies {
-  val SchemaOrg = ModelVocabulary("schema-org", Namespace.Schema.base, "Schema.org vocabulary", "")
+  // val SchemaOrg = ModelVocabulary("schema-org", Namespace.Schema.base, "Schema.org vocabulary", "")
   val Shacl = ModelVocabulary("shacl", Namespace.Shacl.base, "SHACL vocabulary", "")
   val Rdfs = ModelVocabulary("rdfs", Namespace.Rdfs.base, "RDFS vocabulary", "")
   val Rdf = ModelVocabulary("rdf", Namespace.Rdf.base, "RDF vocabulary", "")
-  val Hydra = ModelVocabulary("hydra", Namespace.Hydra.base, "Hydra vocabulary", "")
+  // val Hydra = ModelVocabulary("hydra", Namespace.Hydra.base, "Hydra vocabulary", "")
   val Owl = ModelVocabulary("owl", Namespace.Owl.base, "OWL2 vocabulary", "")
 
-  val all: Seq[ModelVocabulary] = Seq(SchemaOrg, Shacl, Rdfs, Rdf, Hydra, Owl)
+  val all: Seq[ModelVocabulary] = Seq(/*SchemaOrg,*/ Shacl, Rdfs, Rdf, /* Hydra,*/ Owl)
 }
 
 

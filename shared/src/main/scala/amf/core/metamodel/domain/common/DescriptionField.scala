@@ -2,8 +2,8 @@ package amf.core.metamodel.domain.common
 
 import amf.core.metamodel.Field
 import amf.core.metamodel.Type.Str
-import amf.core.metamodel.domain.{ExternalModelVocabularies, ModelDoc}
-import amf.core.vocabulary.Namespace.Schema
+import amf.core.metamodel.domain.{ModelDoc, ModelVocabularies}
+import amf.core.vocabulary.Namespace.Document
 
 /**
   * Description field.
@@ -11,8 +11,8 @@ import amf.core.vocabulary.Namespace.Schema
 trait DescriptionField {
   val Description = Field(
     Str,
-    Schema + "description",
-    ModelDoc(ExternalModelVocabularies.SchemaOrg, "description", "Human readable description of an element"))
+    Document + "description",
+    ModelDoc(ModelVocabularies.AmlDoc, "description", "Human readable description of an element"))
 }
 
 object DescriptionField extends DescriptionField

@@ -4,7 +4,7 @@ import amf.core.metamodel.Field
 import amf.core.metamodel.Type.Str
 import amf.core.metamodel.domain.{DomainElementModel, ModelDoc, ModelVocabularies}
 import amf.core.model.domain.AmfObject
-import amf.core.vocabulary.Namespace.{Document, Http}
+import amf.core.vocabulary.Namespace.{Core, Document}
 import amf.core.vocabulary.ValueType
 
 /**
@@ -49,15 +49,15 @@ object PayloadFragmentModel extends FragmentModel {
 
   val MediaType = Field(
     Str,
-    Http + "mediaType",
-    ModelDoc(ModelVocabularies.Http, "mediaType", "Media type associated to the encoded fragment information"))
+    Core + "mediaType",
+    ModelDoc(ModelVocabularies.Core, "mediaType", "HTTP Media type associated to the encoded fragment information"))
 
   override val fields: List[Field] = Encodes :: MediaType :: BaseUnitModel.fields
 
   override val `type`: List[ValueType] = List(Document + "PayloadFragment") ++ FragmentModel.`type`
 
   override val doc: ModelDoc = ModelDoc(
-    ModelVocabularies.Http,
+    ModelVocabularies.ApiContract,
     "Payload Fragment",
     "Fragment encoding HTTP payload information"
   )

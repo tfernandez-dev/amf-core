@@ -3,7 +3,7 @@ package amf.core.metamodel.domain.extensions
 import amf.core.metamodel.Field
 import amf.core.metamodel.domain.{DataNodeModel, DomainElementModel, ModelDoc, ModelVocabularies}
 import amf.core.model.domain.extensions.ShapeExtension
-import amf.core.vocabulary.Namespace.{Document, Http}
+import amf.core.vocabulary.Namespace.{Document, ApiContract}
 import amf.core.vocabulary.ValueType
 
 object ShapeExtensionModel extends DomainElementModel {
@@ -16,12 +16,12 @@ object ShapeExtensionModel extends DomainElementModel {
 
   override val fields: List[Field] = List(DefinedBy, Extension) ++ DomainElementModel.fields
 
-  override val `type`: List[ValueType] = Http + "ShapeExtension" :: DomainElementModel.`type`
+  override val `type`: List[ValueType] = ApiContract + "ShapeExtension" :: DomainElementModel.`type`
 
   override def modelInstance = ShapeExtension()
 
   override val doc: ModelDoc = ModelDoc(
-    ModelVocabularies.Http,
+    ModelVocabularies.ApiContract,
     "Shape Extension",
     "Custom extensions for a data shape definition inside an API definition"
   )

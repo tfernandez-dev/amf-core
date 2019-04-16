@@ -3,7 +3,7 @@ package amf.core.metamodel.domain
 import amf.core.metamodel.{Field, domain}
 import amf.core.metamodel.Type.Str
 import amf.core.model.domain.ExternalDomainElement
-import amf.core.vocabulary.Namespace.{Document, Http}
+import amf.core.vocabulary.Namespace.{Document, Core}
 import amf.core.vocabulary.ValueType
 
 /**
@@ -22,8 +22,8 @@ object ExternalDomainElementModel extends DomainElementModel {
 
   val MediaType = Field(
     Str,
-    Http + "mediaType",
-    ModelDoc(ModelVocabularies.Http, "mediaType", "Media type associated to the encoded fragment information"))
+    Core + "mediaType",
+    ModelDoc(ModelVocabularies.Core, "mediaType", "Media type associated to the encoded fragment information"))
 
   override val fields: List[Field] = List(Raw, MediaType)
 

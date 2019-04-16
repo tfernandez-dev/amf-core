@@ -5,7 +5,7 @@ import amf.core.metamodel.Type.{Any, Array, Bool, Double, Int, SortedArray, Str}
 import amf.core.model._
 import amf.core.model.domain.{AmfArray, AmfScalar}
 import amf.core.parser.Fields
-import amf.core.vocabulary.Namespace.{Http, Meta, Shacl}
+import amf.core.vocabulary.Namespace.{ApiContract, Meta, Shacl}
 import org.scalatest.{FunSuite, Matchers}
 
 class FieldsTest extends FunSuite with Matchers {
@@ -197,6 +197,6 @@ class FieldsTest extends FunSuite with Matchers {
   private val IntProperty    = Field(Int, Shacl + "minCount")
   private val DoubleProperty = Field(Double, Shacl + "minInclusive")
   private val BoolProperty   = Field(Bool, Meta + "sorted")
-  private val SeqStrProperty = Field(Array(Str), Http + "accepts")
+  private val SeqStrProperty = Field(Array(Str), ApiContract + "accepts")
   private val SeqAnyProperty = Field(SortedArray(Any), Shacl + "in")
 }

@@ -5,7 +5,7 @@ import amf.core.metamodel.Type.Str
 import amf.core.metamodel.domain.templates.KeyField
 import amf.core.metamodel.domain.{DataNodeModel, DomainElementModel, ModelDoc, ModelVocabularies}
 import amf.core.model.domain.extensions.DomainExtension
-import amf.core.vocabulary.Namespace.{Document, Http}
+import amf.core.vocabulary.Namespace.{Document, ApiContract}
 import amf.core.vocabulary.ValueType
 
 /**
@@ -33,14 +33,14 @@ trait DomainExtensionModel extends DomainElementModel with KeyField {
 
   override def fields: List[Field] = List(Name, DefinedBy, Extension, Element) ++ DomainElementModel.fields
 
-  override val `type`: List[ValueType] = Http + "DomainExtension" :: DomainElementModel.`type`
+  override val `type`: List[ValueType] = ApiContract + "DomainExtension" :: DomainElementModel.`type`
 }
 
 object DomainExtensionModel extends DomainExtensionModel {
   override def modelInstance = DomainExtension()
 
   override val doc: ModelDoc = ModelDoc(
-    ModelVocabularies.Http,
+    ModelVocabularies.ApiContract,
     "Domain Extension",
     "Extension to the model being parsed from RAML annotation or OpenAPI extensions\nThey must be a DomainPropertySchema (only in RAML) defining them.\nThe DomainPropertySchema might have an associated Data Shape that must validate the extension nested graph.\nThey are parsed as RDF graphs using a default transformation from a set of nested records into RDF."
   )

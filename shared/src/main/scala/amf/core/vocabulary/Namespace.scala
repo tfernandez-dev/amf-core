@@ -13,7 +13,7 @@ object Namespace {
 
   val Document = Namespace("http://a.ml/vocabularies/document#")
 
-  val Http = Namespace("http://a.ml/vocabularies/http#")
+  val ApiContract = Namespace("http://a.ml/vocabularies/apiContract#")
 
   val Security = Namespace("http://a.ml/vocabularies/security#")
 
@@ -26,8 +26,6 @@ object Namespace {
   val Shacl = Namespace("http://www.w3.org/ns/shacl#")
 
   val Core = Namespace("http://a.ml/vocabularies/core#")
-
-  // val Hydra = Namespace("http://www.w3.org/ns/hydra/core#")
 
   val Xsd = Namespace("http://www.w3.org/2001/XMLSchema#")
 
@@ -62,13 +60,12 @@ object Namespace {
     "shacl"          -> Shacl,
     "security"       -> Security,
     "core"           -> Core,
-    "raml-http"      -> Http,
-    "http"           -> Http,
     "raml-doc"       -> Document,
     "doc"            -> Document,
     "xsd"            -> Xsd,
     "amf-parser"     -> AmfParser,
     "amf-core"       -> AmfCore,
+    "apiContract" -> ApiContract,
     "amf-resolution" -> AmfResolution,
     "amf-validation" -> AmfValidation,
     "amf-render"     -> AmfRender,
@@ -134,7 +131,7 @@ object Namespace {
   def find(uri: String): Option[Namespace] = uri match {
     case "http://a.ml/vocabularies/document" => Some(Document)
 
-    case "http://a.ml/vocabularies/http" => Some(Http)
+    case "http://a.ml/vocabularies/apiContract" => Some(ApiContract)
 
     case "http://a.ml/vocabularies/security" => Some(Security)
 
@@ -147,8 +144,6 @@ object Namespace {
     case "http://www.w3.org/ns/shacl" => Some(Shacl)
 
     case "http://a.ml/vocabularies/core#" => Some(Core)
-
-    // case "http://www.w3.org/ns/hydra/core" => Some(Hydra)
 
     case "http://www.w3.org/2001/XMLSchema" => Some(Xsd)
 

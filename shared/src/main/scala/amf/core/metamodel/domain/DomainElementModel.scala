@@ -18,23 +18,22 @@ case class ModelDoc(vocabulary: ModelVocabulary = ModelVocabularies.Parser, disp
 case class ModelVocabulary(alias: String, base: String, usage: String, filename: String)
 
 object ModelVocabularies {
-  val Parser = ModelVocabulary("parser", Namespace.AmfParser.base, "Internal namespace", "")
-  val AmlDoc = ModelVocabulary("doc", Namespace.Document.base, "Document Model vocabulary for AMF. The Document Model defines the basic modular units where domain descriptions can be encoded.", "aml_doc.yaml")
-  val Http = ModelVocabulary("http", Namespace.Http.base, "HTTP APIs vocabulary for AMF", "http.yaml")
-  val Shapes = ModelVocabulary("shapes", Namespace.Shapes.base, "Vocabulary defining data shapes, used as an extension to SHACL", "shapes.yaml")
-  val Data = ModelVocabulary("data", Namespace.Data.base, "Vocabulary defining a default set of classes to map data structures composed of recursive records of fields,\nlike the ones used in JSON or YAML into a RDF graph.\nThey can be validated using data shapes.", "data_model.yaml")
-  val Meta = ModelVocabulary("meta", Namespace.Meta.base, "Vocabulary containing meta-definitions", "meta.yaml")
-  val Security = ModelVocabulary("security",Namespace.Security.base, "Vocabulary for HTTP security information", "security.yaml")
+  val Parser      = ModelVocabulary("parser", Namespace.AmfParser.base, "Internal namespace", "")
+  val AmlDoc      = ModelVocabulary("doc", Namespace.Document.base, "Document Model vocabulary for AMF. The Document Model defines the basic modular units where domain descriptions can be encoded.", "aml_doc.yaml")
+  val ApiContract = ModelVocabulary("service", Namespace.ApiContract.base, "API contract vocabulary", "api_contract.yaml")
+  val Core        = ModelVocabulary("core", Namespace.Core.base, "Core vocabulary with common classes and properties", "core.yaml")
+  val Shapes      = ModelVocabulary("shapes", Namespace.Shapes.base, "Vocabulary defining data shapes, used as an extension to SHACL", "shapes.yaml")
+  val Data        = ModelVocabulary("data", Namespace.Data.base, "Vocabulary defining a default set of classes to map data structures composed of recursive records of fields,\nlike the ones used in JSON or YAML into a RDF graph.\nThey can be validated using data shapes.", "data_model.yaml")
+  val Meta        = ModelVocabulary("meta", Namespace.Meta.base, "Vocabulary containing meta-definitions", "meta.yaml")
+  val Security    = ModelVocabulary("security",Namespace.Security.base, "Vocabulary for HTTP security information", "security.yaml")
 
-  val all: Seq[ModelVocabulary] = Seq(AmlDoc, Http, Shapes, Data, Security, Meta)
+  val all: Seq[ModelVocabulary] = Seq(AmlDoc, ApiContract, Shapes, Data, Security, Meta)
 }
 
 object ExternalModelVocabularies {
-  // val SchemaOrg = ModelVocabulary("schema-org", Namespace.Schema.base, "Schema.org vocabulary", "")
   val Shacl = ModelVocabulary("shacl", Namespace.Shacl.base, "SHACL vocabulary", "")
   val Rdfs = ModelVocabulary("rdfs", Namespace.Rdfs.base, "RDFS vocabulary", "")
   val Rdf = ModelVocabulary("rdf", Namespace.Rdf.base, "RDF vocabulary", "")
-  // val Hydra = ModelVocabulary("hydra", Namespace.Hydra.base, "Hydra vocabulary", "")
   val Owl = ModelVocabulary("owl", Namespace.Owl.base, "OWL2 vocabulary", "")
 
   val all: Seq[ModelVocabulary] = Seq(/*SchemaOrg,*/ Shacl, Rdfs, Rdf, /* Hydra,*/ Owl)

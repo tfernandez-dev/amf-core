@@ -15,6 +15,7 @@ import amf.core.remote.Vendor
 import amf.core.unsafe.PlatformSecrets
 import amf.plugins.features.validation.ResolutionSideValidations.RecursiveShapeSpecification
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /** Any parseable unit, backed by a source URI. */
@@ -112,7 +113,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     encoder match {
       case _ if cycles.contains(encoder.id) => ListBuffer.empty
       case encoder: EncodesModel if Option(encoder.encodes).isDefined =>
-        findModelByCondition(predicate, encoder.encodes, first, acc, cycles + encoder.id)
+        findModelByCondition(predicate, encoder.encodes, first, acc, mutable.Set((cycles + encoder.id).toList:_*))
       case _ => ListBuffer.empty
     }
   }
@@ -125,7 +126,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     encoder match {
       case _ if cycles.contains(encoder.id) => ListBuffer.empty
       case encoder: DeclaresModel =>
-        findModelByConditionInSeq(predicate, encoder.declares, first, acc, cycles + encoder.id)
+        findModelByConditionInSeq(predicate, encoder.declares, first, acc, mutable.Set((cycles + encoder.id).toList:_*))
       case _ => ListBuffer.empty
     }
   }
@@ -151,7 +152,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                                      element: DomainElement,
                                      first: Boolean,
                                      acc: ListBuffer[DomainElement],
-                                     cycles: Set[String]): ListBuffer[DomainElement] = {
+                                     cycles: mutable.Set[String]): ListBuffer[DomainElement] = {
     if (!cycles.contains(element.id)) {
       val found = predicate(element)
       if (found) {
@@ -177,7 +178,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
           case _ =>
             element.fields.fields().map(_.element).toSeq
         }
-        findModelByConditionInSeq(predicate, elements, first, acc, cycles + element.id)
+        cycles += element.id
+        findModelByConditionInSeq(predicate, elements, first, acc, cycles)
       }
     } else {
       acc
@@ -188,7 +190,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                                         elements: Seq[AmfElement],
                                         first: Boolean,
                                         acc: ListBuffer[DomainElement],
-                                        cycles: Set[String]): ListBuffer[DomainElement] = {
+                                        cycles: mutable.Set[String]): ListBuffer[DomainElement] = {
     if (elements.isEmpty) {
       acc
     } else {

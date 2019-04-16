@@ -43,9 +43,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
                 case _ => // ignore
               }
               copied
-            case d: DomainElement =>
-              propagateTracked(l, d)
-              d
+            case d: DomainElement => d
           }
           val resolved = innerLinkNodeResolution(target)
           resolved match {
@@ -56,6 +54,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
           val resolved2 = customDomainElementTransformation(withName(resolved, l), l)
 
           resolved2.annotations += ResolvedInheritance()
+          propagateTracked(l, resolved2)
           if (keepEditingInfo) resolved2.annotations += ResolvedLinkAnnotation(l.id)
           traverseLinks(element, resolved2)
           Some(resolved2)
@@ -68,12 +67,29 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean, links: mutable.Map[Stri
   private def propagateTracked(link: DomainElement, element: DomainElement): Unit =
     link.annotations.find(classOf[TrackedElement]).foreach {
       case t @ TrackedElement(values) =>
-        val tracked = element.annotations
-          .find(classOf[TrackedElement])
-          .fold(t)(inner => TrackedElement(values ++ inner.parents))
-
-        element.annotations.reject(_.isInstanceOf[TrackedElement])
-        element.add(tracked)
+        // This piece of code is to propagate the trackedElement annotation from an Examples link to each resolved Example
+        // I had to use the URI to identify the fields because of I don't have visibility of model from core
+        element.fields.fieldsMeta().headOption match {
+          case Some(id) if id.toString == Namespace.Document.base + "examples" =>
+            val tracked = element.annotations
+              .find(classOf[TrackedElement])
+              .fold(t)(inner => TrackedElement(values ++ inner.parents))
+            element.fields.fields().headOption match {
+              case Some(f) =>
+                f.value.value
+                  .asInstanceOf[AmfArray]
+                  .values
+                  .foreach(example => {
+                    val tracked = example.annotations
+                      .find(classOf[TrackedElement])
+                      .fold(t)(inner => TrackedElement(values ++ inner.parents))
+                    example.annotations.reject(_.isInstanceOf[TrackedElement])
+                    example.add(tracked)
+                  })
+              case _ => //ignore
+            }
+          case _ => // ignore
+        }
     }
 
 // Links traversion to expand annotations and add links to 'cache'

@@ -25,7 +25,7 @@ object Namespace {
 
   val Shacl = Namespace("http://www.w3.org/ns/shacl#")
 
-  // val Schema = Namespace("http://schema.org/")
+  val Core = Namespace("http://a.ml/vocabularies/core#")
 
   // val Hydra = Namespace("http://www.w3.org/ns/hydra/core#")
 
@@ -61,6 +61,7 @@ object Namespace {
     "sh"             -> Shacl,
     "shacl"          -> Shacl,
     "security"       -> Security,
+    "core"           -> Core,
     "raml-http"      -> Http,
     "http"           -> Http,
     "raml-doc"       -> Document,
@@ -145,7 +146,7 @@ object Namespace {
 
     case "http://www.w3.org/ns/shacl" => Some(Shacl)
 
-    // case "http://schema.org/" => Some(Schema)
+    case "http://a.ml/vocabularies/core#" => Some(Core)
 
     // case "http://www.w3.org/ns/hydra/core" => Some(Hydra)
 

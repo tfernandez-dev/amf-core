@@ -68,7 +68,7 @@ object ScalarNodeModel extends DomainElementModel {
 object ArrayNodeModel extends DomainElementModel {
 
   val Member =
-    Field(Array(DataNodeModel), Namespace.Rdf + "member", ModelDoc(ExternalModelVocabularies.Rdf, "member", ""))
+    Field(Array(DataNodeModel), Namespace.Rdfs + "member", ModelDoc(ExternalModelVocabularies.Rdf, "member", ""))
 
   override val fields: List[Field]      = Member :: DataNodeModel.fields
   override val `type`: List[ValueType]  = Data + "Array" :: Namespace.Rdf + "Seq" :: DataNodeModel.`type`

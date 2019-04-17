@@ -1,12 +1,13 @@
 package amf.core.metamodel.domain.extensions
 
+import amf.Core
 import amf.core.metamodel.Field
 import amf.core.metamodel.Type.Str
 import amf.core.metamodel.domain.templates.KeyField
 import amf.core.metamodel.domain.{DataNodeModel, DomainElementModel, ModelDoc, ModelVocabularies}
 import amf.core.model.domain.extensions.DomainExtension
-import amf.core.vocabulary.Namespace.{Document, ApiContract}
-import amf.core.vocabulary.ValueType
+import amf.core.vocabulary.Namespace.{ApiContract, Document}
+import amf.core.vocabulary.{Namespace, ValueType}
 
 /**
   * Extension to the model being parsed from RAML annotation or OpenAPI extensions.
@@ -19,7 +20,7 @@ import amf.core.vocabulary.ValueType
   */
 trait DomainExtensionModel extends DomainElementModel with KeyField {
 
-  val Name = Field(Str, Document + "name", ModelDoc(ModelVocabularies.AmlDoc, "name", "Name of an entity"))
+  val Name = Field(Str, Namespace.Core + "name", ModelDoc(ModelVocabularies.Core, "name", "Name of an entity"))
   val DefinedBy = Field(CustomDomainPropertyModel,
                         Document + "definedBy",
                         ModelDoc(ModelVocabularies.AmlDoc, "defined by", "Definition for the extended entity"))

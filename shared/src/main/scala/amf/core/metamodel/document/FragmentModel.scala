@@ -4,7 +4,7 @@ import amf.core.metamodel.Field
 import amf.core.metamodel.Type.Str
 import amf.core.metamodel.domain.{DomainElementModel, ModelDoc, ModelVocabularies}
 import amf.core.model.domain.AmfObject
-import amf.core.vocabulary.Namespace.{Core, Document}
+import amf.core.vocabulary.Namespace.{Core, Document, ApiContract}
 import amf.core.vocabulary.ValueType
 
 /**
@@ -54,7 +54,7 @@ object PayloadFragmentModel extends FragmentModel {
 
   override val fields: List[Field] = Encodes :: MediaType :: BaseUnitModel.fields
 
-  override val `type`: List[ValueType] = List(Document + "PayloadFragment") ++ FragmentModel.`type`
+  override val `type`: List[ValueType] = List(ApiContract + "PayloadFragment") ++ FragmentModel.`type`
 
   override val doc: ModelDoc = ModelDoc(
     ModelVocabularies.ApiContract,

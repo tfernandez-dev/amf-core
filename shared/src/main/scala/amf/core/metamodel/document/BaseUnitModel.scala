@@ -29,7 +29,7 @@ trait BaseUnitModel extends Obj with ModelDefaultBuilder {
     ModelDoc(ModelVocabularies.AmlDoc,
              "usage",
              "Human readable description of the unit",
-             superClasses = Seq((Namespace.Document + "description").iri()))
+             superClasses = Seq((Namespace.Core + "description").iri()))
   )
 
   val DescribedBy = Field(

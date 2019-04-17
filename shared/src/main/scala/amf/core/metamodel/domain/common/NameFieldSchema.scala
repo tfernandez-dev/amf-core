@@ -3,13 +3,13 @@ package amf.core.metamodel.domain.common
 import amf.core.metamodel.Field
 import amf.core.metamodel.Type.Str
 import amf.core.metamodel.domain.{ExternalModelVocabularies, ModelDoc, ModelVocabularies}
-import amf.core.vocabulary.Namespace.{Document, Shacl}
+import amf.core.vocabulary.Namespace.{Core, Shacl}
 
 /**
   * Name field.
   */
 trait NameFieldSchema {
-  val Name = Field(Str, Document + "name", ModelDoc(ModelVocabularies.AmlDoc, "name", "Name of the shape"))
+  val Name = Field(Str, Core + "name", ModelDoc(ModelVocabularies.Core, "name", "Name of the shape"))
 }
 
 trait NameFieldShacl {

@@ -7,7 +7,7 @@ import amf.core.vocabulary.{Namespace, ValueType}
 
 trait ExternalSourceElementModel extends Obj {
   val Raw = Field(Str,
-                  Shacl + "raw",
+                  Document + "raw",
                   ModelDoc(ModelVocabularies.AmlDoc,
                            "raw",
                            "Raw textual information that cannot be processed for the current model semantics."))

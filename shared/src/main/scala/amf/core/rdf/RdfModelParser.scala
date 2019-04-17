@@ -157,7 +157,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
           obj.withId(node.subject)
           node.getKeys().foreach { uri =>
             if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
-              uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
+                uri != (Namespace.Core + "name").iri()) { // we do this to prevent parsing name of annotations
 
               val dataNode = node.getProperties(uri).get.head match {
                 case l @ Literal(_, _) =>

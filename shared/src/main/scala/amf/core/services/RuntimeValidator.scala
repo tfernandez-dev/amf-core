@@ -14,11 +14,13 @@ import scala.concurrent.Future
 
 trait ValidationsMerger {
   val parserRun: Int
+
   def merge(result: AMFValidationResult): Boolean
 }
 
 object IgnoreValidationsMerger extends ValidationsMerger {
-  override val parserRun: Int                              = -1
+  override val parserRun: Int = -1
+
   override def merge(result: AMFValidationResult): Boolean = false
 }
 
@@ -45,6 +47,7 @@ trait RuntimeValidator {
 
   /**
     * Generates a JSON-LD graph with the SHACL shapes for the requested profile name
+    *
     * @return JSON-LD graph
     */
   def emitShapesGraph(profileName: ProfileName): String
@@ -63,7 +66,8 @@ trait RuntimeValidator {
   def validate(model: BaseUnit,
                profileName: ProfileName,
                messageStyle: MessageStyle,
-               env: Environment): Future[AMFValidationReport]
+               env: Environment,
+               resolved: Boolean): Future[AMFValidationReport]
 
   def reset()
 
@@ -93,11 +97,13 @@ trait RuntimeValidator {
 
   def aggregateReport(model: BaseUnit,
                       profileName: ProfileName,
-                      messageStyle: MessageStyle): Future[AMFValidationReport]
+                      messageStyle: MessageStyle,
+                      resolved: Boolean): Future[AMFValidationReport]
 }
 
 object RuntimeValidator {
   var validatorOption: Option[RuntimeValidator] = None
+
   def register(runtimeValidator: RuntimeValidator): Unit = {
     validatorOption = Some(runtimeValidator)
   }
@@ -105,7 +111,7 @@ object RuntimeValidator {
   private def validator: RuntimeValidator = {
     validatorOption match {
       case Some(runtimeValidator) => runtimeValidator
-      case None                   => throw new Exception("No registered runtime validator")
+      case None => throw new Exception("No registered runtime validator")
     }
   }
 
@@ -128,13 +134,14 @@ object RuntimeValidator {
   def apply(model: BaseUnit,
             profileName: ProfileName,
             messageStyle: MessageStyle = AMFStyle,
-            env: Environment = Environment()): Future[AMFValidationReport] =
-    validator.validate(model, profileName, messageStyle, env)
+            env: Environment = Environment(), resolved: Boolean = false): Future[AMFValidationReport] =
+    validator.validate(model, profileName, messageStyle, env, resolved)
 
   def aggregateReport(model: BaseUnit,
                       profileName: ProfileName,
-                      messageStyle: MessageStyle = AMFStyle): Future[AMFValidationReport] =
-    validator.aggregateReport(model, profileName, messageStyle)
+                      messageStyle: MessageStyle = AMFStyle,
+                      resolved: Boolean = false): Future[AMFValidationReport] =
+    validator.aggregateReport(model, profileName, messageStyle, resolved)
 
   def reset(): Unit = validator.reset()
 
@@ -167,8 +174,8 @@ object RuntimeValidator {
 
 class ValidationOptions() {
   val filterFields: Field => Boolean = (_: Field) => false
-  var messageStyle: MessageStyle     = AMFStyle
-  var level: String                  = "partial" // partial | full
+  var messageStyle: MessageStyle = AMFStyle
+  var level: String = "partial" // partial | full
 
   def toRenderOptions: RenderOptions = RenderOptions().withValidation.withFilterFieldsFunc(filterFields)
 

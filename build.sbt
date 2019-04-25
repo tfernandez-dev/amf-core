@@ -8,31 +8,20 @@ val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/lo
 
 name := "amf-core"
 
-
-
 version in ThisBuild := {
-  val mayor = 4
+  val major = 4
   val minor = 0
 
-  lazy val buildNumber = sys.env.getOrElse("BUILD_NUMBER", "0")
-  lazy val branchName = sys.env.getOrElse("BRANCH_NAME", "aa")
-  println("Build number is: "+buildNumber)
+  lazy val build = sys.env.getOrElse("BUILD_NUMBER", "0")
+  lazy val branch = sys.env.get("BRANCH_NAME")
 
-  println("Branch number is: "+branchName)
-
-  val v = {
-    if(branchName == "master")
-      mayor.toString + "." + minor.toString + "." + buildNumber
-    else
-      mayor.toString + "." + (minor +1).toString + ".0-SNAPSHOT"
-  }
-  println("Setting version to : "+v)
-  v
+  if (branch.exists(_ == "master"))
+    major.toString + "." + minor.toString + "." + build
+  else
+    major.toString + "." + (minor + 1).toString + ".0-SNAPSHOT"
 }
 
-publish := {
-
-}
+publish := {}
 
 jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv()
 
@@ -55,14 +44,11 @@ setSonarProperties := {
     "sonar.projectKey" -> "mulesoft.amf-core",
     "sonar.projectName" -> "AMF-CORE",
     "sonar.projectVersion" -> "4.0.0",
-
     "sonar.sourceEncoding" -> "UTF-8",
     "sonar.github.repository" -> "mulesoft/amf-core",
-
     "sonar.sources" -> "shared/src/main/scala",
     "sonar.tests" -> "shared/src/test/scala",
     "amf-core.sonar.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
-
   )
 
   sonarProperties := values
@@ -74,9 +60,7 @@ setSonarProperties := {
   stream.close()
 }
 
-val sonarMe = TaskKey[Unit](
-  "sonarMe",
-  "Run sonar!")
+val sonarMe = TaskKey[Unit]("sonarMe", "Run sonar!")
 sonarMe := {
 
   //  sonarRunnerOptions := Seq(
@@ -94,15 +78,17 @@ sonarMe := {
 
 val settings = Common.settings ++ Common.publish ++ Seq(
   organization := "com.github.amlorg",
-  resolvers ++= List(ivyLocal, Common.releases, Common.snapshots, Resolver.mavenLocal),
+  resolvers ++= List(ivyLocal,
+                     Common.releases,
+                     Common.snapshots,
+                     Resolver.mavenLocal),
   resolvers += "jitpack" at "https://jitpack.io",
   credentials ++= Common.credentials(),
   libraryDependencies ++= Seq(
-    "org.scalatest"    %%% "scalatest" % "3.0.5" % Test,
-    "com.github.scopt" %%% "scopt"     % "3.7.0"
+    "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+    "com.github.scopt" %%% "scopt" % "3.7.0"
   )
 )
-
 
 /** **********************************************
   * AMF-Core
@@ -115,14 +101,14 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .settings(
     Seq(
       name := "amf-core",
-      libraryDependencies += "org.mule.syaml" %%% "syaml" % "0.6.8"
+      libraryDependencies += "org.mule.syaml" %%% "syaml" % "0.7.234"
     ))
   .in(file("."))
   .settings(settings)
   .jvmSettings(
-    libraryDependencies += "org.scala-js"           %% "scalajs-stubs"          % scalaJSVersion % "provided",
+    libraryDependencies += "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided",
     libraryDependencies += "org.scala-lang.modules" % "scala-java8-compat_2.12" % "0.8.0",
-    libraryDependencies += "org.json4s"             %% "json4s-native"          % "3.5.4",
+    libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.4",
     artifactPath in (Compile, packageDoc) := baseDirectory.value / "target" / "artifact" / "amf-core-javadoc.jar"
   )
   .jsSettings(
@@ -132,4 +118,4 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
 
 lazy val coreJVM = core.jvm.in(file("./jvm"))
-lazy val coreJS  = core.js.in(file("./js"))
+lazy val coreJS = core.js.in(file("./js"))

@@ -15,10 +15,7 @@ version in ThisBuild := {
   lazy val build = sys.env.getOrElse("BUILD_NUMBER", "0")
   lazy val branch = sys.env.get("BRANCH_NAME")
 
-  if (branch.exists(_ == "master"))
-    major.toString + "." + minor.toString + "." + build
-  else
-    major.toString + "." + (minor + 1).toString + ".0-SNAPSHOT"
+  if (branch.exists(_ == "master")) s"$major.$minor.$build" else s"$major.${minor + 1}.0-SNAPSHOT"
 }
 
 publish := {}
@@ -101,7 +98,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   .settings(
     Seq(
       name := "amf-core",
-      libraryDependencies += "org.mule.syaml" %%% "syaml" % "0.7.234"
+      libraryDependencies += "org.mule.syaml" %%% "syaml" % "0.7.235"
     ))
   .in(file("."))
   .settings(settings)

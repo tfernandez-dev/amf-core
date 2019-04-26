@@ -1,7 +1,7 @@
 package amf.core.rdf
 
 import amf.core.annotations.DomainExtensionAnnotation
-import amf.core.metamodel.Type.{Array, Bool, Iri, RegExp, SortedArray, Str}
+import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel, SourceMapModel}
 import amf.core.metamodel.domain._
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
@@ -298,15 +298,15 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
                 s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
           }
 
-        case Iri           => instance.set(f, strCoercion(property), annots(sources, key))
-        case Str | RegExp  => instance.set(f, str(property), annots(sources, key))
-        case Bool          => instance.set(f, bool(property), annots(sources, key))
-        case Type.Int      => instance.set(f, int(property), annots(sources, key))
-        case Type.Float    => instance.set(f, float(property), annots(sources, key))
-        case Type.Double   => instance.set(f, double(property), annots(sources, key))
-        case Type.DateTime => instance.set(f, date(property), annots(sources, key))
-        case Type.Date     => instance.set(f, date(property), annots(sources, key))
-        case Type.Any      => instance.set(f, any(property), annots(sources, key))
+        case Iri                       => instance.set(f, strCoercion(property), annots(sources, key))
+        case Str | RegExp | LiteralUri => instance.set(f, str(property), annots(sources, key))
+        case Bool                      => instance.set(f, bool(property), annots(sources, key))
+        case Type.Int                  => instance.set(f, int(property), annots(sources, key))
+        case Type.Float                => instance.set(f, float(property), annots(sources, key))
+        case Type.Double               => instance.set(f, double(property), annots(sources, key))
+        case Type.DateTime             => instance.set(f, date(property), annots(sources, key))
+        case Type.Date                 => instance.set(f, date(property), annots(sources, key))
+        case Type.Any                  => instance.set(f, any(property), annots(sources, key))
         case l: SortedArray if properties.length == 1 =>
           instance.setArray(f, parseList(instance.id, l.element, findLink(properties.head)), annots(sources, key))
         case _: SortedArray =>

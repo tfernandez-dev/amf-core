@@ -1,12 +1,11 @@
 package amf.core.model.document
 
-import amf.core.annotations.SourceVendor
+import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
 import amf.core.metamodel.document.BaseUnitModel.{Location, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
-import amf.core.metamodel.domain.DomainElementModel
-import amf.core.metamodel.{DynamicObj, MetaModelTypeMapping, Obj}
+import amf.core.metamodel.{MetaModelTypeMapping, Obj}
 import amf.core.model.StrField
 import amf.core.model.domain._
 import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, FieldEntry, ParserContext, Value}
@@ -83,7 +82,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   }
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(
-      implicit errorHandler: ErrorHandler): BaseUnit = {
+    implicit errorHandler: ErrorHandler): BaseUnit = {
     val domainElementAdapter = (o: AmfObject) => {
       o match {
         case e: DomainElement => selector(e)
@@ -97,9 +96,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
       }
     }
     transformByCondition(this,
-                         domainElementAdapter,
-                         transformationAdapter,
-                         cycleRecoverer = defaultCycleRecoverer(errorHandler))
+      domainElementAdapter,
+      transformationAdapter,
+      cycleRecoverer = defaultCycleRecoverer(errorHandler))
     this
   }
 
@@ -162,22 +161,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
         acc
       } else {
         // elements are the values in the properties for the not found object
-        val elements = element.meta match {
-          case _: DynamicObj =>
-            val values =
-              (element.meta.fields :+ DomainElementModel.CustomDomainProperties)
-                .flatMap(f => element.asInstanceOf[DynamicDomainElement].valueForField(f))
-                .map(_.value)
-            val effectiveValues = values.map {
-              case d: DomainElement => Seq(d) // set(
-              case a: AmfArray =>
-                a.values.filter(_.isInstanceOf[DomainElement]).asInstanceOf[Seq[DomainElement]] // setArray(
-              case _ => Seq() // ignore literals
-            }
-            effectiveValues.flatten
-          case _ =>
-            element.fields.fields().map(_.element).toSeq
-        }
+        val elements = element.fields.fields().map(_.element).toSeq
         cycles += element.id
         findModelByConditionInSeq(predicate, elements, first, acc, cycles)
       }
@@ -219,8 +203,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   }
 
   protected def defaultCycleRecoverer(errorHandler: ErrorHandler = DefaultParserSideErrorHandler(this))(
-      old: AmfObject,
-      transformed: AmfObject): Option[AmfObject] = {
+    old: AmfObject,
+    transformed: AmfObject): Option[AmfObject] = {
     transformed match {
       case s: Shape =>
         Some(RecursiveShape(s))
@@ -254,40 +238,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
           case other => other.orNull
         }
       } else {
-        // not matches the predicate, we traverse
-        traversed += element.id
-        element match {
-          case dataNode: ObjectNode =>
-            dataNode.properties.foreach {
-              case (prop, value) =>
-                Option(transformByCondition(value, predicate, transformation, traversed, cycles + element.id, cycleRecoverer)) match {
-                  case Some(transformed: DataNode) =>
-                    dataNode.properties.put(prop, transformed)
-                    dataNode
-                  case Some(_) => dataNode
-                  case _ =>
-                    dataNode.properties.remove(prop)
-                    dataNode
-                }
-            }
-
-          case arrayNode: ArrayNode =>
-            arrayNode.members = arrayNode.members
-              .flatMap { elem: DataNode =>
-                Option(
-                  transformByCondition(elem,
-                                       predicate,
-                                       transformation,
-                                       traversed,
-                                       cycles + element.id,
-                                       cycleRecoverer = cycleRecoverer))
-              }
-              .map(_.adopted(arrayNode.id))
-              .collect { case d: DataNode => d }
-
-          case _ =>
+            // not matches the predicate, we traverse
             // we first process declarations, then the encoding
-            val effectiveFields: Iterable[FieldEntry] = element match {
+        traversed += element.id
+        val effectiveFields: Iterable[FieldEntry] = element match {
               case doc: DeclaresModel =>
                 doc.fields.fields().filter(f => f.field == DocumentModel.References) ++
                   doc.fields.fields().filter(f => f.field == DocumentModel.Declares) ++
@@ -313,7 +267,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                                          cycles + element.id,
                                          cycleRecoverer = cycleRecoverer)) match {
                     case Some(transformedValue: AmfObject) =>
-                      element.fields.setWithoutId(f, transformedValue)
+                      element.fields.setWithoutId(f, transformedValue, v.annotations.copyFiltering(a => a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode]))
                       element match {
                         case s: Shape if transformedValue.isInstanceOf[RecursiveShape] =>
                           transformedValue
@@ -356,7 +310,6 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
                 case _ => // ignore
               }
-        }
         element
       }
 

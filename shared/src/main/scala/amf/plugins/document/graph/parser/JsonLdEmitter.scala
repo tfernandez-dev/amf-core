@@ -5,7 +5,7 @@ import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Type.{Any, Array, Bool, EncodedIri, Iri, LiteralUri, SortedArray, Str}
 import amf.core.metamodel.document.{ModuleModel, SourceMapModel}
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.domain.{DomainElementModel, LinkableElementModel, ShapeModel}
+import amf.core.metamodel.domain.{DomainElementModel, ExternalSourceElementModel, LinkableElementModel, ShapeModel}
 import amf.core.metamodel._
 import amf.core.model.document.{BaseUnit, SourceMap}
 import amf.core.model.domain.DataNodeOps.adoptTree
@@ -92,8 +92,12 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
                         ctx: EmissionContext): Unit = {
     createTypeNode(b, obj, Some(element), ctx)
 
+    val objFields = element match {
+      case e:ExternalSourceElement if e.isLinkToSource => obj.fields.filter(f => f != ExternalSourceElementModel.Raw )
+      case _ => obj.fields
+    }
     // workaround for lazy values in shape
-    val modelFields = obj.fields ++ (obj match {
+    val modelFields = objFields ++ (obj match {
       case _: ShapeModel =>
         Seq(
           ShapeModel.CustomShapePropertyDefinitions,
@@ -108,21 +112,15 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
         val url = Namespace.AmfValidation.base + "/properties"
         b.entry(
           url,
-          value(Type.Int, Value(AmfScalar(e.properties.size), Annotations()), id, _ => {}, _, ctx)
+          value(Type.Int, Value(AmfScalar(e.propertyFields().size), Annotations()), id, _ => {}, _, ctx)
         )
       case _ => // Nothing to do
     }
 
-    obj match {
-      case dynamic: DynamicObj =>
-        modelFields.foreach { f =>
-          emitDynamicField(f, b, id, element.asInstanceOf[DynamicDomainElement], sources, ctx)
-        }
-      case _ =>
-        modelFields.foreach { f =>
-          emitStaticField(f, element, id, sources, b, ctx)
-        }
+    modelFields.foreach { f =>
+      emitStaticField(f, element, id, sources, b, ctx)
     }
+
   }
 
   private def emitStaticField(field: Field,
@@ -139,28 +137,6 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
           value(f.`type`, v, id, sources.property(url), _, ctx)
         )
       case None => // Missing field
-    }
-  }
-  private def emitDynamicField(f: Field,
-                               b: Entry,
-                               id: String,
-                               element: DynamicDomainElement,
-                               sources: SourceMap,
-                               ctx: EmissionContext): Unit = {
-    element.valueForField(f).foreach { amfValue =>
-      val url = ctx.emitIri(f.value.iri())
-      element match {
-        case schema: DynamicDomainElement if !schema.isInstanceOf[ExternalSourceElement] =>
-          b.entry(
-            url,
-            value(f.`type`, Value(amfValue.value, amfValue.value.annotations), id, sources.property(url), _, ctx)
-          )
-        case _ =>
-          b.entry(
-            url,
-            value(f.`type`, amfValue, id, sources.property(url), _, ctx)
-          )
-      }
     }
   }
 
@@ -227,7 +203,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
             b.entry(
               ctx.emitIri(DomainExtensionModel.Element.value.iri()),
               listWithScalar(_, f.value.iri())
-          ))
+            ))
         traverse(extension.extension, b, ctx)
       }
     )
@@ -296,8 +272,8 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
   private def value(t: Type, v: Value, parent: String, sources: Value => Unit, b: Part, ctx: EmissionContext): Unit = {
     t match {
       case _: ShapeModel
-          if v.value.annotations.contains(classOf[ResolvedInheritance]) && ((!ctx.declares) || (ctx.declares && ctx
-            .isDeclared(v.value)) && ctx.isDeclared(parent)) =>
+        if v.value.annotations.contains(classOf[ResolvedInheritance]) && ((!ctx.declares) || (ctx.declares && ctx
+          .isDeclared(v.value)) && ctx.isDeclared(parent)) =>
         extractToLink(v.value.asInstanceOf[Shape], b, ctx)
       case t: DomainElement with Linkable if t.isLink =>
         link(b, t, inArray = false, ctx)
@@ -315,12 +291,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
         typedScalar(b, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyURI").iri(), ctx)
         sources(v)
       case Str =>
-        v.annotations.find(classOf[ScalarType]) match {
-          case Some(annotation) =>
-            typedScalar(b, v.value.asInstanceOf[AmfScalar].toString, annotation.datatype, ctx)
-          case None =>
-            listWithScalar(b, v.value)
-        }
+        listWithScalar(b, v.value)
         sources(v)
       case Bool =>
         listWithScalar(b, v.value, SType.Bool)
@@ -350,9 +321,9 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
               typedScalar(b, emitDateFormat(dateTime), (Namespace.Xsd + "dateTime").iri(), ctx)
             } else {
               typedScalar(b,
-                          f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d",
-                          (Namespace.Xsd + "date").iri(),
-                          ctx)
+                f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d",
+                (Namespace.Xsd + "date").iri(),
+                ctx)
 
             }
           case _ =>
@@ -369,9 +340,9 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
             case _: Obj =>
               seq.values.asInstanceOf[Seq[AmfObject]].foreach {
                 case v @ (_: Shape)
-                    if v.annotations
-                      .contains(classOf[ResolvedInheritance]) && ((!ctx.declares) || (ctx.declares && ctx
-                      .isDeclared(v) && ctx.isDeclared(parent))) =>
+                  if v.annotations
+                    .contains(classOf[ResolvedInheritance]) && ((!ctx.declares) || (ctx.declares && ctx
+                    .isDeclared(v) && ctx.isDeclared(parent))) =>
                   extractToLink(v.asInstanceOf[Shape], b, ctx)
                 case elementInArray: DomainElement with Linkable if elementInArray.isLink =>
                   link(b, elementInArray, inArray = true, ctx)
@@ -380,11 +351,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
               }
             case Str =>
               seq.values.asInstanceOf[Seq[AmfScalar]].foreach { e =>
-                e.annotations.find(classOf[ScalarType]) match {
-                  case Some(annotation) =>
-                    typedScalar(b, e.value.asInstanceOf[AmfScalar].toString, annotation.datatype, ctx, inArray = true)
-                  case None => scalar(b, e.toString)
-                }
+                scalar(b, e.toString)
               }
             case EncodedIri =>
               seq.values.asInstanceOf[Seq[AmfScalar]].foreach(e => safeIri(b, e.toString, ctx, inArray = true))
@@ -450,17 +417,14 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
     }
   }
 
-  private def emitSimpleDateTime(b: Part,
-                                 dateTime: SimpleDateTime,
-                                 inArray: Boolean = true,
-                                 ctx: EmissionContext): Unit = {
+  private def emitSimpleDateTime(b: Part, dateTime: SimpleDateTime, inArray: Boolean = true, ctx: EmissionContext): Unit = {
     if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
       typedScalar(b, emitDateFormat(dateTime), (Namespace.Xsd + "dateTime").iri(), ctx, inArray)
     } else {
       typedScalar(b,
-                  f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d",
-                  (Namespace.Xsd + "date").iri(),
-                  ctx)
+        f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d",
+        (Namespace.Xsd + "date").iri(),
+        ctx)
     }
   }
 

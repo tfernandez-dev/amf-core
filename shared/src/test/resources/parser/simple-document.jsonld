@@ -17,8 +17,12 @@
         ],
         "http://a.ml/vocabularies/data#value": [
           {
-            "@value": "myValue",
-            "@type": "http://www.w3.org/2001/XMLSchema#String"
+            "@value": "myValue"
+          }
+        ],
+        "http://www.w3.org/ns/shacl#datatype": [
+          {
+            "@id": "http://www.w3.org/2001/XMLSchema#String"
           }
         ]
       }
@@ -42,15 +46,14 @@
             ],
             "http://a.ml/vocabularies/data#value": [
               {
-                "@value": "myValue2",
-                "@type": "http://www.w3.org/2001/XMLSchema#String"
+                "@value": "myValue2"
+              }
+            ],
+            "http://www.w3.org/ns/shacl#datatype": [
+              {
+                "@id": "http://www.w3.org/2001/XMLSchema#String"
               }
             ]
-          }
-        ],
-        "http://a.ml/vocabularies/data#pos0": [
-          {
-            "@id": "amf://id4"
           }
         ]
       }

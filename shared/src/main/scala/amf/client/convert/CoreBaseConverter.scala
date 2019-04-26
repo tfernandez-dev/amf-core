@@ -163,6 +163,11 @@ trait CollectionConverter {
     def asClient: ClientMap[Client] = asClientMap(from, m)
   }
 
+  implicit class InternalImmutableMapOps[Internal, Client](from: Map[String, Internal])(
+    implicit m: InternalClientMatcher[Internal, Client]) {
+    def asClient: ClientMap[Client] = asClientImmutableMap(from, m)
+  }
+
   implicit class InternalLinkedMapOps[Internal, Client](from: mutable.LinkedHashMap[String, Internal])(
       implicit m: InternalClientMatcher[Internal, Client]) {
     def asClient: ClientMap[Client] = asClientLinkedMap(from, m)
@@ -185,6 +190,10 @@ trait CollectionConverter {
 
   protected def asClientMap[Internal, Client](from: mutable.Map[String, Internal],
                                               m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
+
+  protected def asClientImmutableMap[Internal, Client](from: Map[String, Internal],
+                                              m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
+
 
   protected def asClientLinkedMap[Internal, Client](from: mutable.LinkedHashMap[String, Internal],
                                                     m: InternalClientMatcher[Internal, Client]): ClientMap[Client]

@@ -1,7 +1,7 @@
 package amf.core.metamodel.domain
 
-import amf.core.metamodel.{DynamicObj, Field, ModelDefaultBuilder}
-import amf.core.metamodel.Type.{Array, Str}
+import amf.core.metamodel.Field
+import amf.core.metamodel.Type.{Array, Iri, Str}
 import amf.core.metamodel.domain.common.NameFieldSchema
 import amf.core.model.domain._
 import amf.core.vocabulary.Namespace.Data
@@ -15,7 +15,7 @@ import amf.core.vocabulary.{Namespace, ValueType}
   * This can be used to parse value of annotations, payloads or
   * examples
   */
-object DataNodeModel extends DomainElementModel with DynamicObj with NameFieldSchema {
+object DataNodeModel extends DomainElementModel with NameFieldSchema {
 
   // We set this so it can be re-used in the definition of the dynamic types
   override def fields: List[Field]     = List(Name) ++ DomainElementModel.fields
@@ -31,7 +31,7 @@ object DataNodeModel extends DomainElementModel with DynamicObj with NameFieldSc
   )
 }
 
-object ObjectNodeModel extends DomainElementModel {
+trait ObjectNodeModel extends DomainElementModel {
 
   override def fields: List[Field]      = DataNodeModel.fields
   override val `type`: List[ValueType]  = Data + "Object" :: DataNodeModel.`type`
@@ -44,12 +44,17 @@ object ObjectNodeModel extends DomainElementModel {
   )
 }
 
-object ScalarNodeModel extends DomainElementModel with DynamicObj {
+object ObjectNodeModel extends ObjectNodeModel
+
+object ScalarNodeModel extends DomainElementModel {
 
   val Value =
     Field(Str, Namespace.Data + "value", ModelDoc(ModelVocabularies.Data, "value", "value for an scalar dynamic node"))
 
-  override def fields: List[Field]      = Value :: DataNodeModel.fields
+  val DataType =
+    Field(Iri, Namespace.Shacl + "datatype", ModelDoc(ModelVocabularies.Data, "dataType", "Data type of value for an scalar dynamic node"))
+
+  override def fields: List[Field]      = Value :: DataType :: DataNodeModel.fields
   override val `type`: List[ValueType]  = Data + "Scalar" :: DataNodeModel.`type`
   override def modelInstance: AmfObject = ScalarNode()
 
@@ -66,7 +71,7 @@ object ArrayNodeModel extends DomainElementModel {
     Field(Array(DataNodeModel), Namespace.Rdf + "member", ModelDoc(ExternalModelVocabularies.Rdf, "member", ""))
 
   override def fields: List[Field]      = Member :: DataNodeModel.fields
-  override val `type`: List[ValueType]  = Data + "Array" :: DataNodeModel.`type`
+  override val `type`: List[ValueType]  = Data + "Array" :: Namespace.Rdf + "Seq" :: DataNodeModel.`type`
   override def modelInstance: AmfObject = ArrayNode()
 
   override val doc: ModelDoc = ModelDoc(

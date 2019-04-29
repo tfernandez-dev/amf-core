@@ -101,7 +101,7 @@ package object BaseEmitters {
   case class LinkScalaEmitter(alias: String, annotations: Annotations) extends PartEmitter {
     override def emit(b: PartBuilder): Unit = {
       sourceOr(annotations, {
-        b += YNode(new YScalar.Builder(alias, YType.Include.tag).scalar, YType.Include) // YNode(YScalar(alias), YType.Include)
+        b += YNode(yscalarWithRange(alias, YType.Include, annotations), YType.Include) // YNode(YScalar(alias), YType.Include)
       })
     }
 

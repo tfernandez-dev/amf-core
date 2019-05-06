@@ -579,6 +579,15 @@ object ParserSideValidations extends Validations {
     "read-only-property-marked-required",
     "Read only property should not be marked as required by a schema"
   )
+  val ExamplesWithInvalidMimeType = validation(
+    "examples-with-invalid-mime-type",
+    "Mime type defined in 'examples' must be present in a 'produces' property"
+  )
+
+  val ExamplesWithNoSchemaDefined = validation(
+    "examples-with-no-schema-defined",
+    "When schema is undefined, 'examples' facet is invalid as no content is returned as part of the response"
+  )
 
   override val levels: Map[String, Map[ProfileName, String]] = Map(
     OasBodyAndFormDataParameterSpecification.id -> Map(
@@ -753,6 +762,8 @@ object ParserSideValidations extends Validations {
     InvalidJsonSchemaType,
     InvalidFragmentRef,
     CrossSecurityWarningSpecification,
-    ReadOnlyPropertyMarkedRequired
+    ReadOnlyPropertyMarkedRequired,
+    ExamplesWithInvalidMimeType,
+    ExamplesWithNoSchemaDefined
   )
 }

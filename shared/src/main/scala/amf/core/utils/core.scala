@@ -1,8 +1,5 @@
 package amf.core
 
-import java.text.DecimalFormat
-import java.util.concurrent.TimeUnit
-
 import amf.core.parser.{Position, Range}
 import amf.core.unsafe.PlatformSecrets
 import org.mulesoft.common.time.{SimpleDateTime, TimeOfDay}
@@ -193,5 +190,13 @@ package object utils {
       * TODO when to hack opening curly braces? .replaceAll("\\{", "\\\\{")
       */
     def convertRegex: String = str.replaceAll("\\[\\^\\]", "[\\\\S\\\\s]")
+  }
+
+  class SimpleCounter() {
+    private var current = -1
+    def next(): Int = {
+      current += 1
+      current
+    }
   }
 }

@@ -382,10 +382,6 @@ object ParserSideValidations extends Validations {
     "unknown-scope",
     "Cannot find the scope in the security settings"
   )
-  val NamedExampleUsedInExample = validation(
-    "named-example-used-inlined-example",
-    "Named example fragments should be included in 'examples' facet"
-  )
   val DialectAmbiguousRangeSpecification = validation(
     "dialect-ambiguous-range",
     "Ambiguous entity range"
@@ -601,15 +597,6 @@ object ParserSideValidations extends Validations {
       Oas20Profile -> VIOLATION
     ),
     JsonSchemaInheratinaceWarningSpecification.id -> all(WARNING),
-    NamedExampleUsedInExample.id -> Map(
-      RamlProfile   -> VIOLATION,
-      Raml10Profile -> VIOLATION,
-      Raml08Profile -> VIOLATION,
-      OasProfile    -> SeverityLevels.INFO,
-      Oas20Profile  -> SeverityLevels.INFO,
-      Oas30Profile  -> SeverityLevels.INFO,
-      AmfProfile    -> SeverityLevels.INFO
-    ),
     SyamlWarning.id                                    -> all(WARNING),
     UnsupportedExampleMediaTypeWarningSpecification.id -> all(WARNING),
     PatternPropertiesOnClosedNodeSpecification.id -> Map(
@@ -651,7 +638,6 @@ object ParserSideValidations extends Validations {
 
   override val validations: List[ValidationSpecification] = List(
     DuplicatedOperationStatusCodeSpecification,
-    NamedExampleUsedInExample,
     ChainedReferenceSpecification,
     ExclusivePropertiesSpecification,
     PathTemplateUnbalancedParameters,

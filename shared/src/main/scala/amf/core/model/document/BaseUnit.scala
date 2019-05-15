@@ -238,9 +238,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   protected def transformByCondition(element: AmfObject,
                                      predicate: AmfObject => Boolean,
                                      transformation: (AmfObject, Boolean) => Option[AmfObject],
+                                     traversed: mutable.Set[String] = mutable.Set(),
                                      cycles: Set[String] = Set.empty,
                                      cycleRecoverer: (AmfObject, AmfObject) => Option[AmfObject]): AmfObject = {
-    if (!cycles.contains(element.id)) {
+    if (!traversed.contains(element.id)) {
       // not visited yet
       if (predicate(element)) { // matches predicate, we transform
         transformation(element, false) match {
@@ -254,12 +255,12 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
         }
       } else {
         // not matches the predicate, we traverse
-
+        traversed += element.id
         element match {
           case dataNode: ObjectNode =>
             dataNode.properties.foreach {
               case (prop, value) =>
-                Option(transformByCondition(value, predicate, transformation, cycles + element.id, cycleRecoverer)) match {
+                Option(transformByCondition(value, predicate, transformation, traversed, cycles + element.id, cycleRecoverer)) match {
                   case Some(transformed: DataNode) =>
                     dataNode.properties.put(prop, transformed)
                     dataNode
@@ -277,6 +278,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                   transformByCondition(elem,
                                        predicate,
                                        transformation,
+                                       traversed,
                                        cycles + element.id,
                                        cycleRecoverer = cycleRecoverer))
               }
@@ -307,6 +309,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                     transformByCondition(v.value.asInstanceOf[AmfObject],
                                          predicate,
                                          transformation,
+                                         traversed,
                                          cycles + element.id,
                                          cycleRecoverer = cycleRecoverer)) match {
                     case Some(transformedValue: AmfObject) =>
@@ -332,6 +335,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                           transformByCondition(elem,
                                                predicate,
                                                transformation,
+                                               traversed,
                                                cycles + element.id,
                                                cycleRecoverer = cycleRecoverer)
                         element match {

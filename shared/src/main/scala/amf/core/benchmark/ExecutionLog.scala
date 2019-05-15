@@ -8,7 +8,7 @@ case class Log(stage: String, time: Long)
 
 case class Execution(startTime: Long, endTime: Long, logs: Seq[Log]) {
   def log(stage: String, time: Long) = {
-    println(stage)
+    // System.err.println(stage)
     copy(logs = logs ++ Seq(Log(stage, time)), endTime = time)
   }
   def finish(): Execution = copy(endTime = new Date().getTime)
@@ -50,13 +50,13 @@ object ExecutionLog {
   def buildReport() = {
     executions.zipWithIndex.foreach { case (execution, i) =>
       var prev = execution.startTime
-      println(s"---- Run $i (${execution.endTime - execution.startTime} ms) ----\n")
+      System.err.println(s"---- Run $i (${execution.endTime - execution.startTime} ms) ----\n")
       execution.logs.foreach { log =>
-        println(s"   (${log.time - prev} ms) ${log.stage}")
+        System.err.println(s"   (${log.time - prev} ms) ${log.stage}")
         prev = log.time
       }
-      println(s"   (${execution.endTime - prev} ms) Finished")
-      println("\n\n\n")
+      System.err.println(s"   (${execution.endTime - prev} ms) Finished")
+      System.err.println("\n\n\n")
     }
   }
 }

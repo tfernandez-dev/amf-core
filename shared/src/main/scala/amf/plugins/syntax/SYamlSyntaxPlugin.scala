@@ -80,14 +80,7 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
 
   private def render[T](mediaType: String, ast: YDocument)(render: (String, YDocument) => T): T = {
     val format = getFormat(mediaType)
-
-    ExecutionLog.log(s"Serialising to format $format")
-
-    val result: T = render(format, ast)
-
-    ExecutionLog.log(s"Got the serialisation $format")
-
-    result
+    render(format, ast)
   }
 
   private def getFormat(mediaType: String) = if (mediaType.contains("json")) "json" else "yaml"

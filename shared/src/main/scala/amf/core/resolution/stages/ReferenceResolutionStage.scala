@@ -263,7 +263,8 @@ class ModelReferenceResolver(model: BaseUnit) {
             case res: Some[DomainElement] =>
               result = res
               remaining = Nil
-            case _ => remaining = remaining.tail
+            case _ =>
+              remaining = remaining.tail
           }
         }
         result

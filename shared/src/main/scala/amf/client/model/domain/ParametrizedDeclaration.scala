@@ -10,7 +10,7 @@ import scala.scalajs.js.annotation.JSExportAll
   * AbstractDeclaration model class.
   */
 @JSExportAll
-trait ParametrizedDeclaration extends DomainElement {
+trait ParametrizedDeclaration extends DomainElement with NamedDomainElement {
 
   override private[amf] val _internal: InternalParametrizedDeclaration
 

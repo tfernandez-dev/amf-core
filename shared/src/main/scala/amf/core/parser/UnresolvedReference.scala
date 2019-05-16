@@ -26,7 +26,7 @@ trait UnresolvedReference { this: DomainElement =>
               UnresolvedReference,
               this,
               None,
-              s"Unresolved reference $reference from root context ${c.rootContextDocument}"
+              s"Unresolved reference '$reference'"
           )
         )
       )

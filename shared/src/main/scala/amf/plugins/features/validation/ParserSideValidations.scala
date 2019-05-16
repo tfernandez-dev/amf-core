@@ -478,7 +478,7 @@ object ParserSideValidations extends Validations {
 
   val DiscriminatorOnExtendedUnionSpecification = validation(
     "discriminator-on-extended-union",
-    "Property discriminator not supported in a node extending a unionShape"
+    "Property 'discriminator' not supported in a node extending a unionShape"
   )
 
   val UnresolvedReference = validation(

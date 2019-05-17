@@ -20,7 +20,7 @@ import scala.collection.mutable.ListBuffer
   */
 class DynamicGraphParser(var nodes: Map[String, AmfElement],
                          referencesMap: mutable.Map[String, DomainElement],
-                         unresolvedReferences: mutable.Map[String, Seq[DomainElement]])(implicit ctx: ParserContext)
+                         unresolvedReferences: mutable.Map[String, Seq[DomainElement]])(implicit ctx: GraphParserContext)
     extends GraphParserHelpers {
 
   /**
@@ -30,7 +30,7 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
     * @return builder function that returns the type of dynamic node
     */
   def retrieveType(id: String, map: YMap): Option[Annotations => AmfObject] = {
-    ts(map, ctx, id).find({ t =>
+    ts(map, id).map(expandUriFromContext(_)).find({ t =>
       dynamicBuilders.get(t).isDefined
     }) match {
       case Some(t) => Some(dynamicBuilders(t))
@@ -45,16 +45,17 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
     */
   def parseDynamicType(map: YMap): Option[DataNode] = {
     retrieveId(map, ctx).flatMap(id => {
-      val sources = retrieveSources(id, map)
-      val builder = retrieveType(id, map).get
+      val transformedId = transformIdFromContext(id)
+      val sources = retrieveSources(transformedId, map)
+      val builder = retrieveType(transformedId, map).get
 
-      builder(annotations(nodes, sources, id)) match {
+      builder(annotations(nodes, sources, transformedId)) match {
 
         case obj: ObjectNode =>
-          obj.withId(id)
+          obj.withId(transformedId)
           map.entries.foreach {
             entry =>
-              val uri = entry.key.as[String]
+              val uri = expandUriFromContext(entry.key.as[String])
               val v   = entry.value
               if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
                   uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
@@ -73,10 +74,10 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
           Some(obj)
 
         case scalar: ScalarNode =>
-          scalar.withId(id)
+          scalar.withId(transformedId)
           map.entries.foreach {
             entry =>
-              val uri = entry.key.as[String]
+              val uri = expandUriFromContext(entry.key.as[String])
               uri match {
                 /*
               case _ if uri == scalar.Range.value.iri() =>
@@ -92,9 +93,9 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
           Some(scalar)
 
         case link: LinkNode =>
-          link.withId(id)
+          link.withId(transformedId)
           map.entries.foreach { entry =>
-            val uri = entry.key.as[String]
+            val uri = expandUriFromContext(entry.key.as[String])
             uri match {
 
               case _ if uri == LinkNodeModel.Alias.value.iri() =>
@@ -117,9 +118,9 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
           Some(link)
 
         case array: ArrayNode =>
-          array.withId(id)
+          array.withId(transformedId)
           map.entries.foreach { entry =>
-            val uri = entry.key.as[String]
+            val uri = expandUriFromContext(entry.key.as[String])
             uri match {
               case _ if uri == array.Member.value.iri() =>
                 array.members =
@@ -131,7 +132,7 @@ class DynamicGraphParser(var nodes: Map[String, AmfElement],
 
         case other =>
           ctx.violation(UnableToParseNode,
-                        id,
+                        transformedId,
                         s"Cannot parse object data node from non object JSON structure $other",
                         map)
           None

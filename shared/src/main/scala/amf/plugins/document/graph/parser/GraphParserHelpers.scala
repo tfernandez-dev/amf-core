@@ -17,20 +17,20 @@ import scala.collection.mutable
 
 trait GraphParserHelpers {
 
-  private def parseSourceNode(map: YMap): SourceMap = {
+  private def parseSourceNode(map: YMap)(implicit ctx: GraphParserContext): SourceMap = {
     val result = SourceMap()
     map.entries.foreach(entry => {
-      entry.key.toOption[YScalar].map(_.text).foreach {
+      entry.key.toOption[YScalar].map(value => expandUriFromContext(value.text)).foreach {
         case AnnotationName(annotation) =>
           val consumer = result.annotation(annotation)
           entry.value
             .as[Seq[YNode]]
             .foreach(e => {
               val element = e.as[YMap]
-              val k       = element.key(SourceMapModel.Element.value.iri()).get
-              val v       = element.key(SourceMapModel.Value.value.iri()).get
+              val k       = element.key(compactUriFromContext(SourceMapModel.Element.value.iri())).get
+              val v       = element.key(compactUriFromContext(SourceMapModel.Value.value.iri())).get
               consumer(value(SourceMapModel.Element.`type`, k.value).as[YScalar].text,
-                       value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
+                value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
             })
         case _ => // Unknown annotation identifier
       }
@@ -38,12 +38,11 @@ trait GraphParserHelpers {
     result
   }
 
-  protected def ts(map: YMap, ctx: ParserContext, id: String): Seq[String] = {
-    val documentType     = (Namespace.Document + "Document").iri()
-    val fragmentType     = (Namespace.Document + "Fragment").iri()
-    val moduleType       = (Namespace.Document + "Module").iri()
-    val unitType         = (Namespace.Document + "Unit").iri()
-    val documentTypesSet = Set(documentType, fragmentType, moduleType, unitType)
+  protected def ts(map: YMap, id: String)(implicit ctx: GraphParserContext): Seq[String] = {
+    val namespaces = Seq("Document", "Fragment", "Module", "Unit").map(docElement => (Namespace.Document + docElement).iri())
+
+    val documentTypesSet: Set[String] = (namespaces ++ namespaces.map(compactUriFromContext(_))).toSet
+
     map.key("@type") match {
       case Some(entry) =>
         val allTypes         = entry.value.toOption[Seq[YNode]].getOrElse(Nil).flatMap(v => v.toOption[YScalar].map(_.text))
@@ -66,11 +65,12 @@ trait GraphParserHelpers {
     }
   }
 
-  protected def retrieveSources(id: String, map: YMap): SourceMap = {
+  protected def retrieveSources(id: String, map: YMap)(implicit ctx: GraphParserContext): SourceMap = {
     map
-      .key(DomainElementModel.Sources.value.iri())
+      .key(compactUriFromContext(DomainElementModel.Sources.value.iri()))
       .flatMap { entry =>
-        value(SourceMapModel, entry.value).toOption[YMap].map(parseSourceNode)
+        val optValue = value(SourceMapModel, entry.value)
+        optValue.toOption[YMap].map(parseSourceNode(_))
       }
       .getOrElse(SourceMap.empty)
   }
@@ -116,5 +116,21 @@ trait GraphParserHelpers {
 
     result
   }
+
+  protected def expandUriFromContext(iri: String)(implicit ctx: GraphParserContext): String = {
+    ctx.compactUris.find{case (key, _) => iri.startsWith(key)} match {
+      case Some((key, value)) => iri.replace(key + ':', value)
+      case None => iri
+    }
+  }
+
+  protected def compactUriFromContext(iri: String)(implicit ctx: GraphParserContext): String = {
+    ctx.compactUris.find{case (_, value) => iri.startsWith(value)} match {
+      case Some((key, value)) => iri.replace(value, key + ':')
+      case None => iri
+    }
+  }
+
+  protected def transformIdFromContext(id: String)(implicit ctx: GraphParserContext): String = ctx.baseId.getOrElse("") + id
 
 }

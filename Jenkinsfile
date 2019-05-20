@@ -11,19 +11,25 @@ pipeline {
     stage('Test') {
       steps {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
+          sh 'sbt -mem 4096 -Dfile.encoding=UTF-8 clean coverage test coverageReport'
+        }
+      }
+    }
+    stage('Coverage') {
+      when {
+        branch 'master'
+      }
+      steps {
+        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
           withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sonarqube-official', passwordVariable: 'SONAR_SERVER_TOKEN', usernameVariable: 'SONAR_SERVER_URL']]) {
-            sh 'sbt -mem 4096 -Dfile.encoding=UTF-8 clean coverage test coverageReport sonarMe'
+            sh 'sbt sonar'
           }
         }
       }
     }
     stage('Publish') {
       when {
-        anyOf {
-          branch 'master'
-          branch 'develop'
-          branch 'release/*'
-        }
+        branch 'master'
       }
       steps {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
@@ -31,15 +37,5 @@ pipeline {
         }
       }
     }
-    /* enable triggers when snapshots branch be created*/
-    /*stage('Trigger amf project') {
-      when {
-        branch 'develop'
-      }
-      steps {
-        echo "Starting AMF Applications/AMF/amf-aml/develop"
-        build job: 'application/AMF/amf-aml/develop', wait: false
-      }
-    }*/
   }
 }

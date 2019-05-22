@@ -146,7 +146,7 @@ object InflectorBase {
       */
     def camelize(capitalizeFirstChar: Boolean = false): String = {
 
-      val split = word.split("_")
+      val split = word.split("_|-|\\s+")
       val tail = split.tail.map { x =>
         x.head.toUpper + x.tail
       }

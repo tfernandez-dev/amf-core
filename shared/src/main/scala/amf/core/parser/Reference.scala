@@ -35,8 +35,8 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
               env: Environment,
               nodes: Seq[YNode],
               allowRecursiveRefs: Boolean): Future[ReferenceResolutionResult] = {
-    val kinds = refs.map(_.linkType)
-    val kind  = if (kinds.distinct.size > 1) UnspecifiedReference else kinds.distinct.head
+    val kinds = refs.map(_.linkType).distinct
+    val kind  = if (kinds.size > 1) UnspecifiedReference else kinds.head
     try {
       val res: Future[Future[ReferenceResolutionResult]] = RuntimeCompiler(url,
                                                                            None,
@@ -46,7 +46,7 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
                                                                            cache,
                                                                            Some(ctx),
                                                                            env) map { eventualUnit =>
-        verifyMatchingKind(eventualUnit, kind, nodes, ctx)
+        verifyMatchingKind(eventualUnit, kind, kinds, nodes, ctx)
         Future(parser.ReferenceResolutionResult(None, Some(eventualUnit)))
       } recover {
         case e: CyclicReferenceException if allowRecursiveRefs =>
@@ -74,23 +74,25 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
   def isInferred: Boolean = refs.exists(_.linkType == InferredLinkReference)
 
   private def verifyMatchingKind(unit: BaseUnit,
-                                 kind: ReferenceKind,
+                                 definedKind: ReferenceKind,
+                                 allKinds: Seq[ReferenceKind],
                                  nodes: Seq[YNode],
                                  ctx: ParserContext): BaseUnit = {
     unit match {
       case _: Module => // if is a library, kind should be LibraryReference
-        if (!LibraryReference.eq(kind))
+        if(allKinds.contains(LibraryReference) && allKinds.contains(LinkReference))
+          nodes.foreach(ctx.violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
+        else if (!LibraryReference.eq(definedKind))
           nodes.foreach(ctx.violation(ExpectedModule, unit.id, "Libraries must be applied by using 'uses'", _))
       // ToDo find a better way to skip vocabulary/dialect elements of this validation
       case _ if !unit.meta.`type`.exists(_.iri().contains(Namespace.Meta.base)) =>
         // if is not a library, and is not a vocabulary, kind should not be LibraryReference
-        if (LibraryReference.eq(kind))
+        if (LibraryReference.eq(definedKind))
           nodes.foreach(ctx.violation(InvalidInclude, unit.id, "Fragments must be imported by using '!include'", _))
       case _ => // nothing to do
     }
     unit
   }
-
 }
 
 object Reference {

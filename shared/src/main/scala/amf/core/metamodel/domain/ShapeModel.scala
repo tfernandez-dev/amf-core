@@ -109,7 +109,7 @@ object ShapeModel extends ShapeModel {
                                                                          Xone,
                                                                          Closure)
 
-  override val `type`: List[ValueType] = List(Shacl + "Shape", Shapes + "Shape")
+  override val `type`: List[ValueType] = List(Shacl + "Shape", Shapes + "Shape") ++ DomainElementModel.`type`
 
   override def modelInstance = throw new Exception("Shape is abstract and it cannot be instantiated by default")
 

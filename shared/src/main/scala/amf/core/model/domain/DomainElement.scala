@@ -9,8 +9,6 @@ import amf.core.model.domain.extensions.DomainExtension
   */
 trait DomainElement extends AmfObject {
 
-  def meta: Obj
-
   def customDomainProperties: Seq[DomainExtension] = fields.field(CustomDomainProperties)
   def extend: Seq[DomainElement]                   = fields.field(Extends)
 

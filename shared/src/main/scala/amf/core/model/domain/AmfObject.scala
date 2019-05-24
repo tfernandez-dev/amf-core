@@ -1,6 +1,6 @@
 package amf.core.model.domain
 
-import amf.core.metamodel.Field
+import amf.core.metamodel.{Field, Obj}
 import amf.core.parser.{Annotations, Fields}
 
 /**
@@ -8,6 +8,7 @@ import amf.core.parser.{Annotations, Fields}
   */
 trait AmfObject extends AmfElement {
 
+  def meta:Obj
   /** Set of fields composing object. */
   val fields: Fields
 

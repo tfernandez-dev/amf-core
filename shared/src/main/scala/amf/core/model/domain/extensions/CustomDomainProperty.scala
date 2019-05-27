@@ -24,7 +24,7 @@ case class CustomDomainProperty(fields: Fields, annotations: Annotations)
   def withDomain(domain: Seq[String]): this.type      = set(Domain, domain)
   def withSchema(schema: Shape): this.type            = set(Schema, schema)
 
-  override def adopted(parent: String): this.type =
+  override def adopted(parent: String, cycle: Seq[String] = Seq()): this.type =
     if (Option(this.id).isEmpty) {
       if (parent.contains("#")) {
         withId(parent + "/" + componentId.urlComponentEncoded)

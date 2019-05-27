@@ -38,7 +38,7 @@ trait AmfObject extends AmfElement {
   }
 
   /** Call after object has been adopted by specified parent. */
-  def adopted(parent: String): this.type = simpleAdoption(parent)
+  def adopted(parent: String, cycle: Seq[String] = Seq()): this.type = simpleAdoption(parent)
 
   /** Set scalar value. */
   def set(field: Field, value: String): this.type = {

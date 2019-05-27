@@ -30,8 +30,8 @@ case class DomainExtension(fields: Fields, annotations: Annotations) extends Dom
   override def componentId: String = "/extension"
 
   /** Call after object has been adopted by specified parent. */
-  override def adopted(parent: String): this.type = {
-    if (Option(id) == None || id.startsWith("null/")) simpleAdoption(parent)
+  override def adopted(parent: String, cycle: Seq[String] = Seq()): this.type = {
+    if (Option(id).isEmpty || id.startsWith("null/")) simpleAdoption(parent)
     this
   }
 

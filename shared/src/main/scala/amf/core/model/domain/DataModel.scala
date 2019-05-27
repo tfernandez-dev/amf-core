@@ -26,7 +26,7 @@ abstract class DataNode(annotations: Annotations) extends DynamicDomainElement {
 
   def withName(name: String): this.type = set(Name, name)
 
-  override def adopted(parent: String): this.type = {
+  override def adopted(parent: String, cycle: Seq[String] = Seq()): this.type = {
     if (Option(id).isEmpty) simpleAdoption(parent) else this
   }
 

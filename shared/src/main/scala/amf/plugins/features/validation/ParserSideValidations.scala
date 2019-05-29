@@ -11,7 +11,7 @@ import amf.core.vocabulary.Namespace.AmfParser
 // noinspection TypeAnnotation
 object ParserSideValidations extends Validations {
   override val specification: String = PARSER_SIDE_VALIDATION
-  override val namespace: Namespace = AmfParser
+  override val namespace: Namespace  = AmfParser
 
   val DialectError = validation(
     "dialect-error",
@@ -571,10 +571,16 @@ object ParserSideValidations extends Validations {
     "Example does not validate type"
   )
 
+  val SchemaException = validation(
+    "schema-exception",
+    "Schema exception"
+  )
+
   val ReadOnlyPropertyMarkedRequired = validation(
     "read-only-property-marked-required",
     "Read only property should not be marked as required by a schema"
   )
+
   val ExamplesWithInvalidMimeType = validation(
     "examples-with-invalid-mime-type",
     "Mime type defined in 'examples' must be present in a 'produces' property"
@@ -596,7 +602,7 @@ object ParserSideValidations extends Validations {
       OasProfile   -> VIOLATION,
       Oas20Profile -> VIOLATION
     ),
-    JsonSchemaInheratinaceWarningSpecification.id -> all(WARNING),
+    JsonSchemaInheratinaceWarningSpecification.id      -> all(WARNING),
     SyamlWarning.id                                    -> all(WARNING),
     UnsupportedExampleMediaTypeWarningSpecification.id -> all(WARNING),
     PatternPropertiesOnClosedNodeSpecification.id -> Map(
@@ -617,13 +623,13 @@ object ParserSideValidations extends Validations {
       Oas30Profile  -> WARNING,
       AmfProfile    -> WARNING
     ),
-    NullAbstractDeclaration.id -> all(WARNING),
-    SchemaDeprecated.id        -> all(WARNING),
-    SchemasDeprecated.id       -> all(WARNING),
-    ExternalFragmentWarning.id -> all(WARNING),
-    UnusedBaseUriParameter.id  -> all(WARNING),
-    InvalidShapeFormat.id      -> all(WARNING),
-    CrossSecurityWarningSpecification.id      -> all(WARNING),
+    NullAbstractDeclaration.id           -> all(WARNING),
+    SchemaDeprecated.id                  -> all(WARNING),
+    SchemasDeprecated.id                 -> all(WARNING),
+    ExternalFragmentWarning.id           -> all(WARNING),
+    UnusedBaseUriParameter.id            -> all(WARNING),
+    InvalidShapeFormat.id                -> all(WARNING),
+    CrossSecurityWarningSpecification.id -> all(WARNING),
     ExampleValidationErrorSpecification.id -> Map(
       RamlProfile   -> SeverityLevels.VIOLATION,
       Raml10Profile -> SeverityLevels.VIOLATION,
@@ -633,6 +639,7 @@ object ParserSideValidations extends Validations {
       Oas30Profile  -> SeverityLevels.WARNING,
       AmfProfile    -> SeverityLevels.VIOLATION
     ),
+    SchemaException.id                -> all(VIOLATION),
     ReadOnlyPropertyMarkedRequired.id -> all(WARNING),
   )
 
@@ -745,6 +752,7 @@ object ParserSideValidations extends Validations {
     InvalidDialectPatch,
     DialectError,
     ExampleValidationErrorSpecification,
+    SchemaException,
     InvalidJsonSchemaType,
     InvalidFragmentRef,
     CrossSecurityWarningSpecification,

@@ -436,6 +436,17 @@ object ParserSideValidations extends Validations {
     "Missing property range term"
   )
 
+  val MissingPropertyKeySpecification = validation(
+    "missing-property-for-key",
+    "Missing property key"
+  )
+
+
+  val DifferentTermsInMapKey = validation(
+    "different-terms-in-mapkey",
+    "Different terms in map key"
+  )
+
   val MissingTermSpecification = validation(
     "missing-vocabulary-term",
     "Missing vocabulary term"
@@ -662,7 +673,9 @@ object ParserSideValidations extends Validations {
     UnsupportedExampleMediaTypeWarningSpecification,
     InconsistentPropertyRangeValueSpecification,
     MissingPropertyRangeSpecification,
+    MissingPropertyKeySpecification,
     MissingTermSpecification,
+    DifferentTermsInMapKey,
     MissingFragmentSpecification,
     MissingPropertySpecification,
     OasInvalidBodyParameter,

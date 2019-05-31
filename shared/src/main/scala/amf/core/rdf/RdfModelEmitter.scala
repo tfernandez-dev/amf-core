@@ -191,7 +191,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
         case EncodedIri =>
           safeIri(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case LiteralUri =>
-          typedScalar(subject, property, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyUri").iri())
+          typedScalar(subject, property, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyURI").iri())
         case Str =>
           v.annotations.find(classOf[ScalarType]) match {
             case Some(annotation) =>

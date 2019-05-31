@@ -312,7 +312,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
         safeIri(b, v.value.asInstanceOf[AmfScalar].toString, ctx)
         sources(v)
       case LiteralUri =>
-        typedScalar(b, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyUri").iri(), ctx)
+        typedScalar(b, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyURI").iri(), ctx)
         sources(v)
       case Str =>
         v.annotations.find(classOf[ScalarType]) match {
@@ -393,7 +393,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions) e
             case LiteralUri =>
               typedScalar(b,
                           v.value.asInstanceOf[AmfScalar].toString,
-                          (Namespace.Xsd + "anyUri").iri(),
+                          (Namespace.Xsd + "anyURI").iri(),
                           ctx,
                           inArray = true)
             case Type.Int =>

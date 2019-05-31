@@ -54,10 +54,11 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
         maybeMap match {
           case Some(m: YMap) =>
             val toDocumentNamespace: String => String = a => (Namespace.Document + a).iri()
+            val keys = Seq("encodes", "declares", "references").map(toDocumentNamespace)
+            val types = Seq("Document", "Fragment", "Module", "Unit").map(toDocumentNamespace)
 
-            val acceptedKeys  = Seq("encodes", "declares", "references").map(toDocumentNamespace)
-            val acceptedTypes = Seq("Document", "Fragment", "Module", "Unit").map(toDocumentNamespace)
-
+            val acceptedKeys = keys ++ keys.map(Namespace.compact)
+            val acceptedTypes = types ++ types.map(Namespace.compact)
             acceptedKeys.exists(m.key(_).isDefined) ||
             m.key("@type").exists { typesEntry =>
               val retrievedTypes = typesEntry.value.as[YSequence].nodes.map(node => node.as[YScalar].value)

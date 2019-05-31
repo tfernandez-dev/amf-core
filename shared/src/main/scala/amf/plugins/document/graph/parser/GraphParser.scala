@@ -39,7 +39,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * AMF Graph parser
   */
-class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
+class GraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
     extends GraphParserHelpers {
 
   def parse(document: YDocument, location: String): BaseUnit = {
@@ -60,7 +60,10 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
     def parse(document: YDocument, location: String): BaseUnit = {
       val maybeMaps = document.node.toOption[Seq[YMap]]
       val maybeMap = maybeMaps.flatMap(s => s.headOption)
-      val maybeMaybeObject = maybeMap.flatMap(parse)
+      val maybeMaybeObject = maybeMap.flatMap(map => {
+        map.key("@context").foreach(e => parseCompactUris(e.value))
+        parse(map)
+      })
 
       maybeMaybeObject match {
         case Some(unit: BaseUnit) => unit.set(Location, location)
@@ -73,8 +76,26 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
       }
     }
 
+    private def parseCompactUris(node: YNode): Unit = {
+      node.tagType match {
+        case YType.Map =>
+          val m: YMap = node.as[YMap]
+          ctx.compactUris ++= m.entries.flatMap(parseKeyValue).toMap
+          ctx.baseId = ctx.compactUris.find { case (key, value) => key == "@base" }.map { case (_, value) => value }
+        case _ =>
+      }
+    }
+
+    private def parseKeyValue(entry: YMapEntry): Option[(String, String)] = {
+      (entry.key.tagType, entry.value.tagType) match {
+        case (YType.Str, YType.Str) =>
+          Some(entry.key.as[YScalar].text -> entry.value.as[YScalar].text)
+        case _ => None
+      }
+    }
+
     private def retrieveType(id: String, map: YMap): Option[Obj] = {
-      val stringTypes = ts(map, ctx, id)
+      val stringTypes = ts(map, id)
       stringTypes.find(findType(_).isDefined) match {
         case Some(t) => findType(t)
         case None =>
@@ -92,7 +113,7 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
                           node: YMap): Seq[AmfElement] = {
       val buffer = ListBuffer[YNode]()
       node.entries.sortBy(_.key.as[String]).foreach { entry =>
-        if (entry.key.as[String].startsWith((Namespace.Rdfs + "_").iri())) {
+        if (entry.key.as[String].startsWith(compactUriFromContext((Namespace.Rdfs + "_").iri()))) {
           buffer += entry.value.as[Seq[YNode]].head
         }
       }
@@ -115,10 +136,11 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
         .flatMap {
           case (id, model) =>
             val sources = retrieveSources(id, map)
-            buildType(id, map, model)(annotations(nodes, sources, id)) match {
+            val transformedId: String = transformIdFromContext(id)
+            buildType(transformedId, map, model)(annotations(nodes, sources, transformedId)) match {
               case Some(builder) =>
                 val instance: AmfObject = builder
-                instance.withId(id)
+                instance.withId(transformedId)
 
                 checkLinkables(instance)
 
@@ -133,7 +155,7 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
                 }
 
                 modelFields.foreach(f => {
-                  val k = f.value.iri()
+                  val k = compactUriFromContext(f.value.iri())
                   map.key(k) match {
                     case Some(entry) =>
                       traverse(instance,
@@ -164,7 +186,7 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
                   case _                  => // ignore
                 }
 
-                nodes = nodes + (id -> instance)
+                nodes = nodes + (transformedId -> instance)
                 Some(instance)
               case _ => None
             }
@@ -209,16 +231,17 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
         map: YMap,
         instance: DomainElement with Linkable): Unit = {
       map
-        .key(LinkableElementModel.TargetId.value.iri())
+        .key(compactUriFromContext(LinkableElementModel.TargetId.value.iri()))
         .flatMap(entry => {
           retrieveId(entry.value.as[Seq[YMap]].head, ctx)
         })
         .foreach { targetId =>
-          setLinkTarget(instance, targetId)
+          val transformedId = transformIdFromContext(targetId)
+          setLinkTarget(instance, transformedId)
         }
 
       map
-        .key(LinkableElementModel.Label.value.iri())
+        .key(compactUriFromContext(LinkableElementModel.Label.value.iri()))
         .flatMap(entry => {
           entry.value
             .toOption[Seq[YNode]]
@@ -232,14 +255,14 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
     private def parseCustomProperties(map: YMap,
                                       instance: DomainElement): Unit = {
       val properties = map
-        .key(DomainElementModel.CustomDomainProperties.value.iri())
+        .key(compactUriFromContext(DomainElementModel.CustomDomainProperties.value.iri()))
         .map(_.value.as[Seq[YNode]].map(value(Iri, _).as[YScalar].text))
         .getOrElse(Nil)
 
       val extensions = properties
         .flatMap { uri =>
           map
-            .key(uri)
+            .key(compactUriFromContext(uri))
             .map(entry => {
               val extension = DomainExtension()
               val obj = entry.value.as[YMap]
@@ -352,7 +375,7 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
 
   private def parseScalarProperty(definition: YMap, field: Field) =
     definition
-      .key(field.value.iri())
+      .key(compactUriFromContext(field.value.iri()))
       .map(entry => value(field.`type`, entry.value).as[YScalar].text)
 
   private def str(node: YNode) = {
@@ -436,7 +459,8 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
         node.as[YMap].entries.find(_.key.as[String] == "@type") match {
           case Some(typeEntry) =>
             val typeUri = typeEntry.value.as[YScalar].text
-            typeUri match {
+            val expandedUri = expandUriFromContext(typeUri)
+            expandedUri match {
               case s: String if s == xsdBoolean =>
                 AmfScalar(nodeValue.toBoolean)
               case s: String if s == xsdInteger => AmfScalar(nodeValue.toInt)
@@ -471,7 +495,7 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
     : Map[String, Obj] = Map.empty ++ AMFDomainRegistry.metadataRegistry
 
   private def findType(typeString: String): Option[Obj] = {
-    types.get(typeString).orElse(AMFDomainRegistry.findType(typeString))
+    types.get(expandUriFromContext(typeString)).orElse(AMFDomainRegistry.findType(typeString))
   }
 
   private def buildType(id: String,
@@ -503,5 +527,5 @@ class GraphParser(platform: Platform)(implicit val ctx: ParserContext)
 object GraphParser {
   def apply: GraphParser = GraphParser(TrunkPlatform(""))
   def apply(platform: Platform): GraphParser =
-    new GraphParser(platform)(ParserContext())
+    new GraphParser(platform)(new GraphParserContext())
 }

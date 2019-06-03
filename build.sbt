@@ -1,6 +1,7 @@
 import org.scalajs.core.tools.linker.ModuleKind
 import sbt.Keys.{libraryDependencies, resolvers}
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
+
 val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns)
 
 name := "amf-core"
@@ -12,7 +13,7 @@ version in ThisBuild := {
   lazy val build = sys.env.getOrElse("BUILD_NUMBER", "0")
   lazy val branch = sys.env.get("BRANCH_NAME")
 
-  if (branch.exists(_ == "master")) s"$major.$minor.$build" else s"$major.${minor + 1}.0-SNAPSHOT"
+  if (branch.contains("master")) s"$major.$minor.$build" else s"$major.${minor + 1}.0-SNAPSHOT"
 }
 
 publish := {}
@@ -40,9 +41,9 @@ sonarProperties ++= Map(
 val settings = Common.settings ++ Common.publish ++ Seq(
   organization := "com.github.amlorg",
   resolvers ++= List(ivyLocal,
-                     Common.releases,
-                     Common.snapshots,
-                     Resolver.mavenLocal),
+    Common.releases,
+    Common.snapshots,
+    Resolver.mavenLocal),
   resolvers += "jitpack" at "https://jitpack.io",
   credentials ++= Common.credentials(),
   libraryDependencies ++= Seq(
@@ -54,6 +55,19 @@ val settings = Common.settings ++ Common.publish ++ Seq(
 /** **********************************************
   * AMF-Core
   * ********************************************* */
+lazy val workspaceDirectory: File =
+  sys.props.get("sbt.mulesoft") match {
+    case Some(x) => file(x)
+    case _ => Path.userHome / "mulesoft"
+  }
+
+val syamlVersion = "0.7.239"
+
+lazy val syamlJVMRef = ProjectRef(workspaceDirectory / "syaml", "syamlJVM")
+lazy val syamlJSRef = ProjectRef(workspaceDirectory / "syaml", "syamlJS")
+lazy val syamlLibJVM = "org.mule.syaml" %% "syaml" % syamlVersion
+lazy val syamlLibJS = "org.mule.syaml" %% "syaml_sjs0.6" % syamlVersion
+
 lazy val defaultProfilesGenerationTask = TaskKey[Unit](
   "defaultValidationProfilesGeneration",
   "Generates the validation dialect documents for the standard profiles")
@@ -61,8 +75,7 @@ lazy val defaultProfilesGenerationTask = TaskKey[Unit](
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .settings(
     Seq(
-      name := "amf-core",
-      libraryDependencies += "org.mule.syaml" %%% "syaml" % "0.7.238"
+      name := "amf-core"
     ))
   .in(file("."))
   .settings(settings)
@@ -70,13 +83,13 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies += "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided",
     libraryDependencies += "org.scala-lang.modules" % "scala-java8-compat_2.12" % "0.8.0",
     libraryDependencies += "org.json4s" %% "json4s-native" % "3.5.4",
-    artifactPath in (Compile, packageDoc) := baseDirectory.value / "target" / "artifact" / "amf-core-javadoc.jar"
+    artifactPath in(Compile, packageDoc) := baseDirectory.value / "target" / "artifact" / "amf-core-javadoc.jar"
   )
   .jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.2",
     scalaJSModuleKind := ModuleKind.CommonJSModule,
-    artifactPath in (Compile, fullOptJS) := baseDirectory.value / "target" / "artifact" / "amf-core-module.js"
+    artifactPath in(Compile, fullOptJS) := baseDirectory.value / "target" / "artifact" / "amf-core-module.js"
   )
 
-lazy val coreJVM = core.jvm.in(file("./jvm"))
-lazy val coreJS = core.js.in(file("./js"))
+lazy val coreJVM = core.jvm.in(file("./jvm")).sourceDependency(syamlJVMRef, syamlLibJVM)
+lazy val coreJS = core.js.in(file("./js")).sourceDependency(syamlJSRef, syamlLibJS)

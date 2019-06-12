@@ -12,8 +12,6 @@ object InflectorBase {
   private val plurals    = ListBuffer[Container]()
   private val irregulars = ListBuffer[Container]()
 
-  addPlural("$", "s")
-  addPlural("s$", "s")
   addPlural("(ax|test)is$", "$1es")
   addPlural("(octop|vir)us$", "$1i")
   addPlural("(alias|status)$", "$1es")
@@ -29,8 +27,9 @@ object InflectorBase {
   addPlural("([m|l])ouse$", "$1ice")
   addPlural("^(ox)$", "$1en")
   addPlural("(quiz)$", "$1zes")
+  addPlural("s$", "s")
+  addPlural("$", "s")
 
-  addSingular("s$", "")
   addSingular("(n)ews$", "$1ews")
   addSingular("([ti])a$", "$1um")
   addSingular("((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$", "$1sis")
@@ -59,6 +58,7 @@ object InflectorBase {
   addSingular("(matr)ices$", "$1ix")
   addSingular("(quiz)zes$", "$1")
   addSingular("(database)s$", "$1")
+  addSingular("s$", "")
 
   addIrregular("person", "people")
   addIrregular("man", "men")

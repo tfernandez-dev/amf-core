@@ -28,7 +28,7 @@ class PlatformTest extends AsyncFunSuite with ListAssertions with PlatformSecret
                      |  - 2
                      |d: !include includes/include2.yaml""".stripMargin
 
-        content.sourceName should be("shared/src/test/resources/input.yaml")
+        content.sourceName.replace(platform.fs.separatorChar.toString,"/") should be("shared/src/test/resources/input.yaml")
     }
   }
 

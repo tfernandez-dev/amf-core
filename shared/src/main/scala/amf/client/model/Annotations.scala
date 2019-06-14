@@ -30,4 +30,7 @@ case class Annotations(_internal: InternalAnnotations) {
   def isTracked: Boolean = _internal.collect { case t: TrackedElement => t }.nonEmpty
 
   def resolvedLink: ClientOption[String] = _internal.find(classOf[ResolvedLinkAnnotation]).map(_.linkId).asClient
+
+  def inheritanceProvenance: ClientOption[String] =
+    _internal.find(classOf[InheritanceProvenance]).map(_.baseId).asClient
 }

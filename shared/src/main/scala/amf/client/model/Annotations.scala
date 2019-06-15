@@ -31,6 +31,9 @@ case class Annotations(_internal: InternalAnnotations) {
 
   def resolvedLink: ClientOption[String] = _internal.find(classOf[ResolvedLinkAnnotation]).map(_.linkId).asClient
 
+  def resolvedLinkTarget: ClientOption[String] =
+    _internal.find(classOf[ResolvedLinkTargetAnnotation]).map(_.linkTargetId).asClient
+
   def inheritanceProvenance: ClientOption[String] =
     _internal.find(classOf[InheritanceProvenance]).map(_.baseId).asClient
 }

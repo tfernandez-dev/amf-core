@@ -1,11 +1,11 @@
 package amf.core.metamodel.domain
 
 import amf.core.metamodel.Type.{Iri, Str}
-import amf.core.metamodel.{DynamicObj, Field}
+import amf.core.metamodel.{Field, Obj}
 import amf.core.vocabulary.Namespace.{Document, Shacl}
 import amf.core.vocabulary.{Namespace, ValueType}
 
-trait ExternalSourceElementModel extends DynamicObj {
+trait ExternalSourceElementModel extends Obj {
   val Raw = Field(Str,
                   Shacl + "raw",
                   ModelDoc(ModelVocabularies.AmlDoc,
@@ -23,7 +23,7 @@ trait ExternalSourceElementModel extends DynamicObj {
 
 object ExternalSourceElementModel extends ExternalSourceElementModel {
 
-  override val fields                  = List(Raw, ReferenceId)
+  override val fields                  = List(Raw, ReferenceId, Location)
   override val `type`: List[ValueType] = List(Namespace.Document + "ExternalSource")
 
   override val doc: ModelDoc = ModelDoc(

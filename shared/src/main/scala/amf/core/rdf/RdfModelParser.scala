@@ -28,7 +28,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
 
   private val referencesMap = mutable.Map[String, DomainElement]()
 
-  private var collected: ListBuffer[Annotation] = ListBuffer()
+  private val collected: ListBuffer[Annotation] = ListBuffer()
 
   private var nodes: Map[String, AmfElement] = Map()
   private var graph: Option[RdfModel]        = None
@@ -42,14 +42,14 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
           case Some(unit: BaseUnit) => unit.set(BaseUnitModel.Location, location.split("#").head)
           case _ =>
             ctx.violation(UnableToParseRdfDocument,
-                          location,
-                          s"Unable to parse RDF model for location root node: $location")
+              location,
+              s"Unable to parse RDF model for location root node: $location")
             Document()
         }
       case _ =>
         ctx.violation(UnableToParseRdfDocument,
-                      location,
-                      s"Unable to parse RDF model for location root node: $location")
+          location,
+          s"Unable to parse RDF model for location root node: $location")
         Document()
     }
 
@@ -142,8 +142,8 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
 
   def parseDynamicLiteral(l: Literal): ScalarNode = {
     val result = ScalarNode()
-    result.value = l.value
-    l.literalType.foreach(t => result.dataType = Some(t))
+    l.literalType.foreach(t => result.withDataType(t))
+    result.withValue(l.value)
     result
   }
 
@@ -157,7 +157,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
           obj.withId(node.subject)
           node.getKeys().foreach { uri =>
             if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
-                uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
+              uri != (Namespace.Document + "name").iri()) { // we do this to prevent parsing name of annotations
 
               val dataNode = node.getProperties(uri).get.head match {
                 case l @ Literal(_, _) =>
@@ -179,8 +179,10 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
             val entries = node.getProperties(k).get
             if (k == ScalarNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
               val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-              scalar.value = parsedScalar.value
-              scalar.dataType = parsedScalar.dataType
+
+              parsedScalar.value.option().foreach { v =>
+                scalar.set(ScalarNodeModel.Value, AmfScalar(v,parsedScalar.value.annotations()))
+              }
             }
           }
           scalar
@@ -191,25 +193,25 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
             val entries = node.getProperties(k).get
             if (k == LinkNodeModel.Alias.value.iri() && entries.head.isInstanceOf[Literal]) {
               val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-              link.alias = parsedScalar.value
+              parsedScalar.value.option().foreach(link.withAlias)
             } else if (k == LinkNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
               val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-              link.value = parsedScalar.value
+              parsedScalar.value.option().foreach(link.withLink)
             }
           }
-          referencesMap.get(link.alias) match {
+          referencesMap.get(link.alias.value()) match {
             case Some(target) => link.withLinkedDomainElement(target)
             case _ =>
-              val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(link.alias, Nil)
-              unresolvedReferences += (link.alias -> (unresolved ++ Seq(link)))
+              val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(link.alias.value(), Nil)
+              unresolvedReferences += (link.alias.value() -> (unresolved ++ Seq(link)))
           }
           link
 
         case array: ArrayNode =>
           array.withId(node.subject)
           node.getKeys().foreach { k =>
-            if (k == array.Member.value.iri()) {
-              array.members = node.getProperties(k).getOrElse(Nil).flatMap(parseDynamicType).to[ListBuffer]
+            if (k == ArrayNodeModel.Member.value.iri()) {
+              array.withMembers(node.getProperties(k).getOrElse(Nil).flatMap(parseDynamicType))
             }
           }
           array
@@ -324,7 +326,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
                 findLink(n) match {
                   case Some(o) => parse(o, shouldParseUnit)
                   case _       => None
-              })
+                })
             case Str | Iri => items.map(n => strCoercion(n))
           }
           a.element match {
@@ -365,7 +367,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
         case Type.Double        => try { Some(double(n)) } catch { case _: Exception => None }
         case Type.Date          => try { Some(date(n)) } catch { case _: Exception => None }
         case Type.Any           => try { Some(any(n)) } catch { case _: Exception => None }
-        case _                  => throw new Exception(s"Unknown list element type: ${listElement}")
+        case _                  => throw new Exception(s"Unknown list element type: $listElement")
       }
     }
     res collect { case Some(x) => x }
@@ -415,9 +417,9 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
       case Some(t) => findType(t)
       case None =>
         ctx.violation(UnableToParseNode,
-                      id,
-                      s"Error parsing JSON-LD node, unknown @types $stringTypes",
-                      ctx.rootContextDocument)
+          id,
+          s"Error parsing JSON-LD node, unknown @types $stringTypes",
+          ctx.rootContextDocument)
         None
     }
   }
@@ -497,9 +499,8 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
   private def str(property: PropertyObject) = {
     property match {
       case Literal(v, _) => AmfScalar(v)
-      case Uri(v) => {
+      case Uri(v) =>
         throw new Exception(s"Expecting String literal found URI $v")
-      }
     }
   }
 

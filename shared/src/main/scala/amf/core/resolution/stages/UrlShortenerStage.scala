@@ -22,11 +22,7 @@ class UrlShortenerStage()(override implicit val errorHandler: ErrorHandler) exte
         val shorthenId = shortener.shorten(o.id)
         if (!shorthenId.equals(o.id)) {
           o.withId(shortener.shorten(o.id))
-          val fieldEntries = o match {
-            case d: DynamicDomainElement => d.meta.fields.flatMap(f => d.valueForField(f).map(v => FieldEntry(f, v)))
-            case _                       => o.fields.fields()
-          }
-          fieldEntries.foreach {
+          o.fields.fields().foreach {
             case FieldEntry(f, value: Value) if f == LinkableElementModel.Target =>
               value.value match {
                 case o: AmfObject => o.withId(shortener.shorten(o.id))
@@ -37,7 +33,7 @@ class UrlShortenerStage()(override implicit val errorHandler: ErrorHandler) exte
               val v = value.value.toString
               if (ids.exists(i => v.startsWith(i)))
                 value.value = AmfScalar(shortener.shorten(v), value.value.annotations)
-            case FieldEntry(_, value: Value) =>
+            case FieldEntry(f, value: Value) =>
               shorten(value.value, ids)
               shorten(value.annotations)
           }

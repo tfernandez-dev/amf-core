@@ -20,14 +20,14 @@ object VariableReplacer {
   val VariableRegex: Regex = s"<<\\s*([^<<>>|\\s]+)((?:\\s*\\|\\s*!(?:$Transformations)\\s*)*)>>".r
 
   def replaceNodeVariables(s: ScalarNode, values: Set[Variable], errorFunction: String => Unit): DataNode = {
-    s.value.trim match {
+    s.value.value().trim match {
       case VariableRegex(name, transformations) =>
         values.find(_.name == name) match {
           case Some(Variable(_, scalar: ScalarNode))
-            if scalar.dataType.isEmpty || scalar.dataType.get.endsWith("#string") =>
-            s.value = VariableRegex.replaceAllIn(
-              s.value,
-              replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
+            if scalar.dataType.option().isEmpty || scalar.dataType.value().contains("#string") =>
+            s.withValue(VariableRegex.replaceAllIn(
+              s.value.value(),
+              replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction)))
             s
           case Some(_) if transformations.nonEmpty =>
             errorFunction(s"Cannot apply transformations '$transformations' to variable '$name'.")
@@ -43,9 +43,9 @@ object VariableReplacer {
         }
 
       case text =>
-        s.value = VariableRegex.replaceAllIn(
-          text,
-          replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction))
+        s.value.option().foreach { v => s.withValue(VariableRegex.replaceAllIn(
+          v,
+          replaceMatch(values.map(v => v.name -> v.value).toMap, strict = false, isKey = false)(_, errorFunction)))}
         s
     }
   }
@@ -74,26 +74,25 @@ object VariableReplacer {
             .find(classOf[SourceAST])
             .map(_.ast)
             .collectFirst({
-              case s: YScalar if s.mark.isInstanceOf[QuotedMark] => {
+              case s: YScalar if s.mark.isInstanceOf[QuotedMark] =>
                 val variableValue = YamlRender.render(YScalar(s.text))
                 if (variableValue.matches(" *") && isKey && strict) {
                   errorFunction(s"Variable '$name' cannot have an empty value")
                   None
                 }
                 variableValue
-              }
               /* this calls quotedmark.marktext*/
             })
             .orElse {
-              if (v.value.matches(" *") && isKey && strict) {
+              if (v.value.option().exists(_.matches(" *")) && isKey && strict) {
                 errorFunction(s"Variable '$name' cannot have an empty value")
                 emptyVariable = true
                 None
               } else
-                Some(v.value)
+                v.value.option()
             }
 
-        case r: ResolvedLinkNode => Some(r.source.alias)
+        case r: ResolvedLinkNode => r.source.alias.option()
         case node =>
           errorFunction(s"Variable '$name' cannot be replaced with type ${node.getClass.getName}")
           None

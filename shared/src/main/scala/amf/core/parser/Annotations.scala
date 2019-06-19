@@ -56,6 +56,8 @@ class Annotations(hintSize: Int = 4) {
 
   def copy(): Annotations = Annotations(this)
 
+  def copyFiltering(filter: Annotation => Boolean): Annotations = Annotations() ++= annotations.filter(filter)
+
   def into(collector: ListBuffer[Annotation], filter: Annotation => Boolean): Annotations = {
     collector ++= annotations.filter(filter)
     this

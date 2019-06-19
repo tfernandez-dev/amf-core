@@ -34,6 +34,13 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
     from.map { case (k, v) => k -> matcher.asClient(v) }.toJSDictionary
   }
 
+
+  override protected def asClientImmutableMap[Internal, Client](
+                                                                 from: Map[String, Internal],
+                                                                 matcher: InternalClientMatcher[Internal, Client]): Dictionary[Client] = {
+    from.map { case (k, v) => k -> matcher.asClient(v) }.toJSDictionary
+  }
+
   override protected def asClientLinkedMap[Internal, Client](
       from: mutable.LinkedHashMap[String, Internal],
       matcher: InternalClientMatcher[Internal, Client]): Dictionary[Client] = {

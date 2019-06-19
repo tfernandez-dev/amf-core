@@ -1,7 +1,7 @@
 package amf.client.model.domain
 
 import amf.client.convert.CoreClientConverters._
-import amf.core.model.domain.{ObjectNode => InternalObjectNode}
+import amf.core.model.domain.{ObjectNode => InternalObjectNode, DataNode => InternalDataNode}
 
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 
@@ -12,7 +12,9 @@ case class ObjectNode(override private[amf] val _internal: InternalObjectNode) e
   @JSExportTopLevel("model.domain.ObjectNode")
   def this() = this(InternalObjectNode())
 
-  def properties: ClientMap[DataNode] = _internal.properties.asClient
+  def properties: ClientMap[DataNode] = _internal.allPropertiesWithName().asClient
+
+  def getProperty(property: String): ClientOption[DataNode] = _internal.getFromKey(property).asClient
 
   def addProperty(property: String, node: DataNode): this.type = {
     _internal.addProperty(property, node._internal)

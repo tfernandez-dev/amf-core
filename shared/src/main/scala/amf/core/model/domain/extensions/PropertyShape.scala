@@ -8,8 +8,6 @@ import amf.core.model.{BoolField, IntField, StrField}
 import amf.core.parser.{Annotations, ErrorHandler, Fields}
 import amf.core.utils.Strings
 
-import scala.collection.mutable
-
 /**
   * Property shape
   */
@@ -35,11 +33,9 @@ case class PropertyShape(fields: Fields, annotations: Annotations) extends Shape
   def withPatternName(pattern: String): this.type    = set(PatternName, pattern)
 
   override def adopted(parent: String, cycle: Seq[String] = Seq()): this.type = {
-    val newCycle: Seq[String] = cycle :+ id
     simpleAdoption(parent)
-    if (Option(range).isDefined) {
-      range.adopted(id, newCycle)
-    }
+    if (Option(range).isDefined)
+      range.adopted(id, cycle :+ id)
     this
   }
 

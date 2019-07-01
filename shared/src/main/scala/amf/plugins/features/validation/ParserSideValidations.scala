@@ -441,7 +441,6 @@ object ParserSideValidations extends Validations {
     "Missing property key"
   )
 
-
   val DifferentTermsInMapKey = validation(
     "different-terms-in-mapkey",
     "Different terms in map key"
@@ -607,6 +606,11 @@ object ParserSideValidations extends Validations {
     "When schema is undefined, 'examples' facet is invalid as no content is returned as part of the response"
   )
 
+  val MissingDiscriminatorProperty = validation(
+    "missing-discriminator-property",
+    "Type is missing property marked as discriminator"
+  )
+
   override val levels: Map[String, Map[ProfileName, String]] = Map(
     OasBodyAndFormDataParameterSpecification.id -> Map(
       OasProfile   -> VIOLATION,
@@ -657,6 +661,7 @@ object ParserSideValidations extends Validations {
     ),
     SchemaException.id                -> all(VIOLATION),
     ReadOnlyPropertyMarkedRequired.id -> all(WARNING),
+    MissingDiscriminatorProperty.id   -> all(VIOLATION)
   )
 
   override val validations: List[ValidationSpecification] = List(
@@ -777,6 +782,7 @@ object ParserSideValidations extends Validations {
     CrossSecurityWarningSpecification,
     ReadOnlyPropertyMarkedRequired,
     ExamplesWithInvalidMimeType,
-    ExamplesWithNoSchemaDefined
+    ExamplesWithNoSchemaDefined,
+    MissingDiscriminatorProperty
   )
 }

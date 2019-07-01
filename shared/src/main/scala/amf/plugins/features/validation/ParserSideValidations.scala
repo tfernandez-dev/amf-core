@@ -517,6 +517,11 @@ object ParserSideValidations extends Validations {
     "Invalid annotation type"
   )
 
+  val InvalidAnnotationTarget = validation(
+    "invalid-annotation-target",
+    "Annotation not allowed in used target"
+  )
+
   val InvalidFragmentType = validation(
     "invalid-fragment-type",
     "Invalid fragment type"
@@ -749,6 +754,7 @@ object ParserSideValidations extends Validations {
     InvalidEndpointType,
     UnableToParseShape,
     InvalidAnnotationType,
+    InvalidAnnotationTarget,
     InvalidFragmentType,
     InvalidTypesType,
     SchemasDeprecated,

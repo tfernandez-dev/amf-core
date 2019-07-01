@@ -32,7 +32,7 @@ class JsServerPlatform extends JsPlatform {
 
   override def resolvePath(uri: String): String = {
     uri match {
-      case File(path) if fs.separatorChar == "/" => FILE_PROTOCOL + normalizeURL(path)
+      case File(path) if fs.separatorChar == '/' => FILE_PROTOCOL + normalizeURL(path)
       case File(path) => FILE_PROTOCOL + normalizeURL(path).replace(fs.separatorChar.toString, "/")
       case HttpParts(protocol, host, path) => protocol + host + normalizePath(withTrailingSlash(path))
       case _                               => uri

@@ -30,16 +30,6 @@ class JvmPlatform extends Platform {
     fixFilePrefix(res)
   }
 
-  private def fixFilePrefix(res: String): String = {
-    if (res.startsWith("file://") || res.startsWith("file:///")) {
-      res
-    } else if (res.startsWith("file:/")) {
-      res.replace("file:/", "file:///")
-    } else {
-      res
-    }
-  }
-
   override def findCharInCharSequence(stream: CharSequence)(p: Char => Boolean): Option[Char] = {
     stream.chars().filter(c => p(c.toChar)).findFirst() match {
       case optInt if optInt.isPresent => Some(optInt.getAsInt.toChar)

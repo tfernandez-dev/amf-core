@@ -160,6 +160,16 @@ trait Platform extends FileMediaType {
 
   /** Write specified content on specified file path. */
   protected def writeFile(path: String, content: String): Future[Unit] = fs.asyncFile(path).write(content)
+
+  protected def fixFilePrefix(res: String): String = {
+    if (res.startsWith("file://") || res.startsWith("file:///")) {
+      res
+    } else if (res.startsWith("file:/")) {
+      res.replace("file:/", "file:///")
+    } else {
+      res
+    }
+  }
 }
 
 object Platform {

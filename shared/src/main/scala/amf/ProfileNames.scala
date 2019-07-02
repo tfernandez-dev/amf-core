@@ -7,14 +7,15 @@ import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 @JSExportAll
 @JSExportTopLevel("ProfileNames")
 object ProfileNames {
-  val AMF: ProfileName    = AmfProfile
-  val OAS: ProfileName    = OasProfile
-  val OAS20: ProfileName  = Oas20Profile
-  val OAS30: ProfileName  = Oas30Profile
-  val RAML: ProfileName   = RamlProfile
-  val RAML10: ProfileName = Raml10Profile
-  val RAML08: ProfileName = Raml08Profile
-  val AML: ProfileName    = AmlProfile
+  val AMF: ProfileName     = AmfProfile
+  val OAS: ProfileName     = OasProfile
+  val OAS20: ProfileName   = Oas20Profile
+  val OAS30: ProfileName   = Oas30Profile
+  val RAML: ProfileName    = RamlProfile
+  val RAML10: ProfileName  = Raml10Profile
+  val RAML08: ProfileName  = Raml08Profile
+  val AML: ProfileName     = AmlProfile
+  val PAYLOAD: ProfileName = PayloadProfile
 
   lazy val specProfiles: Seq[ProfileName] =
     Seq(AmfProfile, OasProfile, Oas20Profile, Oas30Profile, RamlProfile, Raml08Profile, Raml10Profile)

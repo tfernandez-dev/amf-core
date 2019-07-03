@@ -611,6 +611,11 @@ object ParserSideValidations extends Validations {
     "Type is missing property marked as discriminator"
   )
 
+  val InvalidPayload = validation(
+    "invalid-payload",
+    "Invalid payload"
+  )
+
   override val levels: Map[String, Map[ProfileName, String]] = Map(
     OasBodyAndFormDataParameterSpecification.id -> Map(
       OasProfile   -> VIOLATION,
@@ -661,7 +666,8 @@ object ParserSideValidations extends Validations {
     ),
     SchemaException.id                -> all(VIOLATION),
     ReadOnlyPropertyMarkedRequired.id -> all(WARNING),
-    MissingDiscriminatorProperty.id   -> all(VIOLATION)
+    MissingDiscriminatorProperty.id   -> all(VIOLATION),
+    InvalidPayload.id                 -> all(VIOLATION)
   )
 
   override val validations: List[ValidationSpecification] = List(
@@ -783,6 +789,7 @@ object ParserSideValidations extends Validations {
     ReadOnlyPropertyMarkedRequired,
     ExamplesWithInvalidMimeType,
     ExamplesWithNoSchemaDefined,
-    MissingDiscriminatorProperty
+    MissingDiscriminatorProperty,
+    InvalidPayload
   )
 }

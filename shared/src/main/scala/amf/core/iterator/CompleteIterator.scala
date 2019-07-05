@@ -2,39 +2,45 @@ package amf.core.iterator
 import amf.core.model.domain.{AmfArray, AmfElement, AmfObject}
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 
-class CompleteIterator(buffer: mutable.Queue[AmfElement], visited: mutable.Set[String]) extends AmfIterator {
+class CompleteIterator(var buffer: List[AmfElement], visited: mutable.Set[String]) extends AmfElementIterator {
 
   def this(element: AmfElement) = {
-    this(mutable.Queue(element), mutable.Set())
+    this(List(element), mutable.Set())
+    advance()
   }
 
-  override def hasNext: Boolean = {
-    if(buffer.isEmpty) false
-    else buffer.head match {
-      case obj: AmfObject =>
-        if (visited.contains(obj.id)) {
-          buffer.dequeue()
-          hasNext
-        } else true
-      case _ => true
-    }
-  }
+  override def hasNext: Boolean = buffer.nonEmpty
 
   override def next: AmfElement = {
-    val current = buffer.dequeue()
-    current match {
-      case obj: AmfObject =>
-        val elements = obj.fields.fields().map(_.value.value).toSeq //TODO sacar toSeq
-        elements.foreach(buffer.enqueue(_))
-        visited += obj.id
-      case arr: AmfArray =>
-        arr.values.foreach(buffer.enqueue(_))
-      case _ =>
-    }
+    val current = buffer.head
+    buffer = buffer.tail
+    advance()
     current
+  }
+
+  private def advance(): Unit = {
+    if (buffer.nonEmpty) {
+      val current = buffer.head
+      buffer = buffer.tail
+      current match {
+        case obj: AmfObject =>
+          if (visited.contains(obj.id)) {
+            advance()
+          } else {
+            val elements = obj.fields.fields().map(_.value.value)
+            buffer = current :: elements.toList ++ buffer
+            visited += obj.id
+          }
+        case arr: AmfArray =>
+          buffer = current :: arr.values.toList ++ buffer
+        case _ =>
+          buffer = current :: buffer
+      }
+    }
   }
 
 }

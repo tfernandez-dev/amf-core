@@ -1,11 +1,13 @@
 package amf.core.model.domain
 
+import amf.client.model.DataTypes
 import amf.core.annotations.ScalarType
 import amf.core.metamodel.Type.EncodedIri
 import amf.core.metamodel.domain.DataNodeModel._
 import amf.core.metamodel.domain.{ScalarNodeModel, _}
 import amf.core.metamodel.{Field, Obj}
 import amf.core.model.StrField
+import amf.core.model.domain.ScalarNode.forDataType
 import amf.core.model.domain.templates.Variable
 import amf.core.parser.{Annotations, FieldEntry, Fields, Value}
 import amf.core.resolution.VariableReplacer
@@ -31,8 +33,7 @@ abstract class DataNode(annotations: Annotations) extends DomainElement {
     "/" + name.option().getOrElse("data-node").urlComponentEncoded
 
   /** Replace all raml variables (any name inside double chevrons -> '<<>>') with the provided values. */
-  def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(
-      reportError: String => Unit): DataNode
+  def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode
 
   def forceAdopted(parent: String): this.type = {
     val adoptedId = parent + "/" + name
@@ -74,32 +75,24 @@ object DataNodeOps {
 /**
   * Data records, with a list of properties
   */
-class ObjectNode(override val fields: Fields, val annotations: Annotations)
-    extends DataNode(annotations) {
+class ObjectNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
 
   def getFromKey(key: String): Option[DataNode] =
     fields
       .getValueAsOption(createField(key))
       .collectFirst({ case Value(e: DataNode, _) => e })
 
-  def addProperty(propertyOrUri: String,
-                  objectValue: DataNode,
-                  annotations: Annotations = Annotations()): this.type = {
+  def addProperty(propertyOrUri: String, objectValue: DataNode, annotations: Annotations = Annotations()): this.type = {
     val property = ensurePlainProperty(propertyOrUri)
     addPropertyByField(createField(property), objectValue, annotations)
     this
   }
 
   private def createField(property: String) = {
-    Field(DataNodeModel,
-          Namespace.Data + property.urlComponentEncoded,
-          ModelDoc(ModelVocabularies.Data, property))
+    Field(DataNodeModel, Namespace.Data + property.urlComponentEncoded, ModelDoc(ModelVocabularies.Data, property))
   }
 
-  def addPropertyByField(
-      f: Field,
-      objectValue: DataNode,
-      annotations: Annotations = Annotations()): this.type = {
+  def addPropertyByField(f: Field, objectValue: DataNode, annotations: Annotations = Annotations()): this.type = {
     objectValue.adopted(this.id)
     set(f, objectValue, annotations)
     this
@@ -150,11 +143,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations)
                 (_: String) => Unit
               else reportError) // if its an optional node, ignore the violation of the var not implement
           fields.removeField(field)
-          addProperty(VariableReplacer.replaceVariablesInKey(decodedKey,
-                                                             values,
-                                                             reportError),
-                      value,
-                      v.annotations)
+          addProperty(VariableReplacer.replaceVariablesInKey(decodedKey, values, reportError), value, v.annotations)
       }
     }
 
@@ -162,8 +151,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations)
   }
 
   class ObjectNodeDynamicModel extends ObjectNodeModel {
-    override val `type`
-      : List[ValueType] = Data + "Object" :: DataNodeModel.`type`
+    override val `type`: List[ValueType] = Data + "Object" :: DataNodeModel.`type`
 
     override def fields: List[Field] =
       propertyFields().toList ++ DataNodeModel.fields
@@ -185,9 +173,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations)
 
     propertyFields().flatMap(f => fields.entry(f)).foreach { entry =>
       val value = entry.value
-      cloned.set(entry.field,
-                 value.value.asInstanceOf[DataNode].cloneNode(),
-                 value.annotations)
+      cloned.set(entry.field, value.value.asInstanceOf[DataNode].cloneNode(), value.annotations)
     }
 
     cloned
@@ -210,16 +196,16 @@ object ObjectNode {
 /**
   * Scalar values with associated data type
   */
-class ScalarNode(override val fields: Fields, val annotations: Annotations)
-    extends DataNode(annotations) {
+class ScalarNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
 
   def withValue(v: String): this.type = withValue(v, Annotations())
 
   def withValue(v: String, ann: Annotations): this.type =
     set(ScalarNodeModel.Value, AmfScalar(v, ann))
 
-  def withDataType(dataType: String): this.type =
-    withDataType(dataType, Annotations())
+  def withDataType(dataType: String): this.type = {
+    set(ScalarNodeModel.DataType, forDataType(dataType))
+  }
 
   def withDataType(dataType: String, ann: Annotations): this.type =
     set(ScalarNodeModel.DataType, AmfScalar(dataType, ann))
@@ -250,9 +236,7 @@ object ScalarNode {
   def apply(value: String, dataType: Option[String], ast: YPart): ScalarNode =
     apply(value, dataType, Annotations(ast))
 
-  def apply(value: String,
-            dataType: Option[String],
-            annotations: Annotations): ScalarNode = {
+  def apply(value: String, dataType: Option[String], annotations: Annotations): ScalarNode = {
     val scalar = new ScalarNode(Fields(), annotations)
     dataType.foreach(d => {
       annotations += ScalarType(d)
@@ -260,13 +244,55 @@ object ScalarNode {
     })
     scalar.set(ScalarNodeModel.Value, AmfScalar(value, annotations))
   }
+
+  def forDataType(dataTypeUri: String): AmfScalar = dataTypeUri match {
+    case DataTypes.String => string
+    case DataTypes.Integer => integer
+    case DataTypes.Number => number
+    case DataTypes.Long => long
+    case DataTypes.Double => double
+    case DataTypes.Float => float
+    case DataTypes.Decimal => decimal
+    case DataTypes.Boolean => boolean
+    case DataTypes.Date => date
+    case DataTypes.Time => time
+    case DataTypes.DateTime => dateTime
+    case DataTypes.DateTimeOnly => dateTimeOnly
+    case DataTypes.File => file
+    case DataTypes.Byte => byte
+    case DataTypes.Binary => base64Binary
+    case DataTypes.Password => password
+    case DataTypes.Any => anyType
+    case DataTypes.AnyUri => anyURI
+    case DataTypes.Nil => nil
+    case _                    => AmfScalar(dataTypeUri, Annotations())
+  }
+
+  private val string = AmfScalar(DataTypes.String, Annotations())
+  private val integer = AmfScalar(DataTypes.Integer, Annotations())
+  private val number = AmfScalar(DataTypes.Number, Annotations())
+  private val long = AmfScalar(DataTypes.Long, Annotations())
+  private val double = AmfScalar(DataTypes.Double, Annotations())
+  private val float = AmfScalar(DataTypes.Float, Annotations())
+  private val decimal = AmfScalar(DataTypes.Decimal, Annotations())
+  private val boolean = AmfScalar(DataTypes.Boolean, Annotations())
+  private val date = AmfScalar(DataTypes.Date, Annotations())
+  private val time = AmfScalar(DataTypes.Time, Annotations())
+  private val dateTime = AmfScalar(DataTypes.DateTime, Annotations())
+  private val dateTimeOnly = AmfScalar(DataTypes.DateTimeOnly, Annotations())
+  private val file = AmfScalar(DataTypes.File, Annotations())
+  private val byte = AmfScalar(DataTypes.Byte, Annotations())
+  private val base64Binary = AmfScalar(DataTypes.Binary, Annotations())
+  private val password = AmfScalar(DataTypes.Password, Annotations())
+  private val anyType = AmfScalar(DataTypes.Any, Annotations())
+  private val anyURI = AmfScalar(DataTypes.AnyUri, Annotations())
+  private val nil = AmfScalar(DataTypes.Nil, Annotations())
 }
 
 /**
   * Arrays of values
   */
-class ArrayNode(override val fields: Fields, val annotations: Annotations)
-    extends DataNode(annotations) {
+class ArrayNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
 
   def members: Seq[DataNode] = fields.field(ArrayNodeModel.Member)
 
@@ -289,17 +315,14 @@ class ArrayNode(override val fields: Fields, val annotations: Annotations)
 
   def positionFields(): Seq[Field] = members.zipWithIndex.map {
     case (_, i) =>
-      Field(EncodedIri,
-            Namespace.Data + s"pos$i",
-            ModelDoc(ModelVocabularies.Data, s"pos$i"))
+      Field(EncodedIri, Namespace.Data + s"pos$i", ModelDoc(ModelVocabularies.Data, s"pos$i"))
   }
 
   override def meta: Obj = ArrayNodeModel
 
   override def cloneNode(): this.type = {
     val cloned =
-      new ArrayNode(fields.copy().filter(e => e._1 != ArrayNodeModel.Member),
-                    annotations.copy()).withId(id)
+      new ArrayNode(fields.copy().filter(e => e._1 != ArrayNodeModel.Member), annotations.copy()).withId(id)
 
     if (id != null) cloned.withId(id)
 
@@ -326,19 +349,17 @@ object ArrayNode {
   * @param fields default fields for the dynamic node
   * @param annotations default annotations for the dynamic node
   */
-class LinkNode(override val fields: Fields, val annotations: Annotations)
-    extends DataNode(annotations) {
+class LinkNode(override val fields: Fields, val annotations: Annotations) extends DataNode(annotations) {
 
-  def link: StrField = fields.field(LinkNodeModel.Value)
+  def link: StrField  = fields.field(LinkNodeModel.Value)
   def alias: StrField = fields.field(LinkNodeModel.Alias)
 
-  def withLink(link: String): this.type = set(LinkNodeModel.Value, link)
+  def withLink(link: String): this.type   = set(LinkNodeModel.Value, link)
   def withAlias(alias: String): this.type = set(LinkNodeModel.Alias, alias)
 
   var linkedDomainElement: Option[DomainElement] = None
 
-  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(
-      reportError: String => Unit): DataNode =
+  override def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode =
     this
 
   def withLinkedDomainElement(domainElement: DomainElement): LinkNode = {
@@ -367,9 +388,7 @@ object LinkNode {
   def apply(alias: String, value: String): LinkNode =
     apply(alias, value, Annotations())
 
-  def apply(alias: String,
-            value: String,
-            annotations: Annotations): LinkNode = {
+  def apply(alias: String, value: String, annotations: Annotations): LinkNode = {
     val linkNode = new LinkNode(Fields(), annotations)
     linkNode.set(LinkNodeModel.Value, value)
     linkNode.set(LinkNodeModel.Alias, alias)

@@ -1,7 +1,7 @@
 package amf.core.model.domain
 
 import amf.core.annotations.{LexicalInformation, LocalElement, SourceLocation, TrackedElement}
-import amf.core.iterator.{AmfIterator, CompleteIterator, DomainElementIterator}
+import amf.core.iterator.{AmfElementIterator, CompleteIterator, DomainElementIterator}
 import amf.core.parser.Annotations
 
 import scala.collection.mutable
@@ -40,31 +40,24 @@ trait AmfElement {
     annotations.collect { case t: TrackedElement if t.parents.contains(trackId) => t }.nonEmpty
 
   /** Recursive traversal through model collecting [T] based on partial function. */
-  def collect[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Seq[T] = {
-    val builder = new ListBuffer[T]()
-    strategy.iterator(this).foreach(pf.runWith(builder.append(_)))
-    builder.result()
+  def collect[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Iterator[T] = {
+    strategy.iterator(this).collect(pf)
   }
 
   def collectFirst[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Option[T] = {
-    val it = strategy.iterator(this)
-    while(it.hasNext){
-      val next = it.next
-      if(pf.isDefinedAt(next)) return Some(pf.apply(next))
-    }
-    None
+    strategy.iterator(this).collectFirst(pf)
   }
 
 }
 
 trait IteratorStrategy{
-  def iterator(element: AmfElement): AmfIterator
+  def iterator(element: AmfElement): AmfElementIterator
 }
 
 object CompleteStrategy extends  IteratorStrategy {
-  override def iterator(element: AmfElement): AmfIterator = new CompleteIterator(element)
+  override def iterator(element: AmfElement): AmfElementIterator = new CompleteIterator(element)
 }
 
 object DomainElementStrategy extends  IteratorStrategy {
-  override def iterator(element: AmfElement): AmfIterator = new DomainElementIterator(element)
+  override def iterator(element: AmfElement): AmfElementIterator = new DomainElementIterator(element)
 }

@@ -1,5 +1,6 @@
 package amf.core.rdf
 
+import amf.client.model.DataTypes
 import amf.core.annotations.DomainExtensionAnnotation
 import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel, SourceMapModel}
@@ -471,14 +472,14 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
 
   private def strCoercion(property: PropertyObject) = AmfScalar(s"${property.value}")
 
-  private val xsdString: String   = (Namespace.Xsd + "string").iri()
-  private val xsdInteger: String  = (Namespace.Xsd + "integer").iri()
-  private val xsdFloat: String    = (Namespace.Xsd + "float").iri()
+  private val xsdString: String   = DataTypes.String
+  private val xsdInteger: String  = DataTypes.Integer
+  private val xsdFloat: String    = DataTypes.Float
   private val amlNumber: String   = (Namespace.Shapes + "number").iri()
-  private val xsdDouble: String   = (Namespace.Xsd + "double").iri()
-  private val xsdBoolean: String  = (Namespace.Xsd + "boolean").iri()
-  private val xsdDateTime: String = (Namespace.Xsd + "dateTime").iri()
-  private val xsdDate: String     = (Namespace.Xsd + "date").iri()
+  private val xsdDouble: String   = DataTypes.Double
+  private val xsdBoolean: String  = DataTypes.Boolean
+  private val xsdDateTime: String = DataTypes.DateTime
+  private val xsdDate: String     = DataTypes.Date
 
   private def any(property: PropertyObject) = {
     property match {

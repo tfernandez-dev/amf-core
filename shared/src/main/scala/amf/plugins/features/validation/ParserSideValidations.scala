@@ -616,6 +616,11 @@ object ParserSideValidations extends Validations {
     "Invalid payload"
   )
 
+  val InvalidValueInPropertiesFacet = validation(
+    "invalid-value-in-properties-facet",
+    "Properties facet must be a map of key and values"
+  )
+
   override val levels: Map[String, Map[ProfileName, String]] = Map(
     OasBodyAndFormDataParameterSpecification.id -> Map(
       OasProfile   -> VIOLATION,
@@ -790,6 +795,7 @@ object ParserSideValidations extends Validations {
     ExamplesWithInvalidMimeType,
     ExamplesWithNoSchemaDefined,
     MissingDiscriminatorProperty,
-    InvalidPayload
+    InvalidPayload,
+    InvalidValueInPropertiesFacet
   )
 }

@@ -17,12 +17,14 @@ trait Shape extends DomainElement with Linkable with NamedDomainElement {
   def defaultValue: DataNode    = _internal.default
   def defaultValueStr: StrField = _internal.defaultString
 
-  def values: ClientList[DataNode] = _internal.values.asClient
-  def inherits: ClientList[Shape]  = _internal.inherits.asClient
-  def or: ClientList[Shape]        = _internal.or.asClient
-  def and: ClientList[Shape]       = _internal.and.asClient
-  def xone: ClientList[Shape]      = _internal.xone.asClient
-  def not: Shape                   = _internal.not
+  def values: ClientList[DataNode]                              = _internal.values.asClient
+  def inherits: ClientList[Shape]                               = _internal.inherits.asClient
+  def customShapeProperties: ClientList[ShapeExtension]         = _internal.customShapeProperties.asClient
+  def customShapePropertyDefinitions: ClientList[PropertyShape] = _internal.customShapePropertyDefinitions.asClient
+  def or: ClientList[Shape]                                     = _internal.or.asClient
+  def and: ClientList[Shape]                                    = _internal.and.asClient
+  def xone: ClientList[Shape]                                   = _internal.xone.asClient
+  def not: Shape                                                = _internal.not
 
   def withName(name: String): this.type = {
     _internal.withName(name)
@@ -77,5 +79,19 @@ trait Shape extends DomainElement with Linkable with NamedDomainElement {
   def withDefaultStr(value: String): this.type = {
     _internal.withDefaultStr(value)
     this
+  }
+
+  def withCustomShapeProperties(customShapeProperties: ClientList[ShapeExtension]): this.type = {
+    _internal.withCustomShapeProperties(customShapeProperties.asInternal)
+    this
+  }
+
+  def withCustomShapePropertyDefinitions(propertyDefinitions: ClientList[PropertyShape]): this.type = {
+    _internal.withCustomShapePropertyDefinitions(propertyDefinitions.asInternal)
+    this
+  }
+
+  def withCustomShapePropertyDefinition(name: String): PropertyShape = {
+    _internal.withCustomShapePropertyDefinition(name)
   }
 }

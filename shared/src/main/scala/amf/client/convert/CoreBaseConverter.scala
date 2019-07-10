@@ -2,42 +2,15 @@ package amf.client.convert
 
 import amf.ProfileName
 import amf.client.model.document.{BaseUnit => ClientBaseUnit, PayloadFragment => ClientPayloadFragment}
-import amf.client.model.domain.{
-  AbstractDeclaration => ClientAbstractDeclaration,
-  ArrayNode => ClientArrayNode,
-  CustomDomainProperty => ClientCustomDomainProperty,
-  DataNode => ClientDataNode,
-  DomainElement => ClientDomainElement,
-  DomainExtension => ClientDomainExtension,
-  Graph => ClientGraph,
-  ObjectNode => ClientObjectNode,
-  ParametrizedDeclaration => ClientParameterizedDeclaration,
-  PropertyShape => ClientPropertyShape,
-  ScalarNode => ClientScalarNode,
-  Shape => ClientShape,
-  VariableValue => ClientVariableValue
-}
-import amf.client.model.{
-  Annotations => ClientAnnotations,
-  AnyField => ClientAnyField,
-  BoolField => ClientBoolField,
-  DoubleField => ClientDoubleField,
-  FloatField => ClientFloatField,
-  IntField => ClientIntField,
-  StrField => ClientStrField
-}
+import amf.client.model.domain.{AbstractDeclaration => ClientAbstractDeclaration, ArrayNode => ClientArrayNode, CustomDomainProperty => ClientCustomDomainProperty, DataNode => ClientDataNode, DomainElement => ClientDomainElement, DomainExtension => ClientDomainExtension, Graph => ClientGraph, ObjectNode => ClientObjectNode, ParametrizedDeclaration => ClientParameterizedDeclaration, PropertyShape => ClientPropertyShape, ScalarNode => ClientScalarNode, Shape => ClientShape, VariableValue => ClientVariableValue, ShapeExtension => ClientShapeExtension}
+import amf.client.model.{Annotations => ClientAnnotations, AnyField => ClientAnyField, BoolField => ClientBoolField, DoubleField => ClientDoubleField, FloatField => ClientFloatField, IntField => ClientIntField, StrField => ClientStrField}
 import amf.client.remote.Content
 import amf.client.resource.{ResourceLoader => ClientResourceLoader}
-import amf.client.validate.{
-  ValidationCandidate => ClientValidationCandidate,
-  ValidationReport => ClientValidatorReport,
-  ValidationResult => ClientValidationResult,
-  ValidationShapeSet => ClientValidationShapeSet
-}
+import amf.client.validate.{ValidationCandidate => ClientValidationCandidate, ValidationReport => ClientValidatorReport, ValidationResult => ClientValidationResult, ValidationShapeSet => ClientValidationShapeSet}
 import amf.core.model._
 import amf.core.model.document.{BaseUnit, PayloadFragment}
 import amf.core.model.domain._
-import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension, PropertyShape}
+import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension, PropertyShape, ShapeExtension}
 import amf.core.model.domain.templates.{AbstractDeclaration, ParametrizedDeclaration, VariableValue}
 import amf.core.parser.Annotations
 import amf.core.remote.Vendor
@@ -58,6 +31,7 @@ trait CoreBaseConverter
     with CustomDomainPropertyConverter
     with ShapeConverter
     with PropertyShapeConverter
+    with ShapeExtensionConverter
     with DataNodeConverter
     with DomainExtensionConverter
     with DeclarationsConverter
@@ -309,6 +283,16 @@ trait PropertyShapeConverter extends PlatformSecrets {
     override def asClient(from: PropertyShape): ClientPropertyShape = platform.wrap[ClientPropertyShape](from)
 
     override def asInternal(from: ClientPropertyShape): PropertyShape = from._internal
+  }
+
+}
+
+trait ShapeExtensionConverter extends PlatformSecrets {
+
+  implicit object ShapeExtensionMatcher extends BidirectionalMatcher[ShapeExtension, ClientShapeExtension] {
+    override def asClient(from: ShapeExtension): ClientShapeExtension = platform.wrap[ClientShapeExtension](from)
+
+    override def asInternal(from: ClientShapeExtension): ShapeExtension = from._internal
   }
 
 }

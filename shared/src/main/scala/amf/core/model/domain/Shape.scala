@@ -7,7 +7,6 @@ import amf.core.metamodel.domain.ShapeModel._
 import amf.core.model.StrField
 import amf.core.model.domain.extensions.{PropertyShape, ShapeExtension}
 import amf.core.parser.{Annotations, ErrorHandler}
-import org.yaml.model.YNode
 
 import scala.collection.mutable
 

@@ -2,8 +2,6 @@ package amf.core.iterator
 import amf.core.model.domain.{AmfArray, AmfElement, AmfObject}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
-
 
 
 class CompleteIterator(var buffer: List[AmfElement], visited: mutable.Set[String]) extends AmfElementIterator {
@@ -32,8 +30,8 @@ class CompleteIterator(var buffer: List[AmfElement], visited: mutable.Set[String
             advance()
           } else {
             val elements = obj.fields.fields().map(_.value.value)
-            buffer = current :: elements.toList ++ buffer
             visited += obj.id
+            buffer = current :: elements.toList ++ buffer
           }
         case arr: AmfArray =>
           buffer = current :: arr.values.toList ++ buffer

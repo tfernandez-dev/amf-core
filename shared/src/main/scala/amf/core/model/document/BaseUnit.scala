@@ -104,7 +104,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   // Private lookup methods
 
-  protected def findInEncodedModel(predicate: DomainElement => Boolean,
+  private def findInEncodedModel(predicate: DomainElement => Boolean,
                                    encoder: BaseUnit,
                                    first: Boolean = false,
                                    acc: ListBuffer[DomainElement] = ListBuffer.empty: ListBuffer[DomainElement],

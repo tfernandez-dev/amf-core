@@ -2,7 +2,6 @@ package amf.core.iterator
 import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, DomainElement}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[String]) extends AmfElementIterator {
 
@@ -39,8 +38,8 @@ class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[S
             advanceToNextDomainElement()
           } else {
             val elements = obj.fields.fields().map(_.value.value).toList
-            buffer = elements ++ buffer
             visited += obj.id
+            buffer = elements ++ buffer
             advanceToNextDomainElement()
           }
         case arr: AmfArray =>

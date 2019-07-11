@@ -6,12 +6,15 @@ import amf.core.metamodel.domain.RecursiveShapeModel._
 import amf.core.model.StrField
 import amf.core.parser.{Annotations, ErrorHandler, Fields}
 
-case class RecursiveShape(override val fields: Fields, override val annotations: Annotations) extends Shape {
+class RecursiveShape(override val fields: Fields, override val annotations: Annotations) extends Shape {
 
-  var fixpointTarget: Option[Shape] = None
+  private var internalFixpointTarget: Option[Shape] = None
+
   def fixpoint: StrField            = fields.field(FixPoint)
+  def fixpointTarget: Option[Shape] = internalFixpointTarget
+
   def withFixpointTarget(target: Shape): this.type = {
-    fixpointTarget = Some(target)
+    internalFixpointTarget = Some(target)
     this
   }
 
@@ -24,7 +27,8 @@ case class RecursiveShape(override val fields: Fields, override val annotations:
     val cloned = RecursiveShape()
     cloned.id = this.id
     copyFields(recursionErrorHandler, cloned, None, traversed)
-    fixpointTarget.foreach(cloned.withFixpointTarget)
+    internalFixpointTarget.foreach(cloned.withFixpointTarget)
+    closureShapes.foreach(cloned.closureShapes.add)
     cloned
   }
 
@@ -39,14 +43,21 @@ case class RecursiveShape(override val fields: Fields, override val annotations:
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = RecursiveShape.apply
 
   override def copyElement(): this.type = this
+
+  override def copyShape(): this.type = {
+    val copy = super.copyShape().withId(id)
+    fixpointTarget.foreach(copy.withFixpointTarget)
+    copy
+  }
 }
 
 object RecursiveShape {
-  def apply(): RecursiveShape =
-    apply(Fields(), Annotations())
 
-  def apply(annotations: Annotations): RecursiveShape =
-    RecursiveShape(Fields(), annotations)
+  def apply(fields: Fields, annotations: Annotations): RecursiveShape = new RecursiveShape(fields, annotations)
+
+  def apply(): RecursiveShape = apply(Fields(), Annotations())
+
+  def apply(annotations: Annotations): RecursiveShape = apply(Fields(), annotations)
 
   def apply(l: Linkable): RecursiveShape =
     apply(Fields(), l.annotations)

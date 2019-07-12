@@ -18,7 +18,7 @@ import amf.core.vocabulary.{Namespace, ValueType}
 object DataNodeModel extends DomainElementModel with NameFieldSchema {
 
   // We set this so it can be re-used in the definition of the dynamic types
-  override def fields: List[Field]     = List(Name) ++ DomainElementModel.fields
+  override val fields: List[Field]     = List(Name) ++ DomainElementModel.fields
   override val `type`: List[ValueType] = Data + "Node" :: DomainElementModel.`type`
 
   override def modelInstance =
@@ -70,7 +70,7 @@ object ArrayNodeModel extends DomainElementModel {
   val Member =
     Field(Array(DataNodeModel), Namespace.Rdf + "member", ModelDoc(ExternalModelVocabularies.Rdf, "member", ""))
 
-  override def fields: List[Field]      = Member :: DataNodeModel.fields
+  override val fields: List[Field]      = Member :: DataNodeModel.fields
   override val `type`: List[ValueType]  = Data + "Array" :: Namespace.Rdf + "Seq" :: DataNodeModel.`type`
   override def modelInstance: AmfObject = ArrayNode()
 

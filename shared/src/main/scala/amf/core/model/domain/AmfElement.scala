@@ -34,17 +34,6 @@ trait AmfElement {
 
   def isTrackedBy(trackId: String): Boolean =
     annotations.collect { case t: TrackedElement if t.parents.contains(trackId) => t }.nonEmpty
-
-//  TODO borrar esto?
-//  /** Recursive traversal through model collecting [T] based on partial function. */
-//  def collect[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Iterator[T] = {
-//    strategy.iterator(List(this)).collect(pf)
-//  }
-//  /** Recursive traversal through model collecting first [T] based on partial function. */
-//  def collectFirst[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Option[T] = {
-//    strategy.iterator(List(this)).collectFirst(pf)
-//  }
-
 }
 
 

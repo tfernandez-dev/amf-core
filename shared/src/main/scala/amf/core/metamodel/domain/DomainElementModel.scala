@@ -74,7 +74,7 @@ object DomainElementModel extends DomainElementModel {
 
   override val `type`: List[ValueType] = List(Document + "DomainElement")
 
-  override def fields: List[Field] = List(Extends)
+  override val fields: List[Field] = List(Extends)
 
   override def modelInstance =  throw new Exception("DomainElement is an abstract class")
 

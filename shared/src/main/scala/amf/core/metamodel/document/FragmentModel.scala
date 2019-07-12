@@ -36,7 +36,7 @@ object FragmentModel extends FragmentModel {
 
   override val `type`: List[ValueType] = List(Document + "Fragment") ++ BaseUnitModel.`type`
 
-  override def fields: List[Field] = Encodes :: BaseUnitModel.fields
+  override val fields: List[Field] = Encodes :: BaseUnitModel.fields
 
   override val doc: ModelDoc = ModelDoc(
     ModelVocabularies.AmlDoc,
@@ -52,7 +52,7 @@ object PayloadFragmentModel extends FragmentModel {
     Http + "mediaType",
     ModelDoc(ModelVocabularies.Http, "mediaType", "Media type associated to the encoded fragment information"))
 
-  override def fields: List[Field] = Encodes :: MediaType :: BaseUnitModel.fields
+  override val fields: List[Field] = Encodes :: MediaType :: BaseUnitModel.fields
 
   override val `type`: List[ValueType] = List(Document + "PayloadFragment") ++ FragmentModel.`type`
 

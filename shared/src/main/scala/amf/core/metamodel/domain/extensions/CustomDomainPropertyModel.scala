@@ -47,7 +47,7 @@ object CustomDomainPropertyModel extends DomainElementModel with KeyField with D
   val Schema =
     Field(ShapeModel, Shapes + "schema", ModelDoc(ModelVocabularies.Shapes, "schema", "Schema for an entity"))
 
-  override def fields: List[Field] =
+  override val fields: List[Field] =
     List(Domain, Schema, Name) ++ LinkableElementModel.fields ++ DomainElementModel.fields
 
   override val `type`: List[ValueType] = Document + "DomainProperty" :: Rdf + "Property" :: DomainElementModel.`type`

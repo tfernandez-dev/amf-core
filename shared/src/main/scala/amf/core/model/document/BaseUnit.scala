@@ -61,7 +61,6 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   /**
     * Finds first domain element with the requested id
     */
-  //TODO ver si cubre bien el caso de dialect instance
   def findById(id: String): Option[DomainElement] =
     iterator(fieldsFilter = FieldsFilter.All).collectFirst {
       case e: DomainElement if e.id == id => e
@@ -70,9 +69,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   /** Finds in the nested model structure AmfObjects with the requested types. */
   def findByType(shapeType: String): Seq[DomainElement] = {
     val predicate = { element: DomainElement =>
-      metaModel(element).`type`.map(t => t.iri()).contains(shapeType)
+      metaModel(element).`type`.exists(valueType => valueType.iri() == shapeType)
     }
-    iterator().collect{ case e: DomainElement if predicate(e) => e }.toSeq
+    iterator().collect { case e: DomainElement if predicate(e) => e }.toSeq
   }
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(

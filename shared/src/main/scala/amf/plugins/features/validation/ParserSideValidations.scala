@@ -78,6 +78,11 @@ object ParserSideValidations extends Validations {
     "Invalid 'securedBy' type"
   )
 
+  val InvalidSecuritySchemeDescribedByType = validation(
+    "invalid-security-scheme-described-by-type",
+    "Invalid 'describedBy' type, map expected"
+  )
+
   val InvalidEndpointPath = validation(
     "invalid-endpoint-path",
     "Invalid endpoint path (invalid template uri)"
@@ -754,6 +759,7 @@ object ParserSideValidations extends Validations {
     InvalidConsumesWithFileParameter,
     ParameterNameRequired,
     InvalidSecuredByType,
+    InvalidSecuritySchemeDescribedByType,
     InvalidEndpointPath,
     DuplicatedEndpointPath,
     DuplicatedOperationId,

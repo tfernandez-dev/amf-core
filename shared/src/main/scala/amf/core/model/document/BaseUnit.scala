@@ -2,11 +2,13 @@ package amf.core.model.document
 
 import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
+import amf.core.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
 import amf.core.metamodel.document.BaseUnitModel.{Location, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
 import amf.core.metamodel.{MetaModelTypeMapping, Obj}
 import amf.core.model.StrField
+import amf.core.model.document.FieldsFilter.Local
 import amf.core.model.domain._
 import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, FieldEntry, ParserContext, Value}
 import amf.core.rdf.{RdfModel, RdfModelParser}
@@ -15,7 +17,6 @@ import amf.core.unsafe.PlatformSecrets
 import amf.plugins.features.validation.ResolutionSideValidations.RecursiveShapeSpecification
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 /** Any parseable unit, backed by a source URI. */
 trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets {
@@ -53,32 +54,25 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   def withUsage(usage: String): this.type = set(Usage, usage)
 
+  /** Returns Unit iterator for specified strategy and scope. */
+  def iterator(strategy: IteratorStrategy = DomainElementStrategy, fieldsFilter: FieldsFilter = Local): AmfIterator =
+    strategy.iterator(fieldsFilter.filter(fields))
+
   /**
-    * finds in the nested model structure an AmfObject with the requested Id
-    * @param id URI of the model element
+    * Finds first domain element with the requested id
     */
-  def findById(id: String): Option[DomainElement] = findById(id, Set.empty)
-  def findById(id: String, cycles: Set[String]): Option[DomainElement] = {
-    val predicate = (element: DomainElement) => element.id == id
-    findInEncodedModel(predicate, this, first = true, ListBuffer.empty, cycles).headOption.orElse(
-      findInDeclaredModel(predicate, this, first = true, ListBuffer.empty, cycles).headOption.orElse(
-        findInReferencedModels(id, this.references, cycles).headOption
-      )
-    )
-  }
+  //TODO ver si cubre bien el caso de dialect instance
+  def findById(id: String): Option[DomainElement] =
+    iterator(fieldsFilter = FieldsFilter.All).collectFirst {
+      case e: DomainElement if e.id == id => e
+    }
 
   /** Finds in the nested model structure AmfObjects with the requested types. */
-  def findByType(shapeType: String, cycles: Set[String] = Set.empty): Seq[DomainElement] = {
+  def findByType(shapeType: String): Seq[DomainElement] = {
     val predicate = { element: DomainElement =>
       metaModel(element).`type`.map(t => t.iri()).contains(shapeType)
     }
-    findInDeclaredModel(predicate, this, first = false, ListBuffer.empty, cycles) ++
-      findInEncodedModel(predicate, this, first = false, ListBuffer.empty, cycles)
-  }
-
-  def findBy(predicate: DomainElement => Boolean, cycles: Set[String] = Set.empty): Seq[DomainElement] = {
-    findInDeclaredModel(predicate, this, first = false, ListBuffer.empty, cycles) ++
-      findInEncodedModel(predicate, this, first = false, ListBuffer.empty, cycles)
+    iterator().collect{ case e: DomainElement if predicate(e) => e }.toSeq
   }
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(
@@ -102,105 +96,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     this
   }
 
-  // Private lookup methods
-
-  private def findInEncodedModel(predicate: DomainElement => Boolean,
-                                   encoder: BaseUnit,
-                                   first: Boolean = false,
-                                   acc: ListBuffer[DomainElement] = ListBuffer.empty: ListBuffer[DomainElement],
-                                   cycles: Set[String]): ListBuffer[_ <: DomainElement] = {
-    encoder match {
-      case _ if cycles.contains(encoder.id) => ListBuffer.empty
-      case encoder: EncodesModel if Option(encoder.encodes).isDefined =>
-        findModelByCondition(predicate, encoder.encodes, first, acc, mutable.Set((cycles + encoder.id).toList:_*))
-      case _ => ListBuffer.empty
-    }
-  }
-
-  protected def findInDeclaredModel(predicate: DomainElement => Boolean,
-                                    encoder: BaseUnit,
-                                    first: Boolean,
-                                    acc: ListBuffer[DomainElement],
-                                    cycles: Set[String]): ListBuffer[DomainElement] = {
-    encoder match {
-      case _ if cycles.contains(encoder.id) => ListBuffer.empty
-      case encoder: DeclaresModel =>
-        findModelByConditionInSeq(predicate, encoder.declares, first, acc, mutable.Set((cycles + encoder.id).toList:_*))
-      case _ => ListBuffer.empty
-    }
-  }
-
   def findInReferences(id: String): Option[BaseUnit] = references.find(_.id == id)
-
-  protected def findInReferencedModels(id: String,
-                                       units: Seq[BaseUnit],
-                                       cycles: Set[String]): ListBuffer[DomainElement] = {
-    if (units.isEmpty) {
-      ListBuffer.empty
-    } else if (cycles.contains(units.head.id)) {
-      findInReferencedModels(id, units.tail, cycles)
-    } else {
-      units.head.findById(id, cycles) match {
-        case Some(element) => ListBuffer(element)
-        case None          => findInReferencedModels(id, units.tail, cycles + units.head.id)
-      }
-    }
-  }
-
-  protected def findModelByCondition(predicate: DomainElement => Boolean,
-                                     element: DomainElement,
-                                     first: Boolean,
-                                     acc: ListBuffer[DomainElement],
-                                     cycles: mutable.Set[String]): ListBuffer[DomainElement] = {
-    if (!cycles.contains(element.id)) {
-      val found = predicate(element)
-      if (found) {
-        acc += element
-      }
-      if (found && first) {
-        acc
-      } else {
-        // elements are the values in the properties for the not found object
-        val elements = element.fields.fields().map(_.element).toSeq
-        cycles += element.id
-        findModelByConditionInSeq(predicate, elements, first, acc, cycles)
-      }
-    } else {
-      acc
-    }
-  }
-
-  private def findModelByConditionInSeq(predicate: DomainElement => Boolean,
-                                        elements: Seq[AmfElement],
-                                        first: Boolean,
-                                        acc: ListBuffer[DomainElement],
-                                        cycles: mutable.Set[String]): ListBuffer[DomainElement] = {
-    if (elements.isEmpty) {
-      acc
-    } else {
-      elements.head match {
-        case obj: DomainElement if !cycles.contains(obj.id) =>
-          val res = findModelByCondition(predicate, obj, first, acc, cycles) // must not be added to cycles here, findModelByCondition will do it
-          if (first && res.nonEmpty) {
-            res
-          } else {
-            findModelByConditionInSeq(predicate, elements.tail, first, res, cycles)
-          }
-
-        case _: DomainElement => findModelByConditionInSeq(predicate, elements.tail, first, acc, cycles)
-
-        case arr: AmfArray =>
-          val res = findModelByConditionInSeq(predicate, arr.values, first, acc, cycles)
-          if (first && res.nonEmpty) {
-            res
-          } else {
-            findModelByConditionInSeq(predicate, elements.tail, first, res, cycles)
-          }
-
-        case _ => findModelByConditionInSeq(predicate, elements.tail, first, acc, cycles)
-      }
-    }
-  }
 
   protected def defaultCycleRecoverer(errorHandler: ErrorHandler = DefaultParserSideErrorHandler(this))(
     old: AmfObject,

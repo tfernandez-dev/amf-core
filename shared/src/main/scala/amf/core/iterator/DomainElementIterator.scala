@@ -3,11 +3,11 @@ import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, DomainElement}
 
 import scala.collection.mutable
 
-class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[String]) extends AmfElementIterator {
+class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[String]) extends AmfIterator {
 
-  def this(element: AmfElement) = {
-    this(List(element), mutable.Set())
-    advanceToNextDomainElement()
+  def this(elements: List[AmfElement]) = {
+    this(elements, mutable.Set())
+    advance()
   }
 
   override def hasNext: Boolean = buffer.nonEmpty
@@ -15,38 +15,38 @@ class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[S
   override def next: AmfElement = {
     val current = buffer.head
     buffer = buffer.tail
-    advanceToNextDomainElement()
+    advance()
     current
   }
 
-  private def advanceToNextDomainElement(): Unit = {
+  private def advance(): Unit = {
     if(buffer.nonEmpty) {
       val current = buffer.head
       buffer = buffer.tail
       current match {
         case domain: DomainElement =>
           if (visited.contains(domain.id)) {
-            advanceToNextDomainElement()
+            advance()
           } else {
-            val elements = domain.fields.fields().map(_.value.value).toList
+            val elements = domain.fields.fields().map(_.element).toList
             visited += domain.id
             buffer = current :: elements ++ buffer
-            // unico caso donde freno porque encontre un domain element que no fue visitado
+            // advance finishes here because a non visited domain element was found
           }
         case obj: AmfObject =>
           if (visited.contains(obj.id)) {
-            advanceToNextDomainElement()
+            advance()
           } else {
-            val elements = obj.fields.fields().map(_.value.value).toList
+            val elements = obj.fields.fields().map(_.element).toList
             visited += obj.id
             buffer = elements ++ buffer
-            advanceToNextDomainElement()
+            advance()
           }
         case arr: AmfArray =>
           buffer = arr.values.toList ++ buffer
-          advanceToNextDomainElement()
+          advance()
         case _ =>
-          advanceToNextDomainElement()
+          advance()
       }
     }
   }

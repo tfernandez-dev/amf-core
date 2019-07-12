@@ -1,14 +1,13 @@
 package amf.core.model.domain
 
-import amf.client.model.DataTypes
 import amf.core.annotations.ScalarType
 import amf.core.metamodel.Type.EncodedIri
 import amf.core.metamodel.domain.DataNodeModel._
 import amf.core.metamodel.domain.{ScalarNodeModel, _}
 import amf.core.metamodel.{Field, Obj}
-import amf.core.model.StrField
 import amf.core.model.domain.ScalarNode.forDataType
 import amf.core.model.domain.templates.Variable
+import amf.core.model.{DataType, StrField}
 import amf.core.parser.{Annotations, FieldEntry, Fields, Value}
 import amf.core.resolution.VariableReplacer
 import amf.core.utils._
@@ -246,47 +245,47 @@ object ScalarNode {
   }
 
   def forDataType(dataTypeUri: String): AmfScalar = dataTypeUri match {
-    case DataTypes.String => string
-    case DataTypes.Integer => integer
-    case DataTypes.Number => number
-    case DataTypes.Long => long
-    case DataTypes.Double => double
-    case DataTypes.Float => float
-    case DataTypes.Decimal => decimal
-    case DataTypes.Boolean => boolean
-    case DataTypes.Date => date
-    case DataTypes.Time => time
-    case DataTypes.DateTime => dateTime
-    case DataTypes.DateTimeOnly => dateTimeOnly
-    case DataTypes.File => file
-    case DataTypes.Byte => byte
-    case DataTypes.Binary => base64Binary
-    case DataTypes.Password => password
-    case DataTypes.Any => anyType
-    case DataTypes.AnyUri => anyURI
-    case DataTypes.Nil => nil
+    case DataType.String => string
+    case DataType.Integer => integer
+    case DataType.Number => number
+    case DataType.Long => long
+    case DataType.Double => double
+    case DataType.Float => float
+    case DataType.Decimal => decimal
+    case DataType.Boolean => boolean
+    case DataType.Date => date
+    case DataType.Time => time
+    case DataType.DateTime => dateTime
+    case DataType.DateTimeOnly => dateTimeOnly
+    case DataType.File => file
+    case DataType.Byte => byte
+    case DataType.Binary => base64Binary
+    case DataType.Password => password
+    case DataType.Any => anyType
+    case DataType.AnyUri => anyURI
+    case DataType.Nil => nil
     case _                    => AmfScalar(dataTypeUri, Annotations())
   }
 
-  private val string = AmfScalar(DataTypes.String, Annotations())
-  private val integer = AmfScalar(DataTypes.Integer, Annotations())
-  private val number = AmfScalar(DataTypes.Number, Annotations())
-  private val long = AmfScalar(DataTypes.Long, Annotations())
-  private val double = AmfScalar(DataTypes.Double, Annotations())
-  private val float = AmfScalar(DataTypes.Float, Annotations())
-  private val decimal = AmfScalar(DataTypes.Decimal, Annotations())
-  private val boolean = AmfScalar(DataTypes.Boolean, Annotations())
-  private val date = AmfScalar(DataTypes.Date, Annotations())
-  private val time = AmfScalar(DataTypes.Time, Annotations())
-  private val dateTime = AmfScalar(DataTypes.DateTime, Annotations())
-  private val dateTimeOnly = AmfScalar(DataTypes.DateTimeOnly, Annotations())
-  private val file = AmfScalar(DataTypes.File, Annotations())
-  private val byte = AmfScalar(DataTypes.Byte, Annotations())
-  private val base64Binary = AmfScalar(DataTypes.Binary, Annotations())
-  private val password = AmfScalar(DataTypes.Password, Annotations())
-  private val anyType = AmfScalar(DataTypes.Any, Annotations())
-  private val anyURI = AmfScalar(DataTypes.AnyUri, Annotations())
-  private val nil = AmfScalar(DataTypes.Nil, Annotations())
+  private val string = AmfScalar(DataType.String, Annotations())
+  private val integer = AmfScalar(DataType.Integer, Annotations())
+  private val number = AmfScalar(DataType.Number, Annotations())
+  private val long = AmfScalar(DataType.Long, Annotations())
+  private val double = AmfScalar(DataType.Double, Annotations())
+  private val float = AmfScalar(DataType.Float, Annotations())
+  private val decimal = AmfScalar(DataType.Decimal, Annotations())
+  private val boolean = AmfScalar(DataType.Boolean, Annotations())
+  private val date = AmfScalar(DataType.Date, Annotations())
+  private val time = AmfScalar(DataType.Time, Annotations())
+  private val dateTime = AmfScalar(DataType.DateTime, Annotations())
+  private val dateTimeOnly = AmfScalar(DataType.DateTimeOnly, Annotations())
+  private val file = AmfScalar(DataType.File, Annotations())
+  private val byte = AmfScalar(DataType.Byte, Annotations())
+  private val base64Binary = AmfScalar(DataType.Binary, Annotations())
+  private val password = AmfScalar(DataType.Password, Annotations())
+  private val anyType = AmfScalar(DataType.Any, Annotations())
+  private val anyURI = AmfScalar(DataType.AnyUri, Annotations())
+  private val nil = AmfScalar(DataType.Nil, Annotations())
 }
 
 /**

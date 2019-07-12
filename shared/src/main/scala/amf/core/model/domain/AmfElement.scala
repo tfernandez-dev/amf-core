@@ -1,7 +1,6 @@
 package amf.core.model.domain
 
 import amf.core.annotations.{LexicalInformation, LocalElement, SourceLocation, TrackedElement}
-import amf.core.iterator._
 import amf.core.parser.Annotations
 
 /**
@@ -36,14 +35,15 @@ trait AmfElement {
   def isTrackedBy(trackId: String): Boolean =
     annotations.collect { case t: TrackedElement if t.parents.contains(trackId) => t }.nonEmpty
 
-  /** Recursive traversal through model collecting [T] based on partial function. */
-  def collect[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Iterator[T] = {
-    strategy.iterator(this).collect(pf)
-  }
-  /** Recursive traversal through model collecting first [T] based on partial function. */
-  def collectFirst[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Option[T] = {
-    strategy.iterator(this).collectFirst(pf)
-  }
+//  TODO borrar esto?
+//  /** Recursive traversal through model collecting [T] based on partial function. */
+//  def collect[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Iterator[T] = {
+//    strategy.iterator(List(this)).collect(pf)
+//  }
+//  /** Recursive traversal through model collecting first [T] based on partial function. */
+//  def collectFirst[T](strategy: IteratorStrategy = DomainElementStrategy)(pf: PartialFunction[AmfElement, T]): Option[T] = {
+//    strategy.iterator(List(this)).collectFirst(pf)
+//  }
 
 }
 

@@ -41,4 +41,11 @@ object DataNodes {
     .withId("amf://fragment")
     .withLocation("http://fragment")
     .withEncodes(recursive)
+
+  val complex: Document = Document()
+    .withId("amf://complex")
+    .withLocation("http://complex")
+    .withEncodes(name)
+    .withDeclares(Seq(age, happy))
+    .withReferences(Seq(document))
 }

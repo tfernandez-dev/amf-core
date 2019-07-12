@@ -3,15 +3,15 @@ package amf.core.iterator
 import amf.core.model.domain.AmfElement
 
 trait IteratorStrategy {
-  def iterator(element: AmfElement): AmfElementIterator
+  def iterator(elements: List[AmfElement]): AmfIterator
 }
 
-object CompleteStrategy extends IteratorStrategy {
-  override def iterator(element: AmfElement): AmfElementIterator =
-    new CompleteIterator(element)
+object AmfElementStrategy extends IteratorStrategy {
+  override def iterator(elements: List[AmfElement]): AmfIterator =
+    new AmfElementIterator(elements)
 }
 
 object DomainElementStrategy extends IteratorStrategy {
-  override def iterator(element: AmfElement): AmfElementIterator =
-    new DomainElementIterator(element)
+  override def iterator(elements: List[AmfElement]): AmfIterator =
+    new DomainElementIterator(elements)
 }

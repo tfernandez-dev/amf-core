@@ -129,6 +129,14 @@ trait Platform extends FileMediaType {
   /** decodes a uri component */
   def decodeURIComponent(url: String): String
 
+  /** either decodes a uri component or returns raw url */
+  def safeDecodeURIComponent(url: String): Either[String, String] =
+    try {
+      Right(decodeURIComponent(url))
+    } catch {
+      case _: Throwable => Left(url)
+    }
+
   /** validates and normalize complete url*/
   def normalizeURL(url: String): String
 

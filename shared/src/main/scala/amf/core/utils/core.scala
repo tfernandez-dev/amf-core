@@ -90,7 +90,12 @@ package object utils {
     def urlComponentEncoded: String = platform.encodeURIComponent(str)
 
     /** Url component dencoded string. */
-    def urlComponentDecoded: String = platform.decodeURIComponent(str)
+    def urlComponentDecoded: String = {
+      platform.safeDecodeURIComponent(str) match {
+        case Right(decodedUrl) => decodedUrl
+        case Left(rawUrl)      => rawUrl
+      }
+    }
 
     def urlEncoded: String = platform.encodeURI(str)
 

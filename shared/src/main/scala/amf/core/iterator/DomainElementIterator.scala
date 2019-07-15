@@ -24,23 +24,20 @@ class DomainElementIterator(var buffer: List[AmfElement], visited: mutable.Set[S
       val current = buffer.head
       buffer = buffer.tail
       current match {
-        case domain: DomainElement =>
-          if (visited.contains(domain.id)) {
-            advance()
-          } else {
-            val elements = domain.fields.fields().map(_.element).toList
-            visited += domain.id
-            buffer = current :: elements ++ buffer
-            // advance finishes here because a non visited domain element was found
-          }
         case obj: AmfObject =>
           if (visited.contains(obj.id)) {
             advance()
           } else {
             val elements = obj.fields.fields().map(_.element).toList
             visited += obj.id
-            buffer = elements ++ buffer
-            advance()
+            obj match {
+              case domain: DomainElement =>
+                buffer = domain :: elements ++ buffer
+              // advance finishes here because a non visited domain element was found
+              case _ =>
+                buffer = elements ++ buffer
+                advance()
+            }
           }
         case arr: AmfArray =>
           buffer = arr.values.toList ++ buffer

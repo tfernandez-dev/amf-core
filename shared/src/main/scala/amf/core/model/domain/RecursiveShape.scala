@@ -15,6 +15,7 @@ class RecursiveShape(override val fields: Fields, override val annotations: Anno
 
   def withFixpointTarget(target: Shape): this.type = {
     internalFixpointTarget = Some(target)
+    closureShapes.add(target)
     this
   }
 

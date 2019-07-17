@@ -52,7 +52,7 @@ object Type {
   object Bool extends Scalar("boolean")
 
   object ObjType extends Obj {
-    override def fields: List[Field]     = Nil
+    override val fields: List[Field]     = Nil
     override val `type`: List[ValueType] = Nil
 
     override val doc: ModelDoc = ModelDoc(ModelVocabularies.Parser, "", "")

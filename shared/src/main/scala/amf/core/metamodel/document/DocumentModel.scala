@@ -17,7 +17,7 @@ trait DocumentModel extends FragmentModel with ModuleModel {
   override val `type`: List[ValueType] =
     Document + "Document" :: Document + "Fragment" :: Document + "Module" :: BaseUnitModel.`type`
 
-  override def fields: List[Field] = Encodes :: Declares :: BaseUnitModel.fields
+  override val fields: List[Field] = Encodes :: Declares :: BaseUnitModel.fields
 }
 
 object DocumentModel extends DocumentModel {

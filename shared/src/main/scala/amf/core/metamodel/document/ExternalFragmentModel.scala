@@ -11,7 +11,7 @@ import amf.core.vocabulary.ValueType
   * A fragment with including raw information that cannot be semantically processed, the information is encoded as a raw opaque textual description.
   */
 object ExternalFragmentModel extends FragmentModel {
-  override def fields: List[Field] = FragmentModel.fields
+  override val fields: List[Field] = FragmentModel.fields
 
   override val `type`: List[ValueType] = List(Document + "ExternalFragment") ++ FragmentModel.`type`
 

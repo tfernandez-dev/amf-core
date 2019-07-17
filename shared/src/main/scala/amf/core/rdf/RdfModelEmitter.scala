@@ -7,6 +7,7 @@ import amf.core.metamodel.document.SourceMapModel
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
 import amf.core.metamodel.domain.{DomainElementModel, LinkableElementModel, ShapeModel}
 import amf.core.metamodel._
+import amf.core.model.DataType
 import amf.core.model.document.{BaseUnit, SourceMap}
 import amf.core.model.domain.DataNodeOps.adoptTree
 import amf.core.model.domain._
@@ -170,7 +171,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
         case EncodedIri =>
           safeIri(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case LiteralUri =>
-          typedScalar(subject, property, v.value.asInstanceOf[AmfScalar].toString, (Namespace.Xsd + "anyURI").iri())
+          typedScalar(subject, property, v.value.asInstanceOf[AmfScalar].toString, DataType.AnyUri)
         case Str =>
           v.annotations.find(classOf[ScalarType]) match {
             case Some(annotation) =>
@@ -182,7 +183,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           rdfmodel.addTriple(subject,
             property,
             v.value.asInstanceOf[AmfScalar].toString,
-            Some((Namespace.Xsd + "boolean").iri()))
+            Some(DataType.Boolean))
         case Type.Int =>
           emitIntLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case Type.Double =>
@@ -191,18 +192,18 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           rdfmodel.addTriple(subject,
             property,
             v.value.asInstanceOf[AmfScalar].toString,
-            Some((Namespace.Xsd + "double").iri()))
+            Some(DataType.Double))
         case Type.Float =>
           emitFloatLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case Type.DateTime =>
           val dateTime = v.value.asInstanceOf[AmfScalar].value.asInstanceOf[SimpleDateTime]
-          typedScalar(subject, property, dateTime.rfc3339, (Namespace.Xsd + "dateTime").iri())
+          typedScalar(subject, property, dateTime.rfc3339, DataType.DateTime)
         case Type.Date =>
           val dateTime = v.value.asInstanceOf[AmfScalar].value.asInstanceOf[SimpleDateTime]
           if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
-            typedScalar(subject, property, dateTime.rfc3339, (Namespace.Xsd + "dateTime").iri())
+            typedScalar(subject, property, dateTime.rfc3339, DataType.DateTime)
           } else {
-            typedScalar(subject, property, dateTime.rfc3339, (Namespace.Xsd + "date").iri())
+            typedScalar(subject, property, dateTime.rfc3339, DataType.Date)
           }
         case a: SortedArray =>
           createSortedArray(subject, property, v.value.asInstanceOf[AmfArray].values, a.element)
@@ -217,7 +218,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
               rdfmodel.addTriple(subject,
                 property,
                 v.value.asInstanceOf[AmfScalar].toString,
-                Some((Namespace.Xsd + "boolean").iri()))
+                Some(DataType.Boolean))
             case i: Int =>
               emitIntLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
             case f: Float =>
@@ -226,7 +227,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
               rdfmodel.addTriple(subject,
                 property,
                 v.value.asInstanceOf[AmfScalar].toString,
-                Some((Namespace.Xsd + "double").iri()))
+                Some(DataType.Double))
             case _ =>
               v.annotations.find(classOf[ScalarType]) match {
                 case Some(annotation) =>
@@ -240,7 +241,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
 
     def emitIntLiteral(subject: String, property: String, v: String): Unit = {
       try {
-        rdfmodel.addTriple(subject, property, v.toInt.toString, Some((Namespace.Xsd + "long").iri()))
+        rdfmodel.addTriple(subject, property, v.toInt.toString, Some(DataType.Long))
       } catch {
         case _: NumberFormatException =>
           rdfmodel.addTriple(subject, property, v, None)
@@ -249,7 +250,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
 
     def emitFloatLiteral(subject: String, property: String, v: String): Unit = {
       try {
-        rdfmodel.addTriple(subject, property, v.toDouble.toString, Some((Namespace.Xsd + "double").iri()))
+        rdfmodel.addTriple(subject, property, v.toDouble.toString, Some(DataType.Double))
       } catch {
         case _: NumberFormatException =>
           rdfmodel.addTriple(subject, property, v, None)
@@ -293,8 +294,8 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
 
     private def typedScalar(subject: String, property: String, content: String, dataType: String): Unit = {
       dataType match {
-        case _ if dataType == (Namespace.Xsd + "integer").iri() =>
-          rdfmodel.addTriple(subject, property, content, Some((Namespace.Xsd + "long").iri()))
+        case _ if dataType == DataType.Integer =>
+          rdfmodel.addTriple(subject, property, content, Some(DataType.Long))
         case _ => rdfmodel.addTriple(subject, property, content, Some(dataType))
       }
     }

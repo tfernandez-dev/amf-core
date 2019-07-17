@@ -19,7 +19,7 @@ trait ExtensionLikeModel extends DocumentModel {
     Document + "extends",
     ModelDoc(ModelVocabularies.AmlDoc, "extends", "Target base unit being extended by this extension model"))
 
-  override def fields: List[Field] = Extends :: DocumentModel.fields
+  override val fields: List[Field] = Extends :: DocumentModel.fields
 
 }
 

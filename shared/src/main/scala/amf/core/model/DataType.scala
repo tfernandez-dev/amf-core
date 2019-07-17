@@ -26,25 +26,25 @@ object DataType {
 
   /** Return dataType qualified with Xsd namespace. */
   def apply(dataType: String): String = dataType match {
-    case "string"          => String
-    case "integer"         => Integer
-    case "number"          => Number
-    case "long"            => Long
-    case "double"          => Double
-    case "float"           => Float
-    case "decimal"         => Decimal
-    case "boolean"         => Boolean
-    case "date"            => Date
-    case "time"            => Time
-    case "dateTime"        => DateTime
-    case "dateTimeOnly"    => DateTimeOnly
-    case "file"            => File
-    case "byte"            => Byte
-    case "base64Binary"    => Binary
-    case "password"        => Password
-    case "anyType" | "any" => Any
-    case "anyUri" | "uri"  => AnyUri
-    case "nil"             => Nil
-    case _                 => Xsd.base + dataType
+    case "string"                         => String
+    case "integer"                        => Integer
+    case "number"                         => Number
+    case "long"                           => Long
+    case "double"                         => Double
+    case "float"                          => Float
+    case "decimal"                        => Decimal
+    case "boolean"                        => Boolean
+    case "date" | "date-only"             => Date
+    case "time" | "time-only"             => Time
+    case "dateTime" | "datetime"          => DateTime
+    case "dateTimeOnly" | "datetime-only" => DateTimeOnly
+    case "file"                           => File
+    case "byte"                           => Byte
+    case "base64Binary"                   => Binary
+    case "password"                       => Password
+    case "anyType" | "any"                => Any
+    case "anyUri" | "uri"                 => AnyUri
+    case "nil"                            => Nil
+    case _                                => Xsd.base + dataType
   }
 }

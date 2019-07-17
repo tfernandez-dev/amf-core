@@ -7,6 +7,7 @@ import amf.core.metamodel.document.BaseUnitModel.Location
 import amf.core.metamodel.document._
 import amf.core.metamodel.domain._
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
+import amf.core.model.DataType
 import amf.core.model.document._
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
@@ -15,12 +16,7 @@ import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.unsafe.TrunkPlatform
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.ParserSideValidations.{
-  NodeNotFound,
-  NotLinkable,
-  UnableToParseDocument,
-  UnableToParseNode
-}
+import amf.plugins.features.validation.ParserSideValidations.{NodeNotFound, NotLinkable, UnableToParseDocument, UnableToParseNode}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.convert.YRead.SeqNodeYRead
 import org.yaml.model._
@@ -400,14 +396,14 @@ class GraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
     AmfScalar(value)
   }
 
-  private val xsdString: String   = (Namespace.Xsd + "string").iri()
-  private val xsdInteger: String  = (Namespace.Xsd + "integer").iri()
-  private val xsdFloat: String    = (Namespace.Xsd + "float").iri()
-  private val amlNumber: String   = (Namespace.Shapes + "number").iri()
-  private val xsdDouble: String   = (Namespace.Xsd + "double").iri()
-  private val xsdBoolean: String  = (Namespace.Xsd + "boolean").iri()
-  private val xsdDateTime: String = (Namespace.Xsd + "dateTime").iri()
-  private val xsdDate: String     = (Namespace.Xsd + "date").iri()
+  private val xsdString: String   = DataType.String
+  private val xsdInteger: String  = DataType.Integer
+  private val xsdFloat: String    = DataType.Float
+  private val amlNumber: String   = DataType.Number
+  private val xsdDouble: String   = DataType.Double
+  private val xsdBoolean: String  = DataType.Boolean
+  private val xsdDateTime: String = DataType.DateTime
+  private val xsdDate: String     = DataType.Date
 
   private def any(node: YNode) = {
     node.tagType match {

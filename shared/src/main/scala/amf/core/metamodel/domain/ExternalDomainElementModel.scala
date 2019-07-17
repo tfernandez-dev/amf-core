@@ -25,7 +25,7 @@ object ExternalDomainElementModel extends DomainElementModel {
     Http + "mediaType",
     ModelDoc(ModelVocabularies.Http, "mediaType", "Media type associated to the encoded fragment information"))
 
-  override def fields: List[Field] = List(Raw, MediaType)
+  override val fields: List[Field] = List(Raw, MediaType)
 
   override val `type`: List[ValueType] = Document + "ExternalDomainElement" :: DomainElementModel.`type`
 

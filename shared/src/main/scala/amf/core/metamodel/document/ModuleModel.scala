@@ -37,7 +37,7 @@ object ModuleModel extends ModuleModel {
 
   override val `type`: List[ValueType] = List(Document + "Module") ++ BaseUnitModel.`type`
 
-  override def fields: List[Field] = Declares :: BaseUnitModel.fields
+  override val fields: List[Field] = Declares :: BaseUnitModel.fields
 
   override val doc: ModelDoc = ModelDoc(
     ModelVocabularies.AmlDoc,

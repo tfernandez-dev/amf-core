@@ -14,7 +14,7 @@ object ShapeExtensionModel extends DomainElementModel {
                         Document + "extension",
                         ModelDoc(ModelVocabularies.AmlDoc, "extension", "Data structure associated to the extension"))
 
-  override def fields: List[Field] = List(DefinedBy, Extension) ++ DomainElementModel.fields
+  override val fields: List[Field] = List(DefinedBy, Extension) ++ DomainElementModel.fields
 
   override val `type`: List[ValueType] = Http + "ShapeExtension" :: DomainElementModel.`type`
 

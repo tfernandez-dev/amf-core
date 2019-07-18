@@ -40,6 +40,10 @@ case class Range(start: Position, end: Position) {
   def extent(other: Range): Range = Range(start.min(other.start), end.max(other.end))
 
   override def toString: String = s"[$start-$end]"
+
+  def contains(other:Range): Boolean = {
+    other.start.line >= start.line && other.end.line <= end.line
+  }
 }
 
 object Position {

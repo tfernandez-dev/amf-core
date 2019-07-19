@@ -125,18 +125,18 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
   protected def copyFields(recursionErrorHandler: Option[ErrorHandler],
                            cloned: Shape,
                            recursionBase: Option[String],
-                           traversed: ModelTraversalRegistry): Unit = {
+                           traversal: ModelTraversalRegistry): Unit = {
     this.fields.foreach {
       case (f, v) =>
         val clonedValue = v.value match {
-          case s: Shape if s.id != this.id && traversed.canTravers(s.id) =>
-            traversed.runPushed((t: ModelTraversalRegistry) => { s.cloneShape(recursionErrorHandler, recursionBase, t) })
+          case s: Shape if s.id != this.id && traversal.canTraverse(s.id) =>
+            traversal.runNested((t: ModelTraversalRegistry) => { s.cloneShape(recursionErrorHandler, recursionBase, t) })
           case s: Shape if s.id == this.id => s
           case a: AmfArray =>
             AmfArray(
               a.values.map {
-                case e: Shape if e.id != this.id && traversed.canTravers(e.id) =>
-                  traversed.runPushed((t: ModelTraversalRegistry) => {
+                case e: Shape if e.id != this.id && traversal.canTraverse(e.id) =>
+                  traversal.runNested((t: ModelTraversalRegistry) => {
                     e.cloneShape(recursionErrorHandler, recursionBase, t)
                   })
 //                e.cloneShape(recursionErrorHandler, recursionBase, traversed.push(prevBaseId),Some(prevBaseId))

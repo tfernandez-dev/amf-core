@@ -41,7 +41,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
       element.id == rootId.getOrElse("") && !element.isInstanceOf[BaseUnit]
 
     def traverse(element: AmfObject): Unit = {
-      if (!traversal.hasId(element.id) || selfEncoded(element)) {
+      if (!traversal.isInCurrentPath(element.id) || selfEncoded(element)) {
         val id = element.id
         traversal + id
 

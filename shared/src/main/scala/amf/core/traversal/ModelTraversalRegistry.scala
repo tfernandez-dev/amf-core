@@ -1,24 +1,28 @@
 package amf.core.traversal
 
-import java.util.UUID
-
 import amf.core.model.domain.{RecursiveShape, Shape}
 
 import scala.collection.mutable
 
 case class ModelTraversalRegistry() {
 
-  private val backUps: mutable.Map[UUID, Set[String]]          = mutable.Map()
-  private val ids: mutable.Set[String]                         = mutable.Set()
-  private var whiteList: Set[String]                           = Set()
-  private val whiteListBackUps: mutable.Map[UUID, Set[String]] = mutable.Map()
+  // All IDs visited in the traversal
+  private var visitedIds: mutable.Set[String] = mutable.Set()
 
-  private var allowedCycleClasses
-  : Seq[Class[_]]                              = Seq() // i cant do it inmutable for the modularization (i cant see UnresolvedShape from here)
-  private var stepOverFieldId: String => Boolean = (_: String) => false
+  // IDs visited in the current path
+  private var currentPath: Set[String] = Set.empty
 
-  def withStepOverFunc(fn: String => Boolean): this.type = {
-    stepOverFieldId = fn
+  // IDs of elements that do not throw recursion errors
+  private var whiteList: Set[String] = Set()
+
+
+  private var allowedCycleClasses : Seq[Class[_]] = Seq()
+
+  // Function that skips elements
+  private var skipFn: String => Boolean = (_: String) => false
+
+  def withSkipFn(fn: String => Boolean): this.type = {
+    skipFn = fn
     this
   }
 
@@ -27,60 +31,53 @@ case class ModelTraversalRegistry() {
     this
   }
 
-  def resetStepOverFun(): this.type = {
-    stepOverFieldId = (_: String) => false
+  def resetSkipFn(): this.type = {
+    skipFn = (_: String) => false
     this
   }
 
   def +(id: String): this.type = {
-    ids += id
+    visitedIds += id
+    currentPath += id
     this
   }
 
-  def has(shape: Shape): Boolean =
-    (!allowedCycleClasses.contains(shape.getClass)) && ids.contains(shape.id)
+  def shouldFailIfRecursive(shape: Shape): Boolean = isInCurrentPath(shape.id) && !isAllowedToCycle(shape)
 
   def avoidError(id: String): Boolean = whiteList.contains(id)
 
   def avoidError(r: RecursiveShape, checkId: Option[String] = None): Boolean =
     avoidError(r.id) || avoidError(r.fixpoint.option().getOrElse("")) || (checkId.isDefined && avoidError(checkId.get))
 
-  def hasId(id: String): Boolean = ids.contains(id)
+  def isInCurrentPath(id: String): Boolean = currentPath.contains(id)
 
-  def canTravers(id: String): Boolean = !stepOverFieldId(id)
+  def isAllowedToCycle(shape: Shape): Boolean = allowedCycleClasses.contains(shape.getClass)
 
-  private def push(): UUID = {
-    val id = generateSha()
-    backUps.put(id, ids.clone().toSet)
-    id
-  }
+  def canTraverse(id: String): Boolean = !skipFn(id)
 
   def runWithIgnoredId(fnc: () => Shape, shapeId: String): Shape = runWithIgnoredIds(fnc, Set(shapeId))
 
   def runWithIgnoredIds(fnc: () => Shape, shapeIds: Set[String]): Shape = {
-    val id = generateSha()
-    whiteListBackUps.put(id, whiteList.toSet) // copy the whiteList set
+    val previousWhiteList = whiteList
     whiteList = whiteList ++ shapeIds
-    val expanded = runPushed(_ => fnc())
-    whiteList = whiteListBackUps(id)
-    whiteListBackUps.remove(id)
+    val expanded = runNested(_ => fnc())
+    whiteList = previousWhiteList
     expanded
   }
 
   def recursionAllowed(fnc: () => Shape, shapeId: String): Shape = {
-    val actual = ids.toSet + shapeId
+    val actual = currentPath + shapeId
     runWithIgnoredIds(fnc, actual)
   }
 
-  def runPushed[T](fnc: ModelTraversalRegistry => T): T = {
-    val uuid    = push()
+  def wasVisited(id: String): Boolean = visitedIds.contains(id)
+
+  // Runs a function and restores the currentPath to its original state after the run
+  def runNested[T](fnc: ModelTraversalRegistry => T): T = {
+    val previousPath = currentPath
     val element = fnc(this)
-    ids.clear()
-    ids ++= backUps(uuid)
-    backUps.remove(uuid)
+    currentPath = previousPath
     element
   }
-
-  def generateSha(): UUID = UUID.randomUUID()
 
 }

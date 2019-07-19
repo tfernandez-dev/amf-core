@@ -1,4 +1,4 @@
-package amf.core.iterator
+package amf.core.traversal.iterator
 
 class JsIteratorTest extends IteratorTest
 

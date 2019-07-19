@@ -3,9 +3,10 @@ package amf.core.model.domain.extensions
 import amf.core.metamodel.domain.ShapeModel
 import amf.core.metamodel.domain.extensions.PropertyShapeModel
 import amf.core.metamodel.domain.extensions.PropertyShapeModel._
-import amf.core.model.domain.{DomainElement, IdsTraversionCheck, Linkable, Shape}
+import amf.core.model.domain.{DomainElement, Linkable, Shape}
 import amf.core.model.{BoolField, IntField, StrField}
 import amf.core.parser.{Annotations, ErrorHandler, Fields}
+import amf.core.traversal.ModelTraversalRegistry
 import amf.core.utils.Strings
 
 /**
@@ -45,11 +46,11 @@ case class PropertyShape(fields: Fields, annotations: Annotations) extends Shape
 
   override def cloneShape(recursionErrorHandler: Option[ErrorHandler],
                           withRecursionBase: Option[String],
-                          traversed: IdsTraversionCheck,
+                          traversal: ModelTraversalRegistry,
                           cloneExamples: Boolean = false): PropertyShape = {
     val cloned = PropertyShape(Annotations(annotations))
     cloned.id = this.id
-    copyFields(recursionErrorHandler, cloned, withRecursionBase, traversed)
+    copyFields(recursionErrorHandler, cloned, withRecursionBase, traversal)
     cloned.asInstanceOf[this.type]
   }
 

@@ -2,7 +2,7 @@ package amf.core.model.document
 
 import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
-import amf.core.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
+import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
 import amf.core.metamodel.document.BaseUnitModel.{Location, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References

@@ -1,4 +1,4 @@
-package amf.core.iterator
+package amf.core.traversal.iterator
 import amf.core.metamodel.document.FragmentModel
 import amf.core.model.document.Document
 import amf.core.model.document.FieldsFilter.Local

@@ -13,6 +13,7 @@ import amf.core.model.domain.DataNodeOps.adoptTree
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.DomainExtension
 import amf.core.parser.{Annotations, FieldEntry, Value}
+import amf.core.traversal.ModelTraversalRegistry
 import amf.core.vocabulary.{Namespace, ValueType}
 import org.mulesoft.common.time.SimpleDateTime
 import amf.core.utils._
@@ -28,7 +29,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
 
   case class Emitter(options: RenderOptions) {
 
-    private val idsTraversionCheck = IdsTraversionCheck()
+    private val traversal = ModelTraversalRegistry()
     var rootId: Option[String]     = None
 
     def root(unit: BaseUnit): Unit = {
@@ -40,9 +41,9 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
       element.id == rootId.getOrElse("") && !element.isInstanceOf[BaseUnit]
 
     def traverse(element: AmfObject): Unit = {
-      if (!idsTraversionCheck.hasId(element.id) || selfEncoded(element)) {
+      if (!traversal.hasId(element.id) || selfEncoded(element)) {
         val id = element.id
-        idsTraversionCheck + id
+        traversal + id
 
         val sources = SourceMap(id, element)
 

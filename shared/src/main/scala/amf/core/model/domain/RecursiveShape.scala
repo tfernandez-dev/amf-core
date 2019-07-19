@@ -5,6 +5,7 @@ import amf.core.metamodel.domain.RecursiveShapeModel
 import amf.core.metamodel.domain.RecursiveShapeModel._
 import amf.core.model.StrField
 import amf.core.parser.{Annotations, ErrorHandler, Fields}
+import amf.core.traversal.ModelTraversalRegistry
 
 class RecursiveShape(override val fields: Fields, override val annotations: Annotations) extends Shape {
 
@@ -23,11 +24,11 @@ class RecursiveShape(override val fields: Fields, override val annotations: Anno
 
   override def cloneShape(recursionErrorHandler: Option[ErrorHandler],
                           recursionBase: Option[String],
-                          traversed: IdsTraversionCheck = IdsTraversionCheck(),
+                          traversal: ModelTraversalRegistry = ModelTraversalRegistry(),
                           cloneExamples: Boolean = false): Shape = {
     val cloned = RecursiveShape()
     cloned.id = this.id
-    copyFields(recursionErrorHandler, cloned, None, traversed)
+    copyFields(recursionErrorHandler, cloned, None, traversal)
     internalFixpointTarget.foreach(cloned.withFixpointTarget)
     closureShapes.foreach(cloned.closureShapes.add)
     cloned

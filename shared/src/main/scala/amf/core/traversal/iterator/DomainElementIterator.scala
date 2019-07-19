@@ -1,4 +1,4 @@
-package amf.core.iterator
+package amf.core.traversal.iterator
 import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, DomainElement}
 
 import scala.collection.mutable

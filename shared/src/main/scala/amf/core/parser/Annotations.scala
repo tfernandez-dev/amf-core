@@ -9,9 +9,9 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 /**
   * Element annotations
   */
-class Annotations(hintSize: Int = 4) {
+class Annotations() {
 
-  private var annotations: ArrayBuffer[Annotation] = new ArrayBuffer(hintSize)
+  private var annotations: ListBuffer[Annotation] = new ListBuffer()
 
   def foreach(fn: Annotation => Unit): Unit = annotations.foreach(fn)
 
@@ -21,9 +21,9 @@ class Annotations(hintSize: Int = 4) {
 
   def find[T <: Annotation](clazz: Class[T]): Option[T] = find(clazz.isInstance(_))
 
-  def collect[T <: Annotation](pf: PartialFunction[Annotation, T]): Seq[T] = annotations.collect(pf)
+  def collect[T](pf: PartialFunction[Annotation, T]): Seq[T] = annotations.collect(pf)
 
-  def contains[T <: Annotation](clazz: Class[T]): Boolean = find(clazz).isDefined
+  def contains[T <: Annotation](clazz: Class[T]): Boolean = annotations.exists(clazz.isInstance(_))
 
   def size: Int = annotations.size
 
@@ -69,7 +69,7 @@ object Annotations {
   def apply(): Annotations = new Annotations()
 
   def apply(annotations: Annotations): Annotations = {
-    val result = new Annotations(annotations.size)
+    val result = new Annotations()
     result.annotations ++= annotations.annotations
     result
   }
@@ -91,4 +91,10 @@ object Annotations {
   def valueNode(node: YNode): Annotations = apply(node.value) += SourceNode(node)
 
   def apply(annotation: Annotation): Annotations = new Annotations() += annotation
+
+  val empty: Annotations = new Annotations() {
+    override def +=(annotation: Annotation): this.type              = this
+    override def ++=(other: Annotations): this.type                 = this
+    override def ++=(other: TraversableOnce[Annotation]): this.type = this
+  }
 }

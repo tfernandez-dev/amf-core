@@ -1,7 +1,7 @@
 package amf.client.model.domain
 
 import amf.client.convert.CoreClientConverters._
-import amf.core.model.domain.{ObjectNode => InternalObjectNode, DataNode => InternalDataNode}
+import amf.core.model.domain.{ObjectNode => InternalObjectNode}
 
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 

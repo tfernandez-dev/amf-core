@@ -13,7 +13,7 @@ import amf.internal.environment.Environment
 import org.yaml.model.YNode
 import amf.core.utils.Strings
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.ParserSideValidations.{ExpectedModule, InvalidInclude}
+import amf.plugins.features.validation.CoreValidations.{ExpectedModule, InvalidInclude}
 
 import scala.collection.mutable
 import scala.concurrent.Future

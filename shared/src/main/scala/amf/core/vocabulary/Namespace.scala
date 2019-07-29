@@ -44,6 +44,10 @@ object Namespace {
 
   val Rdfs = Namespace("http://www.w3.org/2000/01/rdf-schema#")
 
+  val AmfCore = Namespace("http://a.ml/vocabularies/amf/core#")
+
+  val AmfAml = Namespace("http://a.ml/vocabularies/amf/aml#")
+
   val AmfParser = Namespace("http://a.ml/vocabularies/amf/parser#")
 
   val AmfResolution = Namespace("http://a.ml/vocabularies/amf/resolution#")

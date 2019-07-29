@@ -136,7 +136,10 @@ case class ValidationSpecification(name: String,
 }
 
 object ValidationSpecification {
+  val CORE_VALIDATION: String            = (Namespace.Shapes + "CoreShape").iri()
+  val AML_VALIDATION: String             = (Namespace.Shapes + "AmlShape").iri()
   val PARSER_SIDE_VALIDATION: String     = (Namespace.Shapes + "ParserShape").iri()
+  val PAYLOAD_VALIDATION: String         = (Namespace.Shapes + "PayloadShape").iri()
   val RENDER_SIDE_VALIDATION: String     = (Namespace.Shapes + "RenderShape").iri()
   val RESOLUTION_SIDE_VALIDATION: String = (Namespace.Shapes + "ResolutionShape").iri()
 }

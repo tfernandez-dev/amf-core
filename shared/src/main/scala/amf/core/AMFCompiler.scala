@@ -24,7 +24,7 @@ import amf.core.remote._
 import amf.core.services.RuntimeCompiler
 import amf.core.utils.Strings
 import amf.internal.environment.Environment
-import amf.plugins.features.validation.ParserSideValidations.{
+import amf.plugins.features.validation.CoreValidations.{
   CycleReferenceError,
   InvalidCrossSpec,
   UnresolvedReference,

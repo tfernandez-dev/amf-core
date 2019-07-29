@@ -8,7 +8,7 @@ import amf.core.utils.Strings
 import amf.core.validation.SeverityLevels.{VIOLATION, WARNING}
 import amf.core.validation.core.ValidationSpecification
 import amf.core.{AMFCompilerRunCount, annotations}
-import amf.plugins.features.validation.ParserSideValidations.{SyamlError, SyamlWarning}
+import amf.plugins.features.validation.CoreValidations.{SyamlError, SyamlWarning}
 import org.mulesoft.lexer.InputRange
 import org.yaml.model._
 

@@ -1,20 +1,19 @@
 package amf.plugins.features.validation
 
-import amf.{ProfileName, ProfileNames}
+import amf.core.unsafe.PlatformSecrets
 import amf.core.validation.SeverityLevels.VIOLATION
 import amf.core.validation.core.ValidationSpecification
 import amf.core.vocabulary.Namespace
+import amf.{ProfileName, ProfileNames}
 
 /** Access parser, resolution and render validations together. */
-object Validations {
+object Validations extends PlatformSecrets {
   def level(id: String, profile: ProfileName): String =
     allLevels.getOrElse(id, default).getOrElse(profile, VIOLATION)
 
-  lazy val validations: List[ValidationSpecification] =
-    ParserSideValidations.validations ++ ResolutionSideValidations.validations ++ RenderSideValidations.validations
+  val validations: List[ValidationSpecification] = platform.validations.toList
 
-  lazy val levels: Map[String, Map[ProfileName, String]] =
-    ParserSideValidations.levels ++ ResolutionSideValidations.levels ++ RenderSideValidations.levels
+  val levels: Map[String, Map[ProfileName, String]] = platform.levels.toMap
 
   lazy val allLevels: Map[String, Map[ProfileName, String]] = validations.foldLeft(levels) { (acc, validation) =>
     if (acc.contains(validation.id)) acc

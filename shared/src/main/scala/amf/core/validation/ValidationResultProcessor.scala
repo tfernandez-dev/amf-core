@@ -12,30 +12,24 @@ trait ValidationResultProcessor {
   protected def processAggregatedResult(result: AMFValidationResult,
                                         messageStyle: MessageStyle,
                                         validations: EffectiveValidations): AMFValidationResult = {
-    val spec = validations.all.get(result.validationId) match {
+
+    /*val spec = validations.all.get(result.validationId) match {
       case Some(s) => s
       case None    => throw new Exception(s"Cannot find spec for aggregated validation result ${result.validationId}")
+    }*/
+
+    var message: String = result.message match {
+      case "" => "Constraint violation"
+      case some => some
     }
 
-    var message: String = messageStyle match {
-      case RAMLStyle => spec.ramlMessage.getOrElse(result.message)
-      case OASStyle  => spec.oasMessage.getOrElse(result.message)
-      case _         => spec.message
-    }
-    if (message == "") {
-      message = "Constraint violation"
-    }
+    val severity = findLevel(result.validationId, validations)
 
-    if (spec.isParserSide && Option(result.message).isDefined) {
-      message = result.message
-    }
-
-    val severity = findLevel(spec.id, validations)
     new AMFValidationResult(message,
                             severity,
                             result.targetNode,
                             result.targetProperty,
-                            spec.id,
+                            result.validationId,
                             result.position,
                             result.location,
                             result.source)
@@ -92,10 +86,10 @@ trait ValidationResultProcessor {
           message = result.message.get
         }
 
-        val finalId = idMapping(result.sourceShape).startsWith("http") match {
-          case true => idMapping(result.sourceShape)
-          case false =>
-            Namespace.Data.base + idMapping(result.sourceShape) // we put back the prefix for the custom validations
+        val finalId = if (idMapping(result.sourceShape).startsWith("http")) {
+          idMapping(result.sourceShape)
+        } else {
+          Namespace.Data.base + idMapping(result.sourceShape)
         }
         val severity = findLevel(idMapping(result.sourceShape), validations)
         Some(

@@ -112,8 +112,8 @@ object AMFValidationResult {
                         validation.location,
                         validation.source)
 
-  def findPositionAndLocation(node: DomainElement,
-                              validation: ValidationResult): (Option[LexicalInformation], Option[String]) = {
+  private def findPositionAndLocation(node: DomainElement,
+                                      validation: ValidationResult): (Option[LexicalInformation], Option[String]) = {
 
     val annotations: Annotations = if (Option(validation.path).isDefined && validation.path != "") {
       node.fields.fields().find(f => f.field.value.iri() == validation.path) match {

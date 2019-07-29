@@ -14,7 +14,7 @@ import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, FieldEntry,
 import amf.core.rdf.{RdfModel, RdfModelParser}
 import amf.core.remote.Vendor
 import amf.core.unsafe.PlatformSecrets
-import amf.plugins.features.validation.ResolutionSideValidations.RecursiveShapeSpecification
+import amf.plugins.features.validation.CoreValidations.RecursiveShapeSpecification
 
 import scala.collection.mutable
 

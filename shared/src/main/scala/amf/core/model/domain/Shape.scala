@@ -6,13 +6,14 @@ import amf.core.model.StrField
 import amf.core.model.domain.extensions.{PropertyShape, ShapeExtension}
 import amf.core.parser.{Annotations, ErrorHandler}
 import amf.core.traversal.ModelTraversalRegistry
+import amf.plugins.domain.shapes.models.ShapeHelper
 
 import scala.collection.mutable
 
 /**
   * Shape.
   */
-abstract class Shape extends DomainElement with Linkable with NamedDomainElement {
+abstract class Shape extends DomainElement with Linkable with NamedDomainElement with ShapeHelper {
 
   override protected def nameField: Field = Name
 // used at runtime during validation

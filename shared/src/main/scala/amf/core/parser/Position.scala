@@ -48,6 +48,8 @@ case class Range(start: Position, end: Position) {
 
 object Position {
 
+  def FIRST: Position = Position(0, 1)
+
   object ZERO extends Position(0, 0) {
     override def compareTo(o: Position): Int = 1
   }

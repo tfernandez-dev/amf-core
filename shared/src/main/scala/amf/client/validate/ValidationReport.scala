@@ -19,4 +19,6 @@ class ValidationReport(private[amf] val _internal: InternalValidatorReport) {
   def results: ClientList[ValidationResult] = _internal.results.asClient
 
   override def toString: String = _internal.toString
+
+  def toString(max: Int): String = _internal.toString(max)
 }

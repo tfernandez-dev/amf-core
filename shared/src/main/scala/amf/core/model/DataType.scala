@@ -1,9 +1,9 @@
 package amf.core.model
 
-import amf.core.vocabulary.Namespace.Shapes
-import amf.core.vocabulary.Namespace.Xsd
+import amf.core.vocabulary.Namespace.{Shapes, Xsd}
 
 object DataType {
+
   val String: String       = Xsd.base + "string"
   val Integer: String      = Xsd.base + "integer"
   val Number: String       = Shapes.base + "number"
@@ -16,12 +16,14 @@ object DataType {
   val Time: String         = Xsd.base + "time"
   val DateTime: String     = Xsd.base + "dateTime"
   val DateTimeOnly: String = Shapes.base + "dateTimeOnly"
+  val Duration: String     = Xsd.base + "duration"
   val File: String         = Shapes.base + "file"
   val Byte: String         = Xsd.base + "byte"
   val Binary: String       = Xsd.base + "base64Binary"
   val Password: String     = Shapes.base + "password"
   val Any: String          = Xsd.base + "anyType"
   val AnyUri: String       = Xsd.base + "anyURI"
+  val Link: String         = Shapes.base + "link"
   val Nil: String          = Xsd.base + "nil"
 
   /** Return dataType qualified with Xsd namespace. */

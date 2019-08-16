@@ -290,7 +290,7 @@ trait PropertyShapeConverter extends PlatformSecrets {
 trait ShapeExtensionConverter extends PlatformSecrets {
 
   implicit object ShapeExtensionMatcher extends BidirectionalMatcher[ShapeExtension, ClientShapeExtension] {
-    override def asClient(from: ShapeExtension): ClientShapeExtension = platform.wrap[ClientShapeExtension](from)
+    override def asClient(from: ShapeExtension): ClientShapeExtension = ClientShapeExtension(from)
 
     override def asInternal(from: ClientShapeExtension): ShapeExtension = from._internal
   }

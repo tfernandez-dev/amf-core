@@ -14,7 +14,8 @@ import amf.core.remote.{Amf, Platform}
 import amf.core.resolution.pipelines.{BasicResolutionPipeline, ResolutionPipeline}
 import amf.core.unsafe.PlatformSecrets
 import amf.core.vocabulary.Namespace
-import amf.plugins.document.graph.parser.{GraphDependenciesReferenceHandler, GraphParser, JsonLdEmitter}
+import amf.plugins.document.graph.emitter.JsonLdEmitter
+import amf.plugins.document.graph.parser.{GraphDependenciesReferenceHandler, GraphParser}
 import org.yaml.builder.DocBuilder
 import org.yaml.model.{YDocument, YMap, YScalar, YSequence}
 
@@ -54,10 +55,10 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
         maybeMap match {
           case Some(m: YMap) =>
             val toDocumentNamespace: String => String = a => (Namespace.Document + a).iri()
-            val keys = Seq("encodes", "declares", "references").map(toDocumentNamespace)
-            val types = Seq("Document", "Fragment", "Module", "Unit").map(toDocumentNamespace)
+            val keys                                  = Seq("encodes", "declares", "references").map(toDocumentNamespace)
+            val types                                 = Seq("Document", "Fragment", "Module", "Unit").map(toDocumentNamespace)
 
-            val acceptedKeys = keys ++ keys.map(Namespace.compact)
+            val acceptedKeys  = keys ++ keys.map(Namespace.compact)
             val acceptedTypes = types ++ types.map(Namespace.compact)
             acceptedKeys.exists(m.key(_).isDefined) ||
             m.key("@type").exists { typesEntry =>

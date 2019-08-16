@@ -12,7 +12,7 @@ import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote.{Platform, Vendor}
 import amf.core.services.RuntimeSerializer
 import amf.plugins.document.graph.AMFGraphPlugin.platform
-import amf.plugins.document.graph.parser.JsonLdEmitter
+import amf.plugins.document.graph.emitter.JsonLdEmitter
 import amf.plugins.syntax.RdfSyntaxPlugin
 import org.mulesoft.common.io.Output
 import org.mulesoft.common.io.Output._

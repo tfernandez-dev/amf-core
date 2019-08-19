@@ -8,10 +8,8 @@ abstract class ElementTransformationPipeline[T<:DomainElement](element:T, errorH
 
   val steps: Seq[ElementStageTransformer[T]]
 
-  val references = new ReferenceResolution(keepEditingInfo = false, modelResolver = None, errorHandler = errorHandler)
-
   final def resolve(): T = {
-    var result: T = references.transform(element).map(_.asInstanceOf[T]).getOrElse(element)
+    var result: T = element
     steps.foreach { s =>
       s.transform(result).foreach( result = _)
     }

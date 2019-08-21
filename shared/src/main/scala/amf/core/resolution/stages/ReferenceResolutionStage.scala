@@ -5,31 +5,29 @@ import amf.core.metamodel.document.DocumentModel
 import amf.core.model.document.{BaseUnit, Document, EncodesModel}
 import amf.core.model.domain._
 import amf.core.parser.ErrorHandler
-import amf.core.resolution.stages.elements.resolution.{ElementResolutionStage, ElementStageTransformer, ReferenceResolution}
+import amf.core.resolution.stages.elements.resolution.{
+  ElementResolutionStage,
+  ElementStageTransformer,
+  ReferenceResolution
+}
+import amf.core.resolution.stages.selectors.{KnownElementIdSelector, LinkNodeSelector, LinkSelector}
 
 import scala.collection.mutable
 
-class ReferenceResolutionStage(keepEditingInfo: Boolean)(
-  override implicit val errorHandler: ErrorHandler)
-  extends ResolutionStage
-  with ElementResolutionStage[DomainElement]{
+class ReferenceResolutionStage(keepEditingInfo: Boolean)(override implicit val errorHandler: ErrorHandler)
+    extends ResolutionStage
+    with ElementResolutionStage[DomainElement] {
 
   var modelResolver: Option[ModelReferenceResolver] = None
 
   override def resolve[T <: BaseUnit](model: T): T = {
     this.modelResolver = Some(new ModelReferenceResolver(model))
-    model.transform(selector, transformation).asInstanceOf[T]
+
+    model.transform(LinkSelector || LinkNodeSelector, transformation).asInstanceOf[T]
   }
 
-  private def selector(element: DomainElement): Boolean = {
-    element match {
-      case l: Linkable if l.isLink => true
-      case _: LinkNode             => true
-      case _                       => false
-    }
-  }
-
-  private def transformation(element: DomainElement, isCycle: Boolean): Option[DomainElement] = transformer.transform(element)
+  private def transformation(element: DomainElement, isCycle: Boolean): Option[DomainElement] =
+    transformer.transform(element)
 
   def resolveDomainElement[T <: DomainElement](element: T): T = {
     val doc = Document().withId("http://resolutionstage.com/test#")
@@ -48,33 +46,28 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean)(
     resolve(doc).declares
   }
 
-  protected def customDomainElementTransformation: (DomainElement, Linkable) => DomainElement = (d:DomainElement, _:Linkable) => d
+  protected def customDomainElementTransformation: (DomainElement, Linkable) => DomainElement =
+    (d: DomainElement, _: Linkable) => d
 
-  override def transformer: ElementStageTransformer[DomainElement] = new ReferenceResolution(keepEditingInfo = keepEditingInfo, modelResolver = modelResolver, errorHandler = errorHandler, customDomainElementTransformation = customDomainElementTransformation)
+  override def transformer: ElementStageTransformer[DomainElement] =
+    new ReferenceResolution(
+      keepEditingInfo = keepEditingInfo,
+      modelResolver = modelResolver,
+      errorHandler = errorHandler,
+      customDomainElementTransformation = customDomainElementTransformation
+    )
 }
 
 class LinkNodeResolutionStage(keepEditingInfo: Boolean, val visited: mutable.Set[String] = mutable.Set())(
-  override implicit val errorHandler: ErrorHandler)
-  extends ResolutionStage {
+    override implicit val errorHandler: ErrorHandler)
+    extends ResolutionStage {
 
   var modelResolver: Option[ModelReferenceResolver] = None
 
   override def resolve[T <: BaseUnit](model: T): T = {
     this.modelResolver = Some(new ModelReferenceResolver(model))
-    model.transform(selector, transformation).asInstanceOf[T]
-  }
-
-  private def selector(element: DomainElement): Boolean = {
-    if (visited.contains(element.id))
-      true
-    else {
-      visited += element.id
-      element match {
-        case l: Linkable if l.isLink => true
-        case _: LinkNode             => true
-        case _                       => false
-      }
-    }
+    val knownIdSelector = new KnownElementIdSelector(visited)
+    model.transform(knownIdSelector || LinkSelector || LinkNodeSelector, transformation).asInstanceOf[T]
   }
 
   private def transformation(element: DomainElement, cycle: Boolean): Option[DomainElement] = {
@@ -92,7 +85,7 @@ class LinkNodeResolutionStage(keepEditingInfo: Boolean, val visited: mutable.Set
   */
 class ResolvedLinkNode(val source: LinkNode, val resolved: DomainElement)
 // resolved so alias -> value
-  extends LinkNode(source.fields, source.annotations) {
+    extends LinkNode(source.fields, source.annotations) {
   linkedDomainElement = Some(resolved)
 }
 
@@ -103,7 +96,7 @@ class ResolvedLinkNode(val source: LinkNode, val resolved: DomainElement)
   * @param vals map of names and named entities
   */
 case class ResolvedNamedEntity(vals: mutable.HashMap[String, Seq[NamedDomainElement]] = mutable.HashMap())
-  extends Annotation
+    extends Annotation
 
 class ModelReferenceResolver(model: BaseUnit) {
 

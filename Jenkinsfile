@@ -17,7 +17,7 @@ pipeline {
     }
     stage('Coverage') {
       when {
-        branch 'master'
+          branch 'sonarfix'
       }
       steps {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {

@@ -4,11 +4,12 @@ import amf.client.plugins.{AMFFeaturePlugin, AMFPlugin}
 import amf.core.annotations.LexicalInformation
 import amf.core.model.document.BaseUnit
 import amf.core.rdf.RdfModel
+import amf.core.services.RuntimeValidator.CustomShaclFunctions
 import amf.core.services.{IgnoreValidationsMerger, RuntimeValidator, ValidationOptions, ValidationsMerger}
 import amf.core.validation._
 import amf.core.validation.core.{ValidationProfile, ValidationReport, ValidationResult, ValidationSpecification}
 import amf.internal.environment.Environment
-import amf.{MessageStyle, ProfileName, ProfileNames}
+import amf.{MessageStyle, ProfileName}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -114,6 +115,7 @@ class ParserSideValidationPlugin extends AMFFeaturePlugin with RuntimeValidator 
     */
   override def shaclValidation(model: BaseUnit,
                                validations: EffectiveValidations,
+                               customFunctions: CustomShaclFunctions,
                                options: ValidationOptions): Future[ValidationReport] = Future {
     new ValidationReport {
       override def conforms: Boolean               = false

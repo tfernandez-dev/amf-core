@@ -1,14 +1,17 @@
 package amf.core.services
 
-import amf.{AMFStyle, MessageStyle, ProfileName}
 import amf.core.annotations.LexicalInformation
 import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Field
 import amf.core.model.document.BaseUnit
+import amf.core.model.domain.DomainElement
+import amf.core.parser.Annotations
 import amf.core.rdf.RdfModel
+import amf.core.services.RuntimeValidator.CustomShaclFunctions
 import amf.core.validation.core.{ValidationReport, ValidationSpecification}
 import amf.core.validation.{AMFValidationReport, AMFValidationResult, EffectiveValidations}
 import amf.internal.environment.Environment
+import amf.{AMFStyle, MessageStyle, ProfileName}
 
 import scala.concurrent.Future
 
@@ -43,6 +46,7 @@ trait RuntimeValidator {
     */
   def shaclValidation(model: BaseUnit,
                       validations: EffectiveValidations,
+                      customFunctions: CustomShaclFunctions, // used in customShaclValidator
                       options: ValidationOptions): Future[ValidationReport]
 
   /**
@@ -118,10 +122,16 @@ object RuntimeValidator {
   def loadValidationProfile(validationProfilePath: String, env: Environment = Environment()): Future[ProfileName] =
     validator.loadValidationProfile(validationProfilePath, env)
 
+  type PropertyInfo = (Annotations, Field)
+  // When no property info is provided violation is thrown in domain element level
+  type CustomShaclFunction = (DomainElement, Option[PropertyInfo] => Unit) => Unit
+  type CustomShaclFunctions = Map[String, CustomShaclFunction]
+
   def shaclValidation(model: BaseUnit,
                       validations: EffectiveValidations,
+                      customFunctions: CustomShaclFunctions = Map(), // used for customShaclValidator
                       options: ValidationOptions): Future[ValidationReport] =
-    validator.shaclValidation(model, validations, options)
+    validator.shaclValidation(model, validations, customFunctions, options)
 
   def emitShapesGraph(profileName: ProfileName): String =
     validator.emitShapesGraph(profileName)

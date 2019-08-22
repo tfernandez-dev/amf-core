@@ -38,6 +38,8 @@ sonarProperties ++= Map(
   "sonar.scala.coverage.reportPaths" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
 )
 
+sonarRunnerOptions := Seq("-e", "-X")
+
 val settings = Common.settings ++ Common.publish ++ Seq(
   organization := "com.github.amlorg",
   resolvers ++= List(ivyLocal,

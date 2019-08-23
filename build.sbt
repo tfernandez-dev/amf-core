@@ -33,7 +33,7 @@ sonarProperties ++= Map(
   "sonar.github.repository" -> "mulesoft/amf-core",
   "sonar.sources" -> "shared/src/main/scala",
   "sonar.tests" -> "shared/src/test/scala",
-  "sonar.scala.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
+  "sonar.scala.coverage.reportPaths" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
 )
 
 val settings = Common.settings ++ Common.publish ++ Seq(

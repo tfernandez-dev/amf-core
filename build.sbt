@@ -1,6 +1,7 @@
 import org.scalajs.core.tools.linker.ModuleKind
 import sbt.Keys.{libraryDependencies, resolvers}
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
+import sbtsonar.SonarPlugin.autoImport.sonarProperties
 
 val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns)
 
@@ -23,10 +24,7 @@ jsEnv := new org.scalajs.jsenv.nodejs.NodeJSEnv()
 lazy val sonarUrl = sys.env.getOrElse("SONAR_SERVER_URL", "Not found url.")
 lazy val sonarToken = sys.env.getOrElse("SONAR_SERVER_TOKEN", "Not found token.")
 
-enablePlugins(SonarRunnerPlugin)
-
 sonarProperties ++= Map(
-  "sonar.host.url" -> sonarUrl,
   "sonar.login" -> sonarToken,
   "sonar.projectKey" -> "mulesoft.amf-core",
   "sonar.projectName" -> "AMF-CORE",
@@ -35,10 +33,8 @@ sonarProperties ++= Map(
   "sonar.github.repository" -> "mulesoft/amf-core",
   "sonar.sources" -> "shared/src/main/scala",
   "sonar.tests" -> "shared/src/test/scala",
-  "sonar.scala.coverage.reportPaths" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
+  "sonar.scala.scoverage.reportPath" -> "jvm/target/scala-2.12/scoverage-report/scoverage.xml"
 )
-
-sonarRunnerOptions := Seq("-e", "-X")
 
 val settings = Common.settings ++ Common.publish ++ Seq(
   organization := "com.github.amlorg",
@@ -91,7 +87,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.2",
     scalaJSModuleKind := ModuleKind.CommonJSModule,
     artifactPath in(Compile, fullOptJS) := baseDirectory.value / "target" / "artifact" / "amf-core-module.js"
-  )
+  ).disablePlugins(SonarPlugin)
 
 lazy val coreJVM = core.jvm.in(file("./jvm")).sourceDependency(syamlJVMRef, syamlLibJVM)
-lazy val coreJS = core.js.in(file("./js")).sourceDependency(syamlJSRef, syamlLibJS)
+lazy val coreJS = core.js.in(file("./js")).sourceDependency(syamlJSRef, syamlLibJS).disablePlugins(SonarPlugin)

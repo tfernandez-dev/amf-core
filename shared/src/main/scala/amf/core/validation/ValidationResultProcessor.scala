@@ -18,12 +18,12 @@ trait ValidationResultProcessor {
       case None    => throw new Exception(s"Cannot find spec for aggregated validation result ${result.validationId}")
     }*/
 
-    var message: String = result.message match {
-      case "" => "Constraint violation"
+    val message: String = result.message match {
+      case ""   => "Constraint violation"
       case some => some
     }
 
-    val severity = findLevel(result.validationId, validations)
+    val severity = findLevel(result.validationId, validations, result.level)
 
     new AMFValidationResult(message,
                             severity,
@@ -99,13 +99,15 @@ trait ValidationResultProcessor {
     }
   }
 
-  protected def findLevel(id: String, validations: EffectiveValidations): String = {
+  protected def findLevel(id: String, validations: EffectiveValidations, level: String = ""): String = {
     if (validations.info.get(id).isDefined) {
       SeverityLevels.INFO
     } else if (validations.warning.get(id).isDefined) {
       SeverityLevels.WARNING
-    } else {
+    } else if (validations.violation.get(id).isDefined) {
       SeverityLevels.VIOLATION
+    } else {
+      SeverityLevels.unapply(level)
     }
   }
 }

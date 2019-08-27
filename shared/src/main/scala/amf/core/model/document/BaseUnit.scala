@@ -3,7 +3,7 @@ package amf.core.model.document
 import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
 import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
-import amf.core.metamodel.document.BaseUnitModel.{Location, Usage}
+import amf.core.metamodel.document.BaseUnitModel.{Location, Usage, ModelVersion}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
 import amf.core.metamodel.{MetaModelTypeMapping, Obj}
@@ -20,6 +20,9 @@ import scala.collection.mutable
 
 /** Any parseable unit, backed by a source URI. */
 trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets {
+
+  // Set the current model version
+  withModelVersion("1.0.0")
 
   // We store the parser run here to be able to find runtime validations for this model
   var parserRun: Option[Int] = None
@@ -42,6 +45,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   /** Returns the usage. */
   def usage: StrField = fields.field(Usage)
 
+  /** Returns the version. */
+  def modelVersion: StrField = fields.field(ModelVersion)
+
   /** Set the raw value for the base unit */
   def withRaw(raw: String): BaseUnit = {
     this.raw = Some(raw)
@@ -53,6 +59,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   def withLocation(location: String): this.type = set(Location, location)
 
   def withUsage(usage: String): this.type = set(Usage, usage)
+
+  private def withModelVersion(version: String): this.type = set(ModelVersion, version)
 
   /** Returns Unit iterator for specified strategy and scope. */
   def iterator(strategy: IteratorStrategy = DomainElementStrategy, fieldsFilter: FieldsFilter = Local): AmfIterator =

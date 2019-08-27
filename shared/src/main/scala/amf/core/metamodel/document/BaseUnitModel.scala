@@ -17,7 +17,7 @@ trait BaseUnitModel extends Obj with ModelDefaultBuilder {
   val Location = Field(
     Str,
     Document + "location",
-    ModelDoc(ModelVocabularies.AmlDoc, "location", "location of the metadata document that generated this base unit"))
+    ModelDoc(ModelVocabularies.AmlDoc, "location", "Location of the metadata document that generated this base unit"))
 
   val References = Field(Array(BaseUnitModel),
                          Document + "references",
@@ -41,13 +41,16 @@ trait BaseUnitModel extends Obj with ModelDefaultBuilder {
     true
   )
 
+  val ModelVersion =
+    Field(Str, Document + "version", ModelDoc(ModelVocabularies.AmlDoc, "version", "Version of the current model"))
+
 }
 
 object BaseUnitModel extends BaseUnitModel {
 
   override val `type`: List[ValueType] = List(Document + "Unit")
 
-  override val fields: List[Field] = List(References, Usage, DescribedBy)
+  override val fields: List[Field] = List(ModelVersion, References, Usage, DescribedBy)
 
   override def modelInstance = throw new Exception("BaseUnit is an abstract class")
 

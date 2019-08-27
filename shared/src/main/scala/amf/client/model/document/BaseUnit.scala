@@ -30,6 +30,9 @@ trait BaseUnit extends AmfObjectWrapper with PlatformSecrets {
   /** Returns the usage comment for de element */
   def usage: StrField = _internal.usage
 
+  /** Returns the version. */
+  def modelVersion: StrField = _internal.modelVersion
+
   def withReferences(references: ClientList[BaseUnit]): this.type = {
     _internal.withReferences(references.asInternal)
     this

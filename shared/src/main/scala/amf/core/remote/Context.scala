@@ -63,7 +63,7 @@ object Context {
     }
   }
 }
-// url.lastIndexOf('/') + 1
+
 private object Absolute {
   def unapply(url: String): Option[String] = url match {
     case s if s.contains(":") => Some(s)

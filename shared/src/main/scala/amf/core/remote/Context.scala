@@ -50,7 +50,7 @@ object Context {
     val containsBackSlash = url.contains('\\') && so == "win"
     val containsForwardSlash = url.contains('/')
     if (!containsBackSlash && !containsForwardSlash) {
-      ""
+      return ""
     }
     val sep = if (containsBackSlash) '\\' else '/'
     val lastPieceHasExtension = url.split(sep).last.contains('.')

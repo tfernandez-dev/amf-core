@@ -117,9 +117,9 @@ object CoreValidations extends Validations {
       RamlProfile   -> VIOLATION,
       Raml10Profile -> VIOLATION,
       Raml08Profile -> VIOLATION,
-      OasProfile    -> WARNING,
-      Oas20Profile  -> WARNING,
-      Oas30Profile  -> WARNING,
+      OasProfile    -> VIOLATION,
+      Oas20Profile  -> VIOLATION,
+      Oas30Profile  -> VIOLATION,
       AmfProfile    -> INFO
     )
   )

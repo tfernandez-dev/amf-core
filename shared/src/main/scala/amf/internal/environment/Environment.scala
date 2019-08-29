@@ -4,7 +4,7 @@ import amf.core.unsafe.PlatformSecrets
 import amf.internal.reference.ReferenceResolver
 import amf.internal.resource.ResourceLoader
 
-case class Environment(loaders: Seq[ResourceLoader], resolver: Option[ReferenceResolver]) {
+case class Environment(loaders: Seq[ResourceLoader], resolver: Option[ReferenceResolver] = None) {
   def add(loader: ResourceLoader): Environment  = Environment(loader +: loaders, resolver)
   def withLoaders(loaders: Seq[ResourceLoader]) = Environment(loaders, resolver)
   def withResolver(resolver: ReferenceResolver) = Environment(loaders, Some(resolver))

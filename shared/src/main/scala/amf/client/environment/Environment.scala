@@ -49,6 +49,7 @@ case class Environment(private[amf] val _internal: InternalEnvironment) {
 }
 
 object Environment {
-  def empty(): Environment                     = new Environment()
-  def apply(loader: ClientLoader): Environment = empty().add(loader)
+  def empty(): Environment                          = new Environment()
+  def apply(loader: ClientLoader): Environment      = empty().add(loader)
+  def apply(resolver: ClientReference): Environment = empty().withResolver(resolver)
 }

@@ -1,6 +1,7 @@
 package amf.client.convert
 
 import amf.client.resource.{ClientResourceLoader, ResourceLoader}
+import amf.client.reference.{ClientReferenceResolver, ReferenceResolver}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,6 +21,8 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
   override type ClientLoader = ClientResourceLoader with ResourceLoader
   override type Loader       = ClientResourceLoader
 
+  override type ClientReference = ClientReferenceResolver with ReferenceResolver
+
   override protected def asClientOption[Internal, Client](
       from: Option[Internal],
       matcher: InternalClientMatcher[Internal, Client]): UndefOr[Client] =
@@ -34,10 +37,9 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
     from.map { case (k, v) => k -> matcher.asClient(v) }.toJSDictionary
   }
 
-
   override protected def asClientImmutableMap[Internal, Client](
-                                                                 from: Map[String, Internal],
-                                                                 matcher: InternalClientMatcher[Internal, Client]): Dictionary[Client] = {
+      from: Map[String, Internal],
+      matcher: InternalClientMatcher[Internal, Client]): Dictionary[Client] = {
     from.map { case (k, v) => k -> matcher.asClient(v) }.toJSDictionary
   }
 

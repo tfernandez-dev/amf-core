@@ -6,6 +6,7 @@ import amf.client.model.domain.{AbstractDeclaration => ClientAbstractDeclaration
 import amf.client.model.{Annotations => ClientAnnotations, AnyField => ClientAnyField, BoolField => ClientBoolField, DoubleField => ClientDoubleField, FloatField => ClientFloatField, IntField => ClientIntField, StrField => ClientStrField}
 import amf.client.remote.Content
 import amf.client.resource.{ResourceLoader => ClientResourceLoader}
+import amf.client.reference.{ReferenceResolver => ClientReferenceResolver, CachedReference => ClientCachedReference}
 import amf.client.validate.{ValidationCandidate => ClientValidationCandidate, ValidationReport => ClientValidatorReport, ValidationResult => ClientValidationResult, ValidationShapeSet => ClientValidationShapeSet}
 import amf.core.model._
 import amf.core.model.document.{BaseUnit, PayloadFragment}
@@ -16,6 +17,7 @@ import amf.core.parser.Annotations
 import amf.core.remote.Vendor
 import amf.core.unsafe.PlatformSecrets
 import amf.core.validation.{AMFValidationReport, AMFValidationResult, ValidationCandidate, ValidationShapeSet}
+import amf.internal.reference.{ReferenceResolver, ReferenceResolverAdapter, CachedReference}
 import amf.internal.resource.{ResourceLoader, ResourceLoaderAdapter}
 
 import scala.collection.mutable
@@ -43,7 +45,9 @@ trait CoreBaseConverter
     with GraphDomainConverter
     with ValidationCandidateConverter
     with ValidationShapeSetConverter
-    with PayloadFragmentConverter {
+    with PayloadFragmentConverter
+    with CachedReferenceConverter
+    with ReferenceResolverConverter {
 
   implicit def asClient[Internal, Client](from: Internal)(
       implicit m: InternalClientMatcher[Internal, Client]): Client = m.asClient(from)
@@ -377,11 +381,34 @@ trait ResourceLoaderConverter {
   type Loader
 
   implicit object ResourceLoaderMatcher extends BidirectionalMatcher[ResourceLoader, ClientResourceLoader] {
+    override def asInternal(from: ClientResourceLoader): ResourceLoader = ResourceLoaderAdapter(from)
+
     override def asClient(from: ResourceLoader): ClientResourceLoader = from match {
       case ResourceLoaderAdapter(adaptee) => adaptee
     }
+  }
 
-    override def asInternal(from: ClientResourceLoader): ResourceLoader = ResourceLoaderAdapter(from)
+}
+
+trait ReferenceResolverConverter {
+  type ClientReference <: ClientReferenceResolver
+
+  implicit object ReferenceResolverMatcher extends BidirectionalMatcher[ReferenceResolver, ClientReferenceResolver] {
+    override def asInternal(from: ClientReferenceResolver): ReferenceResolver = ReferenceResolverAdapter(from)
+
+    override def asClient(from: ReferenceResolver): ClientReferenceResolver = from match {
+      case ReferenceResolverAdapter(adaptee) => adaptee
+    }
+  }
+
+}
+
+trait CachedReferenceConverter extends PlatformSecrets {
+
+  implicit object CachedReferenceMatcher extends BidirectionalMatcher[CachedReference, ClientCachedReference] {
+    override def asInternal(from: ClientCachedReference): CachedReference = from._internal
+
+    override def asClient(from: CachedReference): ClientCachedReference = ClientCachedReference(from)
   }
 
 }

@@ -35,6 +35,25 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
               env: Environment,
               nodes: Seq[YNode],
               allowRecursiveRefs: Boolean): Future[ReferenceResolutionResult] = {
+
+    // If there is any ReferenceResolver attached to the environment, then first try to get the cached reference if it exists. If not, load and parse as usual.
+    env.resolver match {
+      case Some(resolver) =>
+        resolver.fetch(url) flatMap { cachedReference =>
+          Future(ReferenceResolutionResult(None, Some(cachedReference.content)))
+        } recoverWith {
+          case _ => resolveReference(base, cache, ctx, env, nodes, allowRecursiveRefs)
+        }
+      case None => resolveReference(base, cache, ctx, env, nodes, allowRecursiveRefs)
+    }
+  }
+
+  private def resolveReference(base: Context,
+                               cache: Cache,
+                               ctx: ParserContext,
+                               env: Environment,
+                               nodes: Seq[YNode],
+                               allowRecursiveRefs: Boolean): Future[ReferenceResolutionResult] = {
     val kinds = refs.map(_.linkType).distinct
     val kind  = if (kinds.size > 1) UnspecifiedReference else kinds.head
     try {
@@ -57,8 +76,7 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       }
       res flatMap identity
     } catch {
-      case e: Throwable =>
-        Future(ReferenceResolutionResult(Some(e), None))
+      case e: Throwable => Future(ReferenceResolutionResult(Some(e), None))
     }
   }
 
@@ -80,8 +98,9 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
                                  ctx: ParserContext): BaseUnit = {
     unit match {
       case _: Module => // if is a library, kind should be LibraryReference
-        if(allKinds.contains(LibraryReference) && allKinds.contains(LinkReference))
-          nodes.foreach(ctx.violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
+        if (allKinds.contains(LibraryReference) && allKinds.contains(LinkReference))
+          nodes.foreach(
+            ctx.violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
         else if (!LibraryReference.eq(definedKind))
           nodes.foreach(ctx.violation(ExpectedModule, unit.id, "Libraries must be applied by using 'uses'", _))
       // ToDo find a better way to skip vocabulary/dialect elements of this validation

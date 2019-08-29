@@ -4,6 +4,7 @@ import java.util
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
 
+import amf.client.reference.{ReferenceResolver => ClientReferenceResolver}
 import amf.client.resource.{ResourceLoader => ClientResourceLoader}
 
 import scala.collection.JavaConverters._
@@ -21,8 +22,9 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
 
   override type ClientFuture[T] = CompletableFuture[T]
 
-  override type ClientLoader = ClientResourceLoader
-  override type Loader       = ClientResourceLoader
+  override type ClientLoader    = ClientResourceLoader
+  override type Loader          = ClientResourceLoader
+  override type ClientReference = ClientReferenceResolver
 
   override protected def asClientOption[Internal, Client](
       from: Option[Internal],
@@ -39,8 +41,8 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
   }
 
   override protected def asClientImmutableMap[Internal, Client](
-                                                        from: Map[String, Internal],
-                                                        matcher: InternalClientMatcher[Internal, Client]): util.Map[String, Client] = {
+      from: Map[String, Internal],
+      matcher: InternalClientMatcher[Internal, Client]): util.Map[String, Client] = {
     from.map { case (k, v) => k -> matcher.asClient(v) }.asJava
   }
 

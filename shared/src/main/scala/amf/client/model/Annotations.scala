@@ -36,4 +36,6 @@ case class Annotations(_internal: InternalAnnotations) {
 
   def inheritanceProvenance: ClientOption[String] =
     _internal.find(classOf[InheritanceProvenance]).map(_.baseId).asClient
+
+  def inlinedElement: Boolean = _internal.find(classOf[InlineElement]).isDefined
 }

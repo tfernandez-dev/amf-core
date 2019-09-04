@@ -47,11 +47,20 @@ object Context {
     new Context(platform, Nil, mapping)
 
   private def stripFile(url: String, so: String): String = {
-    if (url.contains('\\') && so == "win") {
-      url.substring(0, url.lastIndexOf('\\') + 1)
-    } else if (url.contains('/')) {
-      url.substring(0, url.lastIndexOf('/') + 1)
-    } else ""
+    val containsBackSlash = url.contains('\\') && so == "win"
+    val containsForwardSlash = url.contains('/')
+    if (!containsBackSlash && !containsForwardSlash) {
+      return ""
+    }
+    val sep = if (containsBackSlash) '\\' else '/'
+    val lastPieceHasExtension = url.split(sep).last.contains('.')
+    if (lastPieceHasExtension) {
+      url.substring(0, url.lastIndexOf(sep) + 1)
+    } else if (!url.endsWith(sep.toString)) {
+      url + sep
+    } else {
+      url
+    }
   }
 }
 

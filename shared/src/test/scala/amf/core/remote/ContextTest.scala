@@ -25,6 +25,22 @@ class ContextTest extends FunSuite with PlatformSecrets {
     val c4 = Context(platform, "file://path/input.yaml")
     c4.resolve("include.yaml") should be("file://path/include.yaml")
 
+    val c5 = Context(platform, "file://path/")
+    c5.resolve("include.yaml") should be("file://path/include.yaml")
+    c5.resolve("nested/include.yaml") should be("file://path/nested/include.yaml")
+
+    val c6 = Context(platform, "file://path")
+    c6.resolve("include.yaml") should be("file://path/include.yaml")
+    c6.resolve("nested/include.yaml") should be("file://path/nested/include.yaml")
+
+    val c7 = Context(platform, "http://localhost:3000")
+    c7.resolve("include.yaml") should be("http://localhost:3000/include.yaml")
+    c7.resolve("nested/include.yaml") should be("http://localhost:3000/nested/include.yaml")
+
+    val c8 = Context(platform, "http://localhost:3000/")
+    c8.resolve("include.yaml") should be("http://localhost:3000/include.yaml")
+    c8.resolve("nested/include.yaml") should be("http://localhost:3000/nested/include.yaml")
+
     // Update to support nested includes
     val c11 = c1.update("relative/include.yaml")
     c11.resolve("other.yaml") should be("http://localhost:3000/relative/other.yaml")

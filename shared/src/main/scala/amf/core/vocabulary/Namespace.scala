@@ -57,25 +57,29 @@ object Namespace {
   val AmfRender = Namespace("http://a.ml/vocabularies/amf/render#")
 
   val ns = mutable.HashMap(
-    "rdf"         -> Rdf,
-    "sh"          -> Shacl,
-    "shacl"       -> Shacl,
-    "security"    -> Security,
-    "schema-org"  -> Schema,
-    "schema"      -> Schema,
-    "raml-http"   -> Http,
-    "http"        -> Http,
-    "raml-doc"    -> Document,
-    "doc"         -> Document,
-    "xsd"         -> Xsd,
-    "amf-parser"  -> AmfParser,
-    "hydra"       -> Hydra,
-    "raml-shapes" -> Shapes,
-    "data"        -> Data,
-    "sourcemaps"  -> SourceMaps,
-    "meta"        -> Meta,
-    "owl"         -> Owl,
-    "rdfs"        -> Rdfs
+    "rdf"            -> Rdf,
+    "sh"             -> Shacl,
+    "shacl"          -> Shacl,
+    "security"       -> Security,
+    "schema-org"     -> Schema,
+    "schema"         -> Schema,
+    "raml-http"      -> Http,
+    "http"           -> Http,
+    "raml-doc"       -> Document,
+    "doc"            -> Document,
+    "xsd"            -> Xsd,
+    "amf-parser"     -> AmfParser,
+    "amf-core"       -> AmfCore,
+    "amf-resolution" -> AmfResolution,
+    "amf-validation" -> AmfValidation,
+    "amf-render"     -> AmfRender,
+    "hydra"          -> Hydra,
+    "raml-shapes"    -> Shapes,
+    "data"           -> Data,
+    "sourcemaps"     -> SourceMaps,
+    "meta"           -> Meta,
+    "owl"            -> Owl,
+    "rdfs"           -> Rdfs
   )
 
   def uri(s: String): ValueType = {

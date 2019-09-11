@@ -38,9 +38,9 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
   def withDefault(default: DataNode): this.type       = set(Default, default)
   def withValues(values: Seq[DataNode]): this.type    = setArray(Values, values)
   def withInherits(inherits: Seq[Shape]): this.type   = setArray(Inherits, inherits)
-  def withOr(subShapes: Seq[Shape]): this.type        = setArray(Or, inherits)
-  def withAnd(subShapes: Seq[Shape]): this.type       = setArray(And, inherits)
-  def withXone(subShapes: Seq[Shape]): this.type      = setArray(Xone, inherits)
+  def withOr(subShapes: Seq[Shape]): this.type        = setArray(Or, subShapes)
+  def withAnd(subShapes: Seq[Shape]): this.type       = setArray(And, subShapes)
+  def withXone(subShapes: Seq[Shape]): this.type      = setArray(Xone, subShapes)
   def withNot(shape: Shape): this.type                = set(Not, shape)
   def withCustomShapeProperties(properties: Seq[ShapeExtension]): this.type =
     setArray(CustomShapeProperties, properties)

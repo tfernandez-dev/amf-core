@@ -62,22 +62,13 @@ package object BaseEmitters {
     override def position(): Position = pos(annotations)
   }
 
-  /* helper func to force a YPart of syaml to have certain range (to show correctly the position of resource types and traits errors after resolution */
-  def createPartForRange(lexicalInfo: Option[LexicalInformation], sourceLocation: String): IndexedSeq[YTokens] = {
-    IndexedSeq(
-      YTokens(lexicalInfo
-                .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
-                .getOrElse(InputRange.Zero),
-              sourceLocation))
-  }
-
   def yscalarWithRange(value: String, tag: YType, annotations: Annotations): YScalar = {
     val sourceLocation = annotations.find(classOf[SourceLocation]).map(_.location).getOrElse("")
-    new YScalar.Builder(
-      value,
-      tag.tag,
-      location = YSourceLocation(sourceLocation),
-      parts = createPartForRange(annotations.find(classOf[LexicalInformation]), sourceLocation)).scalar
+    val range = annotations
+      .find(classOf[LexicalInformation])
+      .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
+      .getOrElse(InputRange.Zero)
+    YScalar.withLocation(value, tag, sourceLocation, range)
   }
 
   case class TextScalarEmitter(value: String, annotations: Annotations, tag: YType = YType.Str) extends PartEmitter {

@@ -65,17 +65,10 @@ package object BaseEmitters {
   /* helper func to force a YPart of syaml to have certain range (to show correctly the position of resource types and traits errors after resolution */
   def createPartForRange(lexicalInfo: Option[LexicalInformation], sourceLocation: String): IndexedSeq[YTokens] = {
     IndexedSeq(
-      new YTokens(
-        YSourceLocation(
-          sourceLocation,
-          lexicalInfo
-            .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
-            .getOrElse(InputRange.Zero)),
-        IndexedSeq()
-      ) {
-        override val sourceName: String = sourceLocation
-      })
-
+      YTokens(lexicalInfo
+                .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
+                .getOrElse(InputRange.Zero),
+              sourceLocation))
   }
 
   def yscalarWithRange(value: String, tag: YType, annotations: Annotations): YScalar = {

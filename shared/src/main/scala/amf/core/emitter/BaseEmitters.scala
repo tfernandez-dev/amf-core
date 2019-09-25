@@ -6,6 +6,7 @@ import amf.core.model.domain.{AmfObject, AmfScalar}
 import amf.core.parser.Position._
 import amf.core.parser.{Annotations, FieldEntry, Position, Value}
 import org.mulesoft.lexer.InputRange
+import org.mulesoft.lexer.{SourceLocation => YSourceLocation}
 import org.yaml.model.YDocument.{EntryBuilder, PartBuilder}
 import org.yaml.model._
 
@@ -65,9 +66,11 @@ package object BaseEmitters {
   def createPartForRange(lexicalInfo: Option[LexicalInformation], sourceLocation: String): IndexedSeq[YTokens] = {
     IndexedSeq(
       new YTokens(
-        lexicalInfo
-          .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
-          .getOrElse(InputRange.Zero),
+        YSourceLocation(
+          sourceLocation,
+          lexicalInfo
+            .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
+            .getOrElse(InputRange.Zero)),
         IndexedSeq()
       ) {
         override val sourceName: String = sourceLocation

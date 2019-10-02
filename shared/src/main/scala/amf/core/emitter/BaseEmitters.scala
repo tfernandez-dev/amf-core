@@ -83,7 +83,7 @@ package object BaseEmitters {
     new YScalar.Builder(
       value,
       tag.tag,
-      sourceName = sourceLocation,
+      location = YSourceLocation(sourceLocation),
       parts = createPartForRange(annotations.find(classOf[LexicalInformation]), sourceLocation)).scalar
   }
 

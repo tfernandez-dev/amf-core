@@ -19,6 +19,7 @@ class RenderOptions {
   private var useJsonLdEmitter               = false
   private var eh: ErrorHandler               = UnhandledErrorHandler
   private var prettyPrint                    = false
+  private var emitNodeIds                    = false
 
   def withPrettyPrint: RenderOptions = {
     prettyPrint = true
@@ -67,6 +68,15 @@ class RenderOptions {
     this
   }
 
+  def withNodeIds: RenderOptions = {
+    emitNodeIds = true
+    this
+  }
+
+  def withoutNodeIds: RenderOptions = {
+    emitNodeIds = false
+    this
+  }
   def withoutValidation: RenderOptions = {
     validating = false
     this
@@ -100,6 +110,7 @@ class RenderOptions {
   def renderField(field: Field): Boolean = !filterFields(field)
   def errorHandler: ErrorHandler         = eh
   def isPrettyPrint: Boolean             = prettyPrint
+  def isEmitNodeIds: Boolean             = emitNodeIds
 }
 
 object RenderOptions {

@@ -22,7 +22,7 @@ import scala.collection.mutable
 trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets {
 
   // Set the current model version
-  withModelVersion("1.0.0")
+  withModelVersion("2.0.0")
 
   // We store the parser run here to be able to find runtime validations for this model
   var parserRun: Option[Int] = None

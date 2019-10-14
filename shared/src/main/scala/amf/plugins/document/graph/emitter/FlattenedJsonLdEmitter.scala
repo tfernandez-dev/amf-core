@@ -13,7 +13,6 @@ import amf.core.model.domain.DataNodeOps.adoptTree
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.DomainExtension
 import amf.core.parser.{Annotations, FieldEntry, Value}
-import amf.core.utils._
 import amf.core.vocabulary.{Namespace, ValueType}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.builder.DocBuilder
@@ -21,6 +20,7 @@ import org.yaml.builder.DocBuilder.{Entry, Part, SType, Scalar}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 object FlattenedJsonLdEmitter {
 
@@ -725,7 +725,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
         }
     }
 
-  private def emitDateFormat(dateTime: SimpleDateTime) = dateTime.rfc3339
+  private def emitDateFormat(dateTime: SimpleDateTime) = dateTime.toString
 
   private def scalar(b: Part[T], content: String, t: SType): Unit = b += Scalar(t, content)
 

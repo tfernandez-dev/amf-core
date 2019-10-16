@@ -20,7 +20,7 @@ import amf.core.vocabulary.{Namespace, ValueType}
   */
 trait DomainExtensionModel extends DomainElementModel with KeyField {
 
-  val Name = Field(Str, Namespace.Core + "name", ModelDoc(ModelVocabularies.Core, "name", "Name of an entity"))
+  val Name = Field(Str, Namespace.Core + "extensionName", ModelDoc(ModelVocabularies.Core, "name", "Name of an entity"))
   val DefinedBy = Field(CustomDomainPropertyModel,
                         Document + "definedBy",
                         ModelDoc(ModelVocabularies.AmlDoc, "defined by", "Definition for the extended entity"))

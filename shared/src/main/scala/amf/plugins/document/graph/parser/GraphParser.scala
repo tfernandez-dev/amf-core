@@ -280,7 +280,7 @@ class GraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
         val uri = expandUriFromContext(entry.key.as[String])
         val v   = entry.value
         if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() && uri != "smaps" &&
-            uri != (Namespace.Document + "name").iri() && !fields.exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
+            uri != (Namespace.Core + "extensionName").iri() && !fields.exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
           v.as[Seq[YMap]]
             .headOption
             .flatMap(parse)

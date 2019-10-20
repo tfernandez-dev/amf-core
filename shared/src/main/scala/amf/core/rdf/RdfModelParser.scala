@@ -412,7 +412,12 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
         case Some(typeModel) if findBaseUnit && isUnitModel(typeModel)   => true
         case _                                                           => false
       }
-    }
+    } orElse(
+      // if I cannot find it, I will return the matching one directly, this is used
+      // in situations where the references a reified, for example, in the canonical web api spec
+      stringTypes.find(findType(_).isDefined)
+    )
+
     foundType match {
       case Some(t) => findType(t)
       case None =>

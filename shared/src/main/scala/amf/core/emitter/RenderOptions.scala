@@ -101,7 +101,7 @@ class RenderOptions {
     eh = errorHandler
     this
   }
-
+  
   def isCompactUris: Boolean             = compactUris
   def isWithSourceMaps: Boolean          = sources
   def isWithRawSourceMaps: Boolean       = rawSourceMaps

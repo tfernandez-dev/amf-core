@@ -2,11 +2,11 @@ package amf.core.metamodel.domain
 
 import amf.core.metamodel.Field
 import amf.core.metamodel.Type.{Array, Iri, SortedArray, Str}
-import amf.core.metamodel.domain.common.{DescriptionField, DisplayNameField}
+import amf.core.metamodel.domain.common.DescriptionField
 import amf.core.metamodel.domain.extensions.{PropertyShapeModel, ShapeExtensionModel}
 import amf.core.metamodel.domain.templates.KeyField
-import amf.core.vocabulary.Namespace.{Shacl, Shapes, Core}
-import amf.core.vocabulary.ValueType
+import amf.core.vocabulary.Namespace.{Core, Shacl, Shapes}
+import amf.core.vocabulary.{Namespace, ValueType}
 
 /**
   * Base class for all shapes. Shapes are Domain Entities that define constraints over parts of a data graph.
@@ -116,6 +116,7 @@ object ShapeModel extends ShapeModel {
   override val doc: ModelDoc = ModelDoc(
     ModelVocabularies.Shapes,
     "Shape",
-    "Base class for all shapes. Shapes are Domain Entities that define constraints over parts of a data graph.\nThey can be used to define and enforce schemas for the data graph information through SHACL.\nShapes can be recursive and inherit from other shapes."
+    "Base class for all shapes. Shapes are Domain Entities that define constraints over parts of a data graph.\nThey can be used to define and enforce schemas for the data graph information through SHACL.\nShapes can be recursive and inherit from other shapes.",
+    superClasses = Seq((Namespace.Shacl + "Shape").iri())
   )
 }

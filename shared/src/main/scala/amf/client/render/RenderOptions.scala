@@ -19,6 +19,7 @@ class RenderOptions {
   private var amfJsonLdSerialization = true
   private var prettyPrint            = false
   private var eh: ClientErrorHandler = ErrorHandlerConverter.asClient(UnhandledErrorHandler)
+  private var emitNodeIds            = false
 
   /** Pretty print the graph. */
   def withPrettyPrint: RenderOptions = {
@@ -78,11 +79,18 @@ class RenderOptions {
     amfJsonLdSerialization = true
     this
   }
+
+  def withNodeIds: RenderOptions = {
+    emitNodeIds = true
+    this
+  }
+
   def isWithCompactUris: Boolean       = compactUris
   def isWithSourceMaps: Boolean        = sources
   def isAmfJsonLdSerilization: Boolean = amfJsonLdSerialization
   def errorHandler: ClientErrorHandler = eh
   def isPrettyPrint: Boolean           = prettyPrint
+  def isEmitNodeIds: Boolean           = emitNodeIds
 }
 
 object RenderOptions {

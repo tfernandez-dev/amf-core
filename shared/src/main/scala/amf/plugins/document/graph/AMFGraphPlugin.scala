@@ -3,7 +3,7 @@ package amf.plugins.document.graph
 import amf.client.plugins.{AMFDocumentPlugin, AMFPlugin}
 import amf.core.Root
 import amf.core.client.ParsingOptions
-import amf.core.emitter.RenderOptions
+import amf.core.emitter.{RenderOptions, ShapeRenderOptions}
 import amf.core.metamodel.Obj
 import amf.core.metamodel.domain._
 import amf.core.model.document.BaseUnit
@@ -29,7 +29,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
   override val ID: String     = Amf.name
   override def dependencies() = Seq()
 
-  val vendors = Seq(Amf.name)
+  val vendors: Seq[String] = Seq(Amf.name)
 
   override def modelEntities: Seq[Obj] = Seq(
     ObjectNodeModel,
@@ -85,10 +85,16 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
 
   override def canUnparse(unit: BaseUnit) = true
 
-  override def emit[T](unit: BaseUnit, builder: DocBuilder[T], renderOptions: RenderOptions): Boolean =
+  override def emit[T](unit: BaseUnit,
+                       builder: DocBuilder[T],
+                       renderOptions: RenderOptions,
+                       shapeRenderOptions: ShapeRenderOptions = ShapeRenderOptions()): Boolean =
     JsonLdEmitter.emit(unit, builder, renderOptions)
 
-  override protected def unparseAsYDocument(unit: BaseUnit, renderOptions: RenderOptions): Option[YDocument] =
+  override protected def unparseAsYDocument(
+      unit: BaseUnit,
+      renderOptions: RenderOptions,
+      shapeRenderOptions: ShapeRenderOptions = ShapeRenderOptions()): Option[YDocument] =
     throw new IllegalStateException("Unreachable")
 
   override def referenceHandler(eh: ErrorHandler): ReferenceHandler = GraphDependenciesReferenceHandler

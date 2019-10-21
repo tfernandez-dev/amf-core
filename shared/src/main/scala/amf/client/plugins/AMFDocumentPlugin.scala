@@ -2,23 +2,16 @@ package amf.client.plugins
 
 import amf.core.Root
 import amf.core.client.ParsingOptions
-import amf.core.emitter.RenderOptions
+import amf.core.emitter.{RenderOptions, ShapeRenderOptions}
 import amf.core.metamodel.Obj
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AnnotationGraphLoader
-import amf.core.parser.{
-  DefaultParserSideErrorHandler,
-  ErrorHandler,
-  ParserContext,
-  ReferenceHandler,
-  UnhandledErrorHandler
-}
+import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, ParserContext, ReferenceHandler}
 import amf.core.registries.AMFDomainEntityResolver
 import amf.core.remote.Platform
 import amf.core.resolution.pipelines.ResolutionPipeline
+import org.yaml.builder.{DocBuilder, YDocumentBuilder}
 import org.yaml.model.YDocument
-import org.yaml.builder.DocBuilder
-import org.yaml.builder.YDocumentBuilder
 
 object AMFDocumentPluginSettings {
   object PluginPriorities {
@@ -75,17 +68,22 @@ abstract class AMFDocumentPlugin extends AMFPlugin {
     * The type of Output is Managed by the DocBuilder
     * Returns false if the document cannot be built
     */
-  def emit[T](unit: BaseUnit, builder: DocBuilder[T], renderOptions: RenderOptions = RenderOptions()): Boolean =
+  def emit[T](unit: BaseUnit,
+              builder: DocBuilder[T],
+              renderOptions: RenderOptions = RenderOptions(),
+              shapeRenderOptions: ShapeRenderOptions = ShapeRenderOptions()): Boolean =
     builder match {
       case sb: YDocumentBuilder =>
-        unparseAsYDocument(unit, renderOptions) exists { doc =>
+        unparseAsYDocument(unit, renderOptions, shapeRenderOptions) exists { doc =>
           sb.document = doc
           true
         }
       case _ => false
     }
 
-  protected def unparseAsYDocument(unit: BaseUnit, renderOptions: RenderOptions): Option[YDocument]
+  protected def unparseAsYDocument(unit: BaseUnit,
+                                   renderOptions: RenderOptions,
+                                   shapeRenderOptions: ShapeRenderOptions): Option[YDocument]
 
   /**
     * Decides if this plugin can parse the provided document instance.

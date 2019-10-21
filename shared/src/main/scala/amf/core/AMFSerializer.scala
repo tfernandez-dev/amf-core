@@ -4,7 +4,7 @@ import java.io.StringWriter
 
 import amf.client.plugins.AMFDocumentPlugin
 import amf.core.benchmark.ExecutionLog
-import amf.core.emitter.RenderOptions
+import amf.core.emitter.{RenderOptions, ShapeRenderOptions}
 import amf.core.model.document.{BaseUnit, ExternalFragment}
 import amf.core.parser.SyamlParsedDocument
 import amf.core.rdf.RdfModelDocument
@@ -21,12 +21,16 @@ import org.yaml.model.YDocument
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AMFSerializer(unit: BaseUnit, mediaType: String, vendor: String, options: RenderOptions) {
+class AMFSerializer(unit: BaseUnit,
+                    mediaType: String,
+                    vendor: String,
+                    options: RenderOptions,
+                    shapeOptions: ShapeRenderOptions = ShapeRenderOptions()) {
 
   def renderAsYDocument(): SyamlParsedDocument = {
     val domainPlugin = getDomainPlugin
     val builder      = new YDocumentBuilder
-    if (domainPlugin.emit(unit, builder, options)) SyamlParsedDocument(builder.result.asInstanceOf[YDocument])
+    if (domainPlugin.emit(unit, builder, options, shapeOptions)) SyamlParsedDocument(builder.result.asInstanceOf[YDocument])
     else throw new Exception(s"Error unparsing syntax $mediaType with domain plugin ${domainPlugin.ID}")
   }
 
@@ -98,17 +102,22 @@ object AMFSerializer {
   def init(): Unit = {
     if (RuntimeSerializer.serializer.isEmpty) {
       RuntimeSerializer.register(new RuntimeSerializer {
-        override def dump(unit: BaseUnit, mediaType: String, vendor: String, options: RenderOptions): String =
-          new AMFSerializer(unit, mediaType, vendor, options).render()
+        override def dump(unit: BaseUnit,
+                          mediaType: String,
+                          vendor: String,
+                          options: RenderOptions,
+                          shapeOptions: ShapeRenderOptions): String =
+          new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).render()
 
         override def dumpToFile(platform: Platform,
                                 file: String,
                                 unit: BaseUnit,
                                 mediaType: String,
                                 vendor: String,
-                                options: RenderOptions): Future[Unit] = {
+                                options: RenderOptions,
+                                shapeOptions: ShapeRenderOptions): Future[Unit] = {
           import scala.concurrent.ExecutionContext.Implicits.global
-          new AMFSerializer(unit, mediaType, vendor, options).renderToFile(platform, file)
+          new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).renderToFile(platform, file)
         }
       })
     }

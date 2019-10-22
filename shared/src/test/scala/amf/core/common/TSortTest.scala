@@ -20,7 +20,7 @@ class TSortTest extends FunSuite {
       ("b3", "c3"),
       ("b3", "c4")
     )
-    tsort(edges) should be(List("a0", "a1", "b2", "b3", "b1", "c3", "c4", "c2", "c1"))
+    tsort(edges) should be(Right(List("a0", "a1", "b2", "b3", "b1", "c3", "c4", "c2", "c1")))
   }
 
   test("Topological sort with map") {
@@ -35,6 +35,17 @@ class TSortTest extends FunSuite {
       ("c3", Set("b3")),
       ("c4", Set("b3"))
     )
-    tsort(graph, Seq()) should be(List("a0", "a1", "b2", "b3", "b1", "c3", "c4", "c2", "c1"))
+    tsort(graph, Seq()) should be(Right(List("a0", "a1", "b2", "b3", "b1", "c3", "c4", "c2", "c1")))
+  }
+
+  test("Topological sort with cycles") {
+    val edges = List(
+      ("a0", "a1"),
+      ("a1", "a2"),
+      ("a1", "a3"),
+      ("a3", "a1"),
+      ("a3", "a4")
+    )
+    tsort(edges) should be(Left(List("a0","a4","a3","a1","a2")))
   }
 }

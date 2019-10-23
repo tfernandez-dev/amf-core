@@ -1,9 +1,8 @@
 package amf.client.reference
 
 import amf.client.convert.CoreClientConverters._
-import amf.internal.reference.{CachedReference => InternalCachedReference}
-import amf.core.model.document.{BaseUnit => InternalBaseUnit}
 import amf.client.model.document.BaseUnit
+import amf.internal.reference.{CachedReference => InternalCachedReference}
 
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 
@@ -19,8 +18,8 @@ trait ReferenceResolver {
 case class CachedReference private[amf] (private[amf] val _internal: InternalCachedReference) {
 
   @JSExportTopLevel("client.remote.CachedReference")
-  def this(url: String, content: InternalBaseUnit, resolved: Boolean) =
-    this(InternalCachedReference(url, content, resolved))
+  def this(url: String, content: BaseUnit, resolved: Boolean) =
+    this(InternalCachedReference(url, content._internal, resolved))
 
   def url: String       = _internal.url
   def content: BaseUnit = _internal.content

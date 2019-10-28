@@ -7,7 +7,7 @@ val ivyLocal = Resolver.file("ivy", file(Path.userHome.absolutePath + "/.ivy2/lo
 
 name := "amf-core"
 
-version in ThisBuild := "4.0.0-NEW-MODEL-SNAPSHOT" /*{
+version in ThisBuild := {
   val major = 4
   val minor = 0
 
@@ -15,7 +15,7 @@ version in ThisBuild := "4.0.0-NEW-MODEL-SNAPSHOT" /*{
   lazy val branch = sys.env.get("BRANCH_NAME")
 
   if (branch.contains("master")) s"$major.$minor.$build" else s"$major.${minor + 1}.0-SNAPSHOT"
-}*/
+}
 
 publish := {}
 

@@ -39,7 +39,7 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
     // If there is any ReferenceResolver attached to the environment, then first try to get the cached reference if it exists. If not, load and parse as usual.
     env.resolver match {
       case Some(resolver) =>
-        resolver.fetch(url) flatMap { cachedReference =>
+        resolver.fetch(base.resolve(url)) flatMap { cachedReference =>
           Future(ReferenceResolutionResult(None, Some(cachedReference.content)))
         } recoverWith {
           case _ => resolveReference(base, cache, ctx, env, nodes, allowRecursiveRefs)

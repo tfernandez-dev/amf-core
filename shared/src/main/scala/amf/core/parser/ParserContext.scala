@@ -1,6 +1,6 @@
 package amf.core.parser
 
-import amf.core.annotations.{LexicalInformation, SourceLocation}
+import amf.core.annotations.{LexicalInformation, SourceLocation => AmfSourceLocation}
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AmfObject
 import amf.core.services.RuntimeValidator
@@ -9,7 +9,7 @@ import amf.core.validation.SeverityLevels.{VIOLATION, WARNING}
 import amf.core.validation.core.ValidationSpecification
 import amf.core.{AMFCompilerRunCount, annotations}
 import amf.plugins.features.validation.CoreValidations.{SyamlError, SyamlWarning}
-import org.mulesoft.lexer.InputRange
+import org.mulesoft.lexer.{InputRange, SourceLocation}
 import org.yaml.model._
 
 import scala.collection.mutable
@@ -46,7 +46,7 @@ trait ErrorHandler extends IllegalTypeHandler with ParseErrorHandler {
     defaultValue
   }
 
-  def guiKey(message: String, location: Option[String], lexical: Option[LexicalInformation]) = {
+  def guiKey(message: String, location: Option[String], lexical: Option[LexicalInformation]): String = {
     message ++ location.getOrElse("") ++ lexical.map(_.value).getOrElse("")
   }
 
@@ -77,16 +77,15 @@ trait ErrorHandler extends IllegalTypeHandler with ParseErrorHandler {
               None,
               message,
               annotations.find(classOf[LexicalInformation]),
-              annotations.find(classOf[SourceLocation]).map(_.location))
+              annotations.find(classOf[AmfSourceLocation]).map(_.location))
   }
 
   /** Report constraint failure of severity violation for the given amf object. */
   def violation(specification: ValidationSpecification,
                 element: AmfObject,
                 target: Option[String],
-                message: String): Unit = {
+                message: String): Unit =
     violation(specification, element.id, target, message, element.position(), element.location())
-  }
 
   /** Report constraint failure of severity violation with location file. */
   def violation(specification: ValidationSpecification, node: String, message: String, location: String): Unit = {
@@ -94,22 +93,21 @@ trait ErrorHandler extends IllegalTypeHandler with ParseErrorHandler {
   }
 
   /** Report constraint failure of severity violation. */
-  def violation(specification: ValidationSpecification,
-                node: String,
-                property: Option[String],
-                message: String,
-                ast: YPart): Unit = {
-    violation(specification, node, property, message, lexical(ast), ast.sourceName.option)
-  }
+  def violation(spec: ValidationSpecification, node: String, prop: Option[String], msg: String, ast: YPart): Unit =
+    violation(spec, node, prop, msg, ast.location)
+
+  def violation(spec: ValidationSpecification, n: String, prop: Option[String], msg: String, l: SourceLocation): Unit =
+    violation(spec, n, prop, msg, lexical(l), l.sourceName.option)
 
   /** Report constraint failure of severity violation. */
-  def violation(specification: ValidationSpecification, node: String, message: String, ast: YPart): Unit = {
+  def violation(specification: ValidationSpecification, node: String, message: String, ast: YPart): Unit =
     violation(specification, node, None, message, ast)
-  }
 
-  def violation(specification: ValidationSpecification, node: String, message: String): Unit = {
+  def violation(specification: ValidationSpecification, node: String, message: String, loc: SourceLocation): Unit =
+    violation(specification, node, None, message, loc)
+
+  def violation(specification: ValidationSpecification, node: String, message: String): Unit =
     violation(specification, node, None, message, None, None)
-  }
 
   /** Report constraint failure of severity warning. */
   def warning(specification: ValidationSpecification,
@@ -117,41 +115,43 @@ trait ErrorHandler extends IllegalTypeHandler with ParseErrorHandler {
               property: Option[String],
               message: String,
               lexical: Option[LexicalInformation],
-              location: Option[String]): Unit = {
+              location: Option[String]): Unit =
     reportConstraint(specification.id, node, property, message, lexical, WARNING, location)
-  }
 
   /** Report constraint failure of severity violation for the given amf object. */
-  def warning(specification: ValidationSpecification,
-              element: AmfObject,
-              target: Option[String],
-              message: String): Unit = {
-    warning(specification, element.id, target, message, element.position(), element.location())
-  }
+  def warning(spec: ValidationSpecification, element: AmfObject, target: Option[String], message: String): Unit =
+    warning(spec, element.id, target, message, element.position(), element.location())
 
   /** Report constraint failure of severity warning. */
   def warning(specification: ValidationSpecification,
               node: String,
               property: Option[String],
               message: String,
-              ast: YPart): Unit = {
-    warning(specification, node, property, message, lexical(ast), ast.sourceName.option)
-  }
+              location: SourceLocation): Unit =
+    warning(specification, node, property, message, lexical(location), location.sourceName.option)
+
+  def warning(specification: ValidationSpecification,
+              node: String,
+              property: Option[String],
+              message: String,
+              part: YPart): Unit =
+    warning(specification, node, property, message, part.location)
 
   /** Report constraint failure of severity warning. */
-  def warning(specification: ValidationSpecification, node: String, message: String, ast: YPart): Unit = {
-    warning(specification, node, None, message, ast)
-  }
+  def warning(specification: ValidationSpecification, node: String, message: String, ast: YPart): Unit =
+    warning(specification, node, None, message, ast.location)
+
+  def warning(specification: ValidationSpecification, node: String, message: String, location: SourceLocation): Unit =
+    warning(specification, node, None, message, location)
 
   /** Report constraint failure of severity warning. */
-  def warning(specification: ValidationSpecification, node: String, message: String, annotations: Annotations): Unit = {
+  def warning(specification: ValidationSpecification, node: String, message: String, annotations: Annotations): Unit =
     warning(specification,
             node,
             None,
             message,
             annotations.find(classOf[LexicalInformation]),
-            annotations.find(classOf[SourceLocation]).map(_.location))
-  }
+            annotations.find(classOf[AmfSourceLocation]).map(_.location))
 
   protected def part(error: YError): YPart = {
     error.node match {
@@ -162,18 +162,19 @@ trait ErrorHandler extends IllegalTypeHandler with ParseErrorHandler {
     }
   }
 
-  private def lexical(ast: YPart): Option[LexicalInformation] = {
-    ast.range match {
+  private def lexical(loc: SourceLocation): Option[LexicalInformation] = {
+    loc.inputRange match {
       case InputRange.Zero => None
       case range           => Some(annotations.LexicalInformation(Range(range)))
     }
   }
-  override def handle(node: YPart, e: SyamlException): Unit = {
-    e match {
-      // ignoring errors due to trailing white space
-      case lexer: LexerException if lexer.text.matches("\\s+") => // ignore
-      case _                                                   => violation(SyamlError, "", e.getMessage, node)
-    }
+  final def handle(node: YPart, e: SyamlException): Unit = handle(node.location, e)
+
+  override def handle(location: SourceLocation, e: SyamlException): Unit = e match {
+    // ignoring errors due to trailing white space
+    case lexer: LexerException if lexer.text.matches("\\s+") => // ignore
+    case _ =>
+      violation(SyamlError, "", e.getMessage, location)
   }
 }
 
@@ -259,8 +260,8 @@ case class ParserContext(rootContextDocument: String = "",
 case class WarningOnlyHandler(override val currentFile: String) extends RuntimeErrorHandler {
   override val parserCount: Int = AMFCompilerRunCount.count
 
-  override def handle(node: YPart, e: SyamlException): Unit = {
-    warning(SyamlWarning, "", e.getMessage, node)
+  override def handle(location: SourceLocation, e: SyamlException): Unit = {
+    warning(SyamlWarning, "", e.getMessage, location)
     warningRegister = true
   }
 
@@ -276,8 +277,8 @@ case class WarningOnlyHandler(override val currentFile: String) extends RuntimeE
 }
 
 object UnhandledErrorHandler extends ErrorHandler {
-  override def handle(node: YPart, e: SyamlException): Unit = {
-    throw new Exception(e.getMessage + " at: " + node.range, e)
+  override def handle(location: SourceLocation, e: SyamlException): Unit = {
+    throw new Exception(e.getMessage + " at: " + location.inputRange, e)
   }
 
   override def reportConstraint(id: String,

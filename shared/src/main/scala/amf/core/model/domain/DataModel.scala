@@ -131,9 +131,8 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations) exte
         else decodedKey
       val maybeTree = keys.find(_.key.equals(finalKey))
 
-      val actualEntry = fields.entry(field)
-      actualEntry match {
-        case Some(FieldEntry(f, v)) =>
+      fields.entry(field) match {
+        case Some(FieldEntry(_, v)) =>
           val value = v.value
             .asInstanceOf[DataNode]
             .replaceVariables(values, maybeTree.map(_.subtrees).getOrElse(Nil))(
@@ -143,6 +142,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations) exte
               else reportError) // if its an optional node, ignore the violation of the var not implement
           fields.removeField(field)
           addProperty(VariableReplacer.replaceVariablesInKey(decodedKey, values, reportError), value, v.annotations)
+        case _ =>
       }
     }
 

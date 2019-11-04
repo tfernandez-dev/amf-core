@@ -1,10 +1,11 @@
 package amf.core.parser
 
-import amf.core.annotations.{LexicalInformation, SourceAST, SourceLocation, SourceNode}
+import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceLocation => AmfSourceLocation}
 import amf.core.model.domain.{Annotation, EternalSerializedAnnotation, SerializableAnnotation}
+import org.mulesoft.lexer.{InputRange, SourceLocation}
 import org.yaml.model.{YMapEntry, YNode, YPart}
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 /**
   * Element annotations
@@ -26,6 +27,14 @@ class Annotations() {
   def contains[T <: Annotation](clazz: Class[T]): Boolean = annotations.exists(clazz.isInstance(_))
 
   def size: Int = annotations.size
+
+  def sourceLocation: SourceLocation = {
+    val sourceName = find(classOf[AmfSourceLocation]).map(_.location).getOrElse("")
+    val range = find(classOf[LexicalInformation])
+      .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
+      .getOrElse(InputRange.Zero)
+    SourceLocation(sourceName, range)
+  }
 
   def +=(annotation: Annotation): this.type = {
     annotations += annotation
@@ -77,7 +86,7 @@ object Annotations {
   def apply(ast: YPart): Annotations = {
     val annotations = new Annotations() ++= Set(LexicalInformation(Range(ast.range)),
                                                 SourceAST(ast),
-                                                SourceLocation(ast.sourceName))
+                                                AmfSourceLocation(ast.sourceName))
     ast match {
       case node: YNode      => annotations += SourceNode(node)
       case entry: YMapEntry => annotations += SourceNode(entry.value)

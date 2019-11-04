@@ -59,7 +59,7 @@ lazy val workspaceDirectory: File =
     case _ => Path.userHome / "mulesoft"
   }
 
-val syamlVersion = "0.7.260"
+val syamlVersion = "0.7.263"
 
 lazy val syamlJVMRef = ProjectRef(workspaceDirectory / "syaml", "syamlJVM")
 lazy val syamlJSRef = ProjectRef(workspaceDirectory / "syaml", "syamlJS")
@@ -84,9 +84,10 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
     artifactPath in(Compile, packageDoc) := baseDirectory.value / "target" / "artifact" / "amf-core-javadoc.jar"
   )
   .jsSettings(
-    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.2",
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.7",
     scalaJSModuleKind := ModuleKind.CommonJSModule,
-    artifactPath in(Compile, fullOptJS) := baseDirectory.value / "target" / "artifact" / "amf-core-module.js"
+    artifactPath in(Compile, fullOptJS) := baseDirectory.value / "target" / "artifact" / "amf-core-module.js",
+    scalacOptions += "-P:scalajs:suppressExportDeprecations"
   ).disablePlugins(SonarPlugin)
 
 lazy val coreJVM = core.jvm.in(file("./jvm")).sourceDependency(syamlJVMRef, syamlLibJVM)

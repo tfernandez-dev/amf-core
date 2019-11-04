@@ -3,7 +3,7 @@ package amf.core.parser
 import amf.Core
 import amf.client.convert.{BaseUnitConverter, NativeOps}
 import amf.client.model.document.{BaseUnit, Document}
-import amf.client.model.domain.{ArrayNode, ObjectNode, ScalarNode => Scalar}
+import amf.client.model.domain.{ScalarNode => Scalar}
 import amf.client.parse.AmfGraphParser
 import amf.core.io.FileAssertionTest
 import amf.core.render.ElementsFixture

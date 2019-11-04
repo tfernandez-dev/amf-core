@@ -9,6 +9,7 @@ import scala.compat.java8.OptionConverters._
 import scala.concurrent.Future
 import amf.client.convert.CoreClientConverters.{ClientFuture, ClientList, ClientOption}
 
+import scala.language.implicitConversions
 
 private[amf] trait NativeOpsFromJvm extends NativeOps {
 

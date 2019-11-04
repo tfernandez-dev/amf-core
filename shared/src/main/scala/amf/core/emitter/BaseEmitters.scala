@@ -5,8 +5,6 @@ import amf.core.metamodel.{Field, Type}
 import amf.core.model.domain.{AmfObject, AmfScalar}
 import amf.core.parser.Position._
 import amf.core.parser.{Annotations, FieldEntry, Position, Value}
-import org.mulesoft.lexer.InputRange
-import org.mulesoft.lexer.{SourceLocation => YSourceLocation}
 import org.yaml.model.YDocument.{EntryBuilder, PartBuilder}
 import org.yaml.model._
 
@@ -57,26 +55,17 @@ package object BaseEmitters {
   }
 
   case class NullEmitter(annotations: Annotations) extends PartEmitter {
-    override def emit(b: PartBuilder): Unit = b += YNode(yscalarWithRange("null", YType.Null, annotations), YType.Null)
+    override def emit(b: PartBuilder): Unit =
+      b += YNode(YScalar.withLocation("null", YType.Null, annotations.sourceLocation), YType.Null)
 
     override def position(): Position = pos(annotations)
   }
 
-  def yscalarWithRange(value: String, tag: YType, annotations: Annotations): YScalar = {
-    val sourceLocation = annotations.find(classOf[SourceLocation]).map(_.location).getOrElse("")
-    val range = annotations
-      .find(classOf[LexicalInformation])
-      .map(r => InputRange(r.range.start.line, r.range.start.column, r.range.end.line, r.range.end.column))
-      .getOrElse(InputRange.Zero)
-    YScalar.withLocation(value, tag, sourceLocation, range)
-  }
-
   case class TextScalarEmitter(value: String, annotations: Annotations, tag: YType = YType.Str) extends PartEmitter {
     override def emit(b: PartBuilder): Unit = {
-      val sourceName = annotations.find(classOf[SourceLocation]).map(_.location).getOrElse("")
       sourceOr(
         annotations, {
-          b += YNode(yscalarWithRange(value, tag, annotations), tag)
+          b += YNode(YScalar.withLocation(value, tag, annotations.sourceLocation), tag)
         }
       )
 
@@ -86,11 +75,10 @@ package object BaseEmitters {
   }
 
   case class LinkScalaEmitter(alias: String, annotations: Annotations) extends PartEmitter {
-    override def emit(b: PartBuilder): Unit = {
+    override def emit(b: PartBuilder): Unit =
       sourceOr(annotations, {
-        b += YNode(yscalarWithRange(alias, YType.Include, annotations), YType.Include) // YNode(YScalar(alias), YType.Include)
+        b += YNode(YScalar.withLocation(alias, YType.Include, annotations.sourceLocation), YType.Include) // YNode(YScalar(alias), YType.Include)
       })
-    }
 
     override def position(): Position = pos(annotations)
   }

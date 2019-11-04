@@ -6,7 +6,7 @@ import amf.client.resource
 
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 
-@JSExportTopLevel("client.DefaultEnvironment")
+@JSExportTopLevel("DefaultEnvironment")
 object DefaultEnvironment extends PlatformSecrets {
   @JSExport("apply")
   def apply(): Environment = {

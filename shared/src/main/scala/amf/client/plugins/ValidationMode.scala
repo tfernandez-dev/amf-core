@@ -11,8 +11,8 @@ trait ValidationMode
 @JSExportAll
 @JSExportTopLevel("ValidationMode")
 object ValidationMode {
-  val StrictValidationMode: ValidationMode        = StrictValidationMode
-  val ScalarRelaxedValidationMode: ValidationMode = ScalarRelaxedValidationMode
+  val StrictValidationMode: ValidationMode        = amf.client.plugins.StrictValidationMode
+  val ScalarRelaxedValidationMode: ValidationMode = amf.client.plugins.ScalarRelaxedValidationMode
 }
 
 @JSExportAll

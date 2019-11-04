@@ -8,9 +8,9 @@ import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
   * Module model class
   */
 @JSExportAll
-@JSExportTopLevel("model.document.Module")
+@JSExportTopLevel("Module")
 case class Module(private[amf] val _internal: InternalModule) extends BaseUnit with DeclaresModel {
 
-  @JSExportTopLevel("model.document.Module")
+  @JSExportTopLevel("Module")
   def this() = this(InternalModule())
 }

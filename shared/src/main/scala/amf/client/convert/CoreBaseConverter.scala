@@ -24,6 +24,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.higherKinds
+import scala.language.implicitConversions
 
 trait CoreBaseConverter
     extends PlatformSecrets

@@ -3,6 +3,7 @@ package amf.client.convert
 import amf.client.convert.CoreClientConverters.{ClientFuture, ClientList, ClientOption, ClientMap}
 
 import scala.concurrent.Future
+import scala.language.implicitConversions
 
 trait NativeOps {
 

@@ -25,7 +25,7 @@ case class Module(fields: Fields, annotations: Annotations) extends BaseUnit wit
 
 trait DeclaresModel extends AmfObject {
 
-  /** Declared [[DomainElement]]s that can be re-used from other documents. */
+  /** Declared DomainElements that can be re-used from other documents. */
   def declares: Seq[DomainElement]
 
   def withDeclares(declarations: Seq[DomainElement]): this.type = setArrayWithoutId(Declares, declarations)

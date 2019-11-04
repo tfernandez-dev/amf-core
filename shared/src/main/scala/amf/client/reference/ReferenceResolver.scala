@@ -10,7 +10,7 @@ import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 trait ReferenceResolver {
 
   /** Fetch specified reference and return associated [CachedReference]. */
-  /** If the resource not exists, you should return a future failed with an [[ResourceNotFound]] exception. */
+  /** If the resource not exists, you should return a future failed with an ResourceNotFound exception. */
   def fetch(url: String): ClientFuture[CachedReference]
 }
 

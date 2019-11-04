@@ -7,10 +7,10 @@ import amf.client.model.StrField
   */
 trait NamedDomainElement {
 
-  /** Return [[DomainElement]] name. */
+  /** Return DomainElement name. */
   def name: StrField
 
-  /** Update [[DomainElement]] name. */
+  /** Update DomainElement name. */
   def withName(name: String): this.type
 
 }

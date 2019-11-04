@@ -18,7 +18,7 @@ class Fields {
   def default(field: Field): AmfElement =
     Option(field.`type`).filter(_.isInstanceOf[Array]).map(_ => AmfArray(Nil)).orNull
 
-  /** Return typed value associated to given [[Field]]. */
+  /** Return typed value associated to given Field. */
   def get(field: Field): AmfElement = {
     getValue(field) match {
       case Value(value, _) => value
@@ -70,10 +70,10 @@ class Fields {
 
   def ?[T](field: Field): Option[T] = fs.get(field).map(_.value.asInstanceOf[T])
 
-  /** Return [[Value]] associated to given [[Field]]. */
+  /** Return [[Value]] associated to given Field. */
   def getValue(field: Field): Value = fs.get(field).orNull
 
-  /** Return [[Value]] associated to given [[Field]]. */
+  /** Return [[Value]] associated to given Field. */
   def getValueAsOption(field: Field): Option[Value] = fs.get(field)
 
   /** Add field array - value. */
@@ -151,7 +151,7 @@ class Fields {
     }).asInstanceOf[T]
   }
 
-  /** Return optional entry for a given [[Field]]. */
+  /** Return optional entry for a given Field. */
   def entry(f: Field): Option[FieldEntry] = {
     fs.get(f) match {
       case Some(value) => Some(FieldEntry(f, value))
@@ -159,7 +159,7 @@ class Fields {
     }
   }
 
-  /** Return if the given [[Field]] exists within this [[Fields]] instance. */
+  /** Return if the given Field exists within this [[Fields]] instance. */
   def exists(f: Field): Boolean = fs.contains(f)
 
   def entryJsonld(f: Field): Option[FieldEntry] = {

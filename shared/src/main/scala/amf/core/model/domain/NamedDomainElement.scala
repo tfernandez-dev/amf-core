@@ -13,9 +13,9 @@ trait NamedDomainElement extends DomainElement {
 
   protected def nameField: Field
 
-  /** Return [[DomainElement]] name. */
+  /** Return DomainElement name. */
   def name: StrField = fields.field(nameField)
 
-  /** Update [[DomainElement]] name. */
+  /** Update DomainElement name. */
   def withName(name: String, a: Annotations = Annotations()): this.type = set(nameField, AmfScalar(name, a))
 }

@@ -53,12 +53,12 @@ class Annotations() {
     this
   }
 
-  /** Return [[SerializableAnnotation]]s only. */
+  /** Return SerializableAnnotations only. */
   def serializables(): Seq[SerializableAnnotation] = collect {
     case s: SerializableAnnotation if !s.isInstanceOf[EternalSerializedAnnotation] => s
   }
 
-  /** Return [[EternalSerializedAnnotation]]s only. */
+  /** Return EternalSerializedAnnotations only. */
   def eternals(): Seq[EternalSerializedAnnotation] = collect { case e: EternalSerializedAnnotation => e }
 
   def unapply[T <: Annotation](clazz: Class[T]): Option[T] = find(clazz)

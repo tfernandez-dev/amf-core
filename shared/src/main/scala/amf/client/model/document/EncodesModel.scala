@@ -12,7 +12,7 @@ trait EncodesModel extends AmfObjectWrapper {
 
   override private[amf] val _internal: InternalEncodesModel
 
-  /** Encoded [[DomainElement]] described in the document element. */
+  /** Encoded DomainElement described in the document element. */
   def encodes: DomainElement = _internal.encodes
 
   def withEncodes(encoded: DomainElement): this.type = {

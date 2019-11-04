@@ -24,7 +24,7 @@ trait Fragment extends BaseUnit with EncodesModel {
 
 trait EncodesModel extends AmfObject {
 
-  /** Encoded [[DomainElement]] described in the document element. */
+  /** Encoded DomainElement described in the document element. */
   def encodes: DomainElement
 
   def withEncodes(encoded: DomainElement): this.type = set(FragmentModel.Encodes, encoded)

@@ -519,8 +519,8 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         b.entry(
           "smaps",
           _.obj { b =>
-            createAnnotationNodes(b, sources.annotations)
-            createAnnotationNodes(b, sources.eternals)
+            createAnnotationNodes(id, b, sources.annotations)
+            createAnnotationNodes(id, b, sources.eternals)
           }
         )
       } else {
@@ -530,8 +530,8 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
             _.obj { b =>
               createIdNode(b, id)
               createTypeNode(b, SourceMapModel, None)
-              createAnnotationNodes(b, sources.annotations)
-              createAnnotationNodes(b, sources.eternals)
+              createAnnotationNodes(id, b, sources.annotations)
+              createAnnotationNodes(id, b, sources.eternals)
             }
           }
         )
@@ -550,7 +550,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         b.entry(
           "smaps",
           _.obj { b =>
-            createAnnotationNodes(b, sources.eternals)
+            createAnnotationNodes(id, b, sources.eternals)
           }
         )
       } else {
@@ -560,14 +560,15 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
             _.obj { b =>
               createIdNode(b, id)
               createTypeNode(b, SourceMapModel, None)
-              createAnnotationNodes(b, sources.eternals)
+              createAnnotationNodes(id, b, sources.eternals)
             }
           }
         )
       }
   }
 
-  private def createAnnotationNodes(b: Entry[T],
+  private def createAnnotationNodes(id: String,
+                                    b: Entry[T],
                                     annotations: mutable.ListMap[String, mutable.ListMap[String, String]]): Unit = {
     annotations.foreach({
       case (a, values) =>
@@ -587,16 +588,17 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         } else {
           b.entry(
             ctx.emitIri(ValueType(Namespace.SourceMaps, a).iri()),
-            _.list(b => values.foreach(createAnnotationValueNode(b, _)))
+            _.list(b => values.foreach(createAnnotationValueNode(s"$id/$a", b, _)))
           )
         }
     })
   }
 
-  private def createAnnotationValueNode(b: Part[T], tuple: (String, String)): Unit =
+  private def createAnnotationValueNode(id: String, b: Part[T], tuple: (String, String)): Unit =
     tuple match {
       case (iri, v) =>
         b.obj { b =>
+          createIdNode(b, id)
           b.entry(ctx.emitIri(SourceMapModel.Element.value.iri()), listWithScalar(_, iri))
           b.entry(ctx.emitIri(SourceMapModel.Value.value.iri()), listWithScalar(_, v))
         }

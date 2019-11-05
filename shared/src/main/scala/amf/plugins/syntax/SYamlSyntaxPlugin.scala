@@ -1,13 +1,12 @@
 package amf.plugins.syntax
 
 import amf.client.plugins.{AMFPlugin, AMFSyntaxPlugin}
-import amf.core.benchmark.ExecutionLog
 import amf.core.client.ParsingOptions
 import amf.core.parser.{ParsedDocument, ParserContext, SyamlParsedDocument}
 import amf.core.rdf.RdfModelDocument
 import amf.core.unsafe.PlatformSecrets
 import org.mulesoft.common.io.Output
-import org.yaml.model.{YComment, YDocument, YMap, YNode}
+import org.yaml.model.YDocument
 import org.yaml.parser.{JsonParser, YamlParser}
 import org.yaml.render.{JsonRender, YamlRender}
 
@@ -22,7 +21,7 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
 
   override def dependencies(): Seq[AMFPlugin] = Nil
 
-  override def supportedMediaTypes() = Seq(
+  override def supportedMediaTypes(): Seq[String] = Seq(
     "application/yaml",
     "application/x-yaml",
     "text/yaml",
@@ -38,28 +37,15 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
                      ctx: ParserContext,
                      options: ParsingOptions): Option[ParsedDocument] = {
     if (text.length() == 0) None
-    else {
-      if ((mediaType == "application/ld+json" || mediaType == "application/json") && !options.isAmfJsonLdSerilization && platform.rdfFramework.isDefined) {
-        platform.rdfFramework.get.syntaxToRdfModel(mediaType, text)
-      } else {
-        val parser = getFormat(mediaType) match {
-          case "json" =>
-            JsonParser.withSource(text, ctx.rootContextDocument)(ctx) //include tag only for raml right? so only for yaml
-          case _ => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
-        }
-        val parts = parser.parse(true)
-
-        if (parts.exists(v => v.isInstanceOf[YDocument])) {
-          parts collectFirst { case d: YDocument => d } map { document =>
-            val comment = parts collectFirst { case c: YComment => c }
-            SyamlParsedDocument(document, comment)
-          }
-        } else {
-          parts collectFirst { case d: YComment => d } map { comment =>
-            SyamlParsedDocument(YDocument(IndexedSeq(YNode(YMap.empty)), ctx.rootContextDocument), Some(comment))
-          }
-        }
+    else if ((mediaType == "application/ld+json" || mediaType == "application/json") && !options.isAmfJsonLdSerilization && platform.rdfFramework.isDefined) {
+      platform.rdfFramework.get.syntaxToRdfModel(mediaType, text)
+    } else {
+      val parser = getFormat(mediaType) match {
+        case "json" =>
+          JsonParser.withSource(text, ctx.rootContextDocument)(ctx) //include tag only for raml right? so only for yaml
+        case _ => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
       }
+      Some(SyamlParsedDocument(parser.document()))
     }
   }
 

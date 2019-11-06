@@ -37,28 +37,20 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
                      ctx: ParserContext,
                      options: ParsingOptions): Option[ParsedDocument] = {
     if (text.length() == 0) None
-    else {
-      if ((mediaType == "application/ld+json" || mediaType == "application/json") && !options.isAmfJsonLdSerilization && platform.rdfFramework.isDefined) {
-        platform.rdfFramework.get.syntaxToRdfModel(mediaType, text)
-      } else {
-        val parser = getFormat(mediaType) match {
-          case "json" =>
-            JsonParser.withSource(text, ctx.rootContextDocument)(ctx) //include tag only for raml right? so only for yaml
-          case _ => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
-        }
-        val parts = parser.parse()
-
-        if (parts.exists(v => v.isInstanceOf[YDocument])) {
-          parts collectFirst { case d: YDocument => d } map { document =>
-            val comment = parts collectFirst { case c: YComment => c }
-            SyamlParsedDocument(document, comment)
-          }
-        } else {
-          parts collectFirst { case d: YComment => d } map { comment =>
-            SyamlParsedDocument(YDocument(IndexedSeq(YNode(YMap.empty)), ctx.rootContextDocument), Some(comment))
-          }
-        }
+    else if ((mediaType == "application/ld+json" || mediaType == "application/json") && !options.isAmfJsonLdSerilization && platform.rdfFramework.isDefined) {
+      platform.rdfFramework.get.syntaxToRdfModel(mediaType, text)
+    } else {
+      val parser = getFormat(mediaType) match {
+        case "json" => JsonParser.withSource(text, ctx.rootContextDocument)(ctx)
+        case _      => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
       }
+      val parts   = parser.parse(keepTokens = false)
+      val comment = parts collectFirst { case c: YComment => c }
+      val doc = parts collectFirst { case d: YDocument => d } match {
+        case Some(d) => d
+        case None    => YDocument(Array(YNode(YMap.empty)), ctx.rootContextDocument)
+      }
+      Some(SyamlParsedDocument(doc, comment))
     }
   }
 

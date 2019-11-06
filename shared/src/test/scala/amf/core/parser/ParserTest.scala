@@ -1,10 +1,6 @@
 package amf.core.parser
 
 import amf.core.model.document.BaseUnit
-import amf.core.parser._
-import amf.core.rdf.RdfModel
-import amf.core.services.ValidationOptions
-import amf.core.validation.core.{SHACLValidator, ValidationReport, ValidationSpecification}
 import amf.core.rdf.RdfModel
 import amf.core.services.ValidationOptions
 import amf.core.validation.core.{SHACLValidator, ValidationReport, ValidationSpecification}
@@ -53,40 +49,38 @@ class ParserTest extends FunSuite {
       |  $ref: include2.yaml""".stripMargin
 
   test("Test RAML/yaml") {
-    val root = YamlParser(`RAML/yaml`).parse(true)
-    root.size should be(3)
+    val document = YamlParser(`RAML/yaml`).document()
+    document.children.size shouldBe 2
 
-    val comment = root.head.asInstanceOf[YComment]
-    comment.metaText should be("%RAML 1.0")
+    document.headComment shouldBe "%RAML 1.0"
 
-    val document = root.last.asInstanceOf[YDocument]
-    document.node.value shouldNot be(YNode.Null)
-    document.node.value shouldBe a[YMap]
+    val nodeValue = document.node.value
+    nodeValue shouldNot be(YNode.Null)
+    nodeValue shouldBe a[YMap]
 
-    assertDocumentRoot(document.node.value.asInstanceOf[YMap], assertRamlInclude)
+    assertDocumentRoot(nodeValue.asInstanceOf[YMap], assertRamlInclude)
   }
 
   test("Test OAS/json") {
-    val root = YamlParser(`OAS/json`).parse(true)
-    root.size should be(1)
+    val document = YamlParser(`OAS/json`).document()
+    document.children.size shouldBe 1
 
-    root.head shouldBe a[YDocument]
-    val document = root.head.asInstanceOf[YDocument]
-    document.node.value shouldNot be(YNode.Null)
-    document.node.value shouldBe a[YMap]
+    val nodeValue = document.node.value
+    nodeValue shouldNot be(YNode.Null)
+    nodeValue shouldBe a[YMap]
 
-    assertDocumentRoot(document.node.value.asInstanceOf[YMap], assertOasInclude)
+    assertDocumentRoot(nodeValue.asInstanceOf[YMap], assertOasInclude)
   }
 
   test("Test OAS/yaml") {
-    val root = YamlParser(`OAS/yaml`).parse(true)
-    root.size should be(1)
+    val document = YamlParser(`OAS/yaml`).document()
+    document.children.size should be(1)
 
-    val document = root.head.asInstanceOf[YDocument]
-    document.node.value shouldNot be(YNode.Null)
-    document.node.value shouldBe a[YMap]
+    val nodeValue = document.node.value
+    nodeValue shouldNot be(YNode.Null)
+    nodeValue shouldBe a[YMap]
 
-    assertDocumentRoot(document.node.value.asInstanceOf[YMap], assertOasInclude)
+    assertDocumentRoot(nodeValue.asInstanceOf[YMap], assertOasInclude)
   }
 
   private def assertRamlInclude(entry: YMapEntry) = {
@@ -110,7 +104,7 @@ class ParserTest extends FunSuite {
     include.value.value.asInstanceOf[YScalar].text should startWith("include")
   }
 
-  private def assertDocumentRoot(content: YMap, include: YMapEntry => Unit) = {
+  private def assertDocumentRoot(content: YMap, include: YMapEntry => Unit): Unit = {
     content.entries.size should be(4)
 
     val first = content.entries(0)

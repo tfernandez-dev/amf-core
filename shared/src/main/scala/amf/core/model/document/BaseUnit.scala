@@ -62,6 +62,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   private def withModelVersion(version: String): this.type = set(ModelVersion, version)
 
+  def addReference(newRef: BaseUnit): Unit = synchronized(withReferences(references :+ newRef))
+
   /** Returns Unit iterator for specified strategy and scope. */
   def iterator(strategy: IteratorStrategy = DomainElementStrategy, fieldsFilter: FieldsFilter = Local): AmfIterator =
     strategy.iterator(fieldsFilter.filter(fields))

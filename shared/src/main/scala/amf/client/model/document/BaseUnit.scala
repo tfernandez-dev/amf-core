@@ -59,4 +59,6 @@ trait BaseUnit extends AmfObjectWrapper with PlatformSecrets {
     _internal.findByType(Namespace.expand(typeId).iri()).asClient
 
   def sourceVendor: ClientOption[Vendor] = _internal.sourceVendor.asClient
+
+  def cloneUnit():BaseUnit = _internal.cloneUnit()
 }

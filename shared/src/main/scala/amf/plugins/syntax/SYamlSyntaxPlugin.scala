@@ -45,7 +45,7 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
         case _      => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
       }
       val parts   = parser.parse(keepTokens = false)
-      val comment = parts collectFirst { case c: YComment => c }
+      val comment = parts collectFirst { case c: YComment => c.metaText }
       val doc = parts collectFirst { case d: YDocument => d } match {
         case Some(d) => d
         case None    => YDocument(Array(YNode(YMap.empty)), ctx.rootContextDocument)

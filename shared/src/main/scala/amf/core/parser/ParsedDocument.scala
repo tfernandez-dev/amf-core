@@ -2,6 +2,8 @@ package amf.core.parser
 
 import org.yaml.model.{YComment, YDocument}
 
-abstract class ParsedDocument
+abstract class ParsedDocument {
+  def comment: Option[String] = None
+}
 
-case class SyamlParsedDocument(document: YDocument, comment: Option[YComment] = None) extends ParsedDocument
+case class SyamlParsedDocument(document: YDocument, override val comment: Option[String] = None) extends ParsedDocument

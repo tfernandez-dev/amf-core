@@ -32,16 +32,18 @@ case class AmfScalar(value: Any, annotations: Annotations = new Annotations()) e
 
   def toNumberOption: Option[Number] = {
     Option(value).map {
-      case v: String                        => v.toDouble
-      case v                                => v.asInstanceOf[Number]
+      case v: String => v.toDouble
+      case v         => v.asInstanceOf[Number]
     }
   }
 
   override def equals(obj: scala.Any): Boolean = {
     obj match {
       case AmfScalar(otherValue, _) =>
-        value equals(otherValue)
-      case _                        => false
+        value equals (otherValue)
+      case _ => false
     }
   }
+
+  override private[amf] def cloneElement(branch: Map[String, AmfObject]): AmfScalar = AmfScalar(value, annotations.copy())
 }

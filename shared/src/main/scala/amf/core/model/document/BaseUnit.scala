@@ -246,6 +246,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     case d: DeclaresModel => d.annotations.find(classOf[SourceVendor]).map(a => a.vendor)
     case _                => None
   }
+
+  def cloneUnit(): BaseUnit = cloneElement(Map.empty).asInstanceOf[BaseUnit]
 }
 
 object BaseUnit extends PlatformSecrets {

@@ -49,7 +49,7 @@ abstract class DataNode(annotations: Annotations) extends DomainElement {
 
   override val fields: Fields = Fields()
 
-  def cloneNode(): DataNode
+  def copyNode(): DataNode
 }
 
 object DataNodeOps {
@@ -164,7 +164,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations) exte
     )
   }
 
-  override def cloneNode(): ObjectNode = {
+  override def copyNode(): ObjectNode = {
 
     val cloned = new ObjectNode(fields.copy(), annotations.copy())
 
@@ -172,7 +172,7 @@ class ObjectNode(override val fields: Fields, val annotations: Annotations) exte
 
     propertyFields().flatMap(f => fields.entry(f)).foreach { entry =>
       val value = entry.value
-      cloned.set(entry.field, value.value.asInstanceOf[DataNode].cloneNode(), value.annotations)
+      cloned.set(entry.field, value.value.asInstanceOf[DataNode].copyNode(), value.annotations)
     }
 
     cloned
@@ -219,7 +219,7 @@ class ScalarNode(override val fields: Fields, val annotations: Annotations) exte
       reportError: String => Unit): DataNode = {
     VariableReplacer.replaceNodeVariables(this, values, reportError)
   }
-  override def cloneNode(): DataNode =
+  override def copyNode(): DataNode =
     new ScalarNode(fields.copy(), annotations.copy()).withId(id)
 
 }
@@ -319,13 +319,13 @@ class ArrayNode(override val fields: Fields, val annotations: Annotations) exten
 
   override def meta: Obj = ArrayNodeModel
 
-  override def cloneNode(): this.type = {
+  override def copyNode(): this.type = {
     val cloned =
       new ArrayNode(fields.copy().filter(e => e._1 != ArrayNodeModel.Member), annotations.copy()).withId(id)
 
     if (id != null) cloned.withId(id)
 
-    cloned.withMembers(members.map(_.cloneNode()))
+    cloned.withMembers(members.map(_.copyNode()))
 
     cloned.asInstanceOf[this.type]
   }
@@ -368,7 +368,7 @@ class LinkNode(override val fields: Fields, val annotations: Annotations) extend
 
   override def meta: Obj = LinkNodeModel
 
-  override def cloneNode(): LinkNode = {
+  override def copyNode(): LinkNode = {
     val cloned = new LinkNode(fields.copy(), annotations.copy()).withId(id)
 
     cloned.linkedDomainElement = linkedDomainElement

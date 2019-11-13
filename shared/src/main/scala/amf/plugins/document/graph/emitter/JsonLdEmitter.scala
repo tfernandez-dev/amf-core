@@ -36,19 +36,47 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
   val cache: mutable.Map[String, T] = mutable.Map[String, T]()
 
   def root(unit: BaseUnit): Unit = {
-    val entry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.Declares)
-    val elements: Iterable[AmfElement] = entry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-    ctx ++ elements
+    val declaresEntry: Option[FieldEntry]   = unit.fields.entry(ModuleModel.Declares)
+    val referencesEntry: Option[FieldEntry] = unit.fields.entry(ModuleModel.References)
+
+    extractDeclarationsAndReferencesToContext(declaresEntry, referencesEntry)
+
     unit.fields.removeField(ModuleModel.Declares)
+    unit.fields.removeField(ModuleModel.References)
 
     builder.list {
       _.obj { eb =>
         traverse(unit, eb)
+        emitReferences(eb, unit.id, SourceMap(unit.id, unit))
         emitDeclarations(eb, unit.id, SourceMap(unit.id, unit))
-        entry.foreach(e => unit.fields.setWithoutId(ModuleModel.Declares, e.array))
         ctx.emitContext(eb)
       }
     }
+
+    // Restore model previous version
+    declaresEntry.foreach(e => unit.fields.setWithoutId(ModuleModel.Declares, e.array))
+    referencesEntry.foreach(e => unit.fields.setWithoutId(ModuleModel.References, e.array))
+  }
+
+  private def extractDeclarationsAndReferencesToContext(declaresEntry: Option[FieldEntry], referencesEntry: Option[FieldEntry]) = {
+    val declaredElements: Iterable[AmfElement] = declaresEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
+    val referencedElements: Iterable[AmfElement] = referencesEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
+    ctx ++ declaredElements
+    ctx.addReferences(referencedElements)
+  }
+
+  private def emitReferences(b: Entry[T], id: String, sources: SourceMap): Unit = {
+    if (ctx.referenced.nonEmpty) {
+      val v   = Value(AmfArray(ctx.referenced), Annotations())
+      val f   = ModuleModel.References
+      val url = ctx.emitIri(f.value.iri())
+      ctx.emittingReferences(true)
+      b.entry(
+        url,
+        value(f.`type`, v, id, sources.property(url), _)
+      )
+    }
+    ctx.emittingReferences(false)
   }
 
   private def emitDeclarations(b: Entry[T], id: String, sources: SourceMap): Unit = {
@@ -264,7 +292,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
   private def shouldReconstructInheritance(v: AmfElement, parent: String) = {
     val valueIsDeclared  = ctx.isDeclared(v)
     val parentIsDeclared = ctx.isDeclared(parent)
-    !ctx.emittingDeclarations || (valueIsDeclared && parentIsDeclared)
+    (!ctx.emittingDeclarations && !ctx.emittingReferences) || (valueIsDeclared && parentIsDeclared)
   }
 
   private def isResolvedInheritance(v: AmfElement) = v.annotations.contains(classOf[ResolvedInheritance])

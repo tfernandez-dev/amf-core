@@ -51,10 +51,14 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
             * First queue non declaration elements. We do this because these elements can generate new declarations that we
             * need to know before emiting the Base Unit.
             */
-          val entry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.Declares)
-          val elements: Iterable[AmfElement] = entry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-          ctx ++ elements
+          val declarationsEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.Declares)
+          val referencesEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.References)
+          val declaredElements: Iterable[AmfElement] = declarationsEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
+          val referencedElements: Iterable[AmfElement] = referencesEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
+          ctx ++ declaredElements
+          ctx.addReferences(referencedElements)
           unit.fields.removeField(ModuleModel.Declares)
+          unit.fields.removeField(ModuleModel.References)
 
           queueBaseUnitElements(unit)
 
@@ -72,7 +76,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
           // Check added declarations
           while (pending.hasPendingEmissions) {
             val emission = pending.nextEmission()
-            ctx.emittingDeclarations = emission.isDeclaration
+            ctx.emittingDeclarations  = emission.isDeclaration
+            ctx.emittingReferences    = emission.isReference
             emission.fn(root)
           }
         }
@@ -93,6 +98,20 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       )
     }
     ctx.emittingDeclarations(false)
+  }
+
+  private def emitReferences(b: Entry[T], id: String, sources: SourceMap): Unit = {
+    if (ctx.referenced.nonEmpty) {
+      val v   = Value(AmfArray(ctx.referenced), Annotations())
+      val f   = ModuleModel.References
+      val url = ctx.emitIri(f.value.iri())
+      ctx.emittingReferences(true)
+      b.entry(
+        url,
+        value(f.`type`, v, id, sources.property(url), _)
+      )
+    }
+    ctx.emittingReferences(false)
   }
 
   def queueBaseUnitElements(unit: BaseUnit): Unit = {
@@ -117,6 +136,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
     root.obj { b =>
       createIdNode(b, id)
+      emitReferences(b, unit.id, SourceMap(unit.id, unit))
       emitDeclarations(b, unit.id, SourceMap(unit.id, unit))
 
       val sources = SourceMap(id, unit)
@@ -146,6 +166,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     }) with Metadata
     e.id = Some(id)
     e.isDeclaration = ctx.emittingDeclarations
+    e.isReference = ctx.emittingReferences
     e
   }
 
@@ -288,6 +309,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
         }) with Metadata
         e.id = Some(extension.extension.id)
         e.isDeclaration = ctx.emittingDeclarations
+        e.isReference = ctx.emittingReferences
         pending.tryEnqueue(e)
       }
     )
@@ -355,7 +377,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   private def shouldReconstructInheritance(v: AmfElement, parent: String) = {
     val valueIsDeclared  = ctx.isDeclared(v)
     val parentIsDeclared = ctx.isDeclared(parent)
-    !ctx.emittingDeclarations || (valueIsDeclared && parentIsDeclared)
+    (!ctx.emittingDeclarations && !ctx.emittingReferences) || (valueIsDeclared && parentIsDeclared)
   }
 
   private def isResolvedInheritance(v: AmfElement) = v.annotations.contains(classOf[ResolvedInheritance])
@@ -633,6 +655,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
               }) with Metadata
               e.id = Some(id)
               e.isDeclaration = ctx.emittingDeclarations
+              e.isReference = ctx.emittingReferences
               pending.tryEnqueue(e)
             }
           }
@@ -671,6 +694,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
               e.id = Some(id)
               e.isDeclaration = ctx.emittingDeclarations
+              e.isReference = ctx.emittingReferences
               pending.tryEnqueue(e)
             }
           }
@@ -723,6 +747,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
         }) with Metadata
         e.id = Some(id)
         e.isDeclaration = ctx.emittingDeclarations
+        e.isReference = ctx.emittingReferences
         pending.tryEnqueue(e)
     }
 

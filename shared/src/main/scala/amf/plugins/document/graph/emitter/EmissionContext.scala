@@ -13,10 +13,13 @@ import scala.collection.mutable
 class EmissionContext(val prefixes: mutable.Map[String, String],
                       var base: String,
                       val options: RenderOptions,
-                      var emittingDeclarations: Boolean = false) {
+                      var emittingDeclarations: Boolean = false,
+                      var emittingReferences: Boolean = false) {
   var counter: Int = 1
 
   private val declarations: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
+
+  private val references: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
 
   private val typeCount: IdCounter = new IdCounter()
 
@@ -24,6 +27,11 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def emittingDeclarations(d: Boolean): this.type = {
     emittingDeclarations = d
+    this
+  }
+
+  def emittingReferences(r: Boolean): this.type = {
+    emittingReferences = r
     this
   }
 
@@ -37,12 +45,19 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
     this
   }
 
+  def addReferences(elements: Iterable[AmfElement]): this.type = {
+    references ++= elements
+    this
+  }
+
   def isDeclared(e: AmfElement): Boolean = declarations.contains(e)
 
   def isDeclared(id: String): Boolean =
     declarations.collect({ case obj: AmfObject if obj.id.equals(id) => obj }).nonEmpty
 
   def declared: Seq[AmfElement] = declarations.toSeq
+
+  def referenced: Seq[AmfElement] = references.toSeq
 
   def shouldCompact: Boolean = options.isCompactUris
 

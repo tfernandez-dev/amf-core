@@ -11,6 +11,7 @@ class Emission[T](val fn: Part[T] => Unit)
 trait Metadata {
   var id: Option[String] = None
   var isDeclaration: Boolean = false
+  var isReference: Boolean = false
 }
 
 /**

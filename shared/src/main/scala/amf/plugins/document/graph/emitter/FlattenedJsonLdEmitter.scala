@@ -539,22 +539,28 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     if (!ctx.isDeclared(shape)) {
       ctx + shape
       shape.name.option() match {
-        case Some("schema") | Some("type") | None => shape.withName(ctx.nextTypeName).annotations += InlineElement()
+        case None =>
+          shape.withName("inline-type")
+          shape.annotations += InlineElement()
+        case Some("schema") | Some("type") =>
+          shape.annotations += InlineElement()
         case _ if !shape.annotations.contains(classOf[DeclaredElement]) =>
-          shape.withName(ctx.nextTypeName).annotations += InlineElement() // to catch media type named cases.
+          shape.annotations += InlineElement() // to catch media type named cases.
         case _ => // ignore
       }
     }
+    val linkLabel = shape.name.value()
     val linked = shape match {
       // if it is recursive we force the conversion into a linked shape
       case rec: RecursiveShape =>
+        val hash = s"${rec.id}$linkLabel".hashCode
         RecursiveShape()
-          .withId(rec.id + "/linked")
+          .withId(s"${rec.id}/link-$hash")
           .withLinkTarget(rec)
-          .withLinkLabel(shape.name.value())
+          .withLinkLabel(linkLabel)
       // no recursive we just generate the linked shape
       case _ =>
-        shape.link[Shape](shape.name.value())
+        shape.link[Shape](linkLabel)
     }
 
     link(b, linked, inArray)

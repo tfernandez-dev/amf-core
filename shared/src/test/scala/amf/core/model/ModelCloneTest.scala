@@ -34,6 +34,7 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
     val cloned = recursiveObj.cloneElement(Map.empty).asInstanceOf[ObjectNode]
 
     cloned.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].allProperties().head should be(cloned)
+    cloned.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id should be(recursiveObj.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id)
     succeed
   }
 }

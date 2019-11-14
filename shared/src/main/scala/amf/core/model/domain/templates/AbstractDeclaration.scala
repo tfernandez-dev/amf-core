@@ -5,7 +5,7 @@ import amf.core.metamodel.domain.templates.AbstractDeclarationModel._
 import amf.core.model.StrField
 import amf.core.model.domain.{DataNode, DomainElement, Linkable, NamedDomainElement}
 import amf.core.parser.{Annotations, Fields}
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 
 abstract class AbstractDeclaration(fields: Fields, annotations: Annotations)
     extends DomainElement

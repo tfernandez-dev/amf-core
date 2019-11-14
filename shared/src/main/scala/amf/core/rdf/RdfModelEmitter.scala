@@ -3,10 +3,10 @@ package amf.core.rdf
 import amf.core.annotations.{DomainExtensionAnnotation, ScalarType}
 import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Type.{Array, Bool, EncodedIri, Iri, LiteralUri, SortedArray, Str}
+import amf.core.metamodel._
 import amf.core.metamodel.document.SourceMapModel
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
 import amf.core.metamodel.domain.{DomainElementModel, LinkableElementModel, ShapeModel}
-import amf.core.metamodel._
 import amf.core.model.DataType
 import amf.core.model.document.{BaseUnit, SourceMap}
 import amf.core.model.domain.DataNodeOps.adoptTree
@@ -16,7 +16,6 @@ import amf.core.parser.{Annotations, FieldEntry, Value}
 import amf.core.traversal.ModelTraversalRegistry
 import amf.core.vocabulary.{Namespace, ValueType}
 import org.mulesoft.common.time.SimpleDateTime
-import amf.core.utils._
 
 import scala.collection.mutable.ListBuffer
 
@@ -198,13 +197,13 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
           emitFloatLiteral(subject, property, v.value.asInstanceOf[AmfScalar].toString)
         case Type.DateTime =>
           val dateTime = v.value.asInstanceOf[AmfScalar].value.asInstanceOf[SimpleDateTime]
-          typedScalar(subject, property, dateTime.rfc3339, DataType.DateTime)
+          typedScalar(subject, property, dateTime.toString, DataType.DateTime)
         case Type.Date =>
           val dateTime = v.value.asInstanceOf[AmfScalar].value.asInstanceOf[SimpleDateTime]
           if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
-            typedScalar(subject, property, dateTime.rfc3339, DataType.DateTime)
+            typedScalar(subject, property, dateTime.toString, DataType.DateTime)
           } else {
-            typedScalar(subject, property, dateTime.rfc3339, DataType.Date)
+            typedScalar(subject, property, dateTime.toString, DataType.Date)
           }
         case a: SortedArray =>
           createSortedArray(subject, property, v.value.asInstanceOf[AmfArray].values, a.element)

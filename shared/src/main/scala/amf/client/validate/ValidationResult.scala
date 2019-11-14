@@ -3,7 +3,7 @@ package amf.client.validate
 import amf.core.annotations.LexicalInformation
 import amf.core.parser.Range
 import amf.core.validation.{AMFValidationResult => InternalValidationResult}
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 import amf.client.convert.CoreClientConverters._

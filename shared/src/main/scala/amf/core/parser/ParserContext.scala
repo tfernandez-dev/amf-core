@@ -4,7 +4,7 @@ import amf.core.annotations.{LexicalInformation, SourceLocation => AmfSourceLoca
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AmfObject
 import amf.core.services.RuntimeValidator
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 import amf.core.validation.SeverityLevels.{VIOLATION, WARNING}
 import amf.core.validation.core.ValidationSpecification
 import amf.core.{AMFCompilerRunCount, annotations}

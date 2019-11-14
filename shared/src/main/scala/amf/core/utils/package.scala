@@ -6,8 +6,10 @@ import org.mulesoft.common.time.{SimpleDateTime, TimeOfDay}
 import org.mulesoft.lexer.InputRange
 
 import scala.annotation.tailrec
+import org.mulesoft.common.core._
 
-//noinspection ScalaFileName
+import scala.util.matching.Regex
+
 package object utils {
 
   implicit class MediaTypeMatcher(val content: String) extends AnyVal {
@@ -20,60 +22,15 @@ package object utils {
 
     def isXml: Boolean = content.trim.startsWith("<")
 
-    def isJson = content.trim.startsWith("{") || content.startsWith("[")
-  }
-
-//  implicit class UrlNormalizer(val rawUrl: String) extends AnyVal with PlatformSecrets{
-//
-////    def normalizePath: String = {
-////      val escaped = escapeFileSystemPath(rawUrl)
-////      if (escaped.contains("[") || escaped.contains("]")) // what else is incompatible
-////        escaped
-////      else new java.net.URI(escaped).normalize().toString
-////    }
-//
-////    protected def escapeFileSystemPath(rawUrl: String): String = rawUrl.replace(" ", "%20") // all encodeds replaced?
-//
-//  }
-
-  implicit class SimpleDateTimes(val sdt: SimpleDateTime) {
-    def rfc3339: String = {
-      sdt.timeOfDay match {
-        case Some(TimeOfDay(hour, minute, second, nanos)) =>
-          var result = f"${sdt.year}%04d-${sdt.month}%02d-${sdt.day}%02dT$hour%02d:$minute%02d:$second%02d"
-          if (nanos != 0) result += decimal(nanos)
-          sdt.zoneOffset match {
-            case Some(0)      => s"${result}Z"
-            case Some(i: Int) => f"$result+$i%02d"
-            case None         => result
-          }
-        case None =>
-          f"${sdt.year}%04d-${sdt.month}%02d-${sdt.day}%02d"
-      }
-    }
-
-    /** 50.000.000 -> .05 */
-    private def decimal(nano: Int) = f".$nano%09d".split("0*$").head
+    def isJson: Boolean = content.trim.startsWith("{") || content.startsWith("[")
   }
 
   /**
     * Common utility methods to deal with Strings.
     */
-  implicit class Strings(val str: String) extends PlatformSecrets {
-
-    /** If the String is not null returns the String, else returns "". */
-    def notNull: String = Option(str).getOrElse("")
-
-    /** Add quotes to string. */
-    def quote: String = {
-      if (isQuoted) str
-      else "\"" + str + "\"" // Should escape inner quotes if any...
-    }
+  implicit class AmfStrings(val str: String) extends PlatformSecrets {
 
     def validReferencePath: Boolean = str.split("\\.").length < 3
-
-    private def isQuoted =
-      Option(str).exists(s => (s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'")))
 
     /** Prepend correct protocol prefix, then encode */
     def normalizeUrl: String = {
@@ -89,7 +46,7 @@ package object utils {
     /** Url encoded string. */
     def urlComponentEncoded: String = platform.encodeURIComponent(str)
 
-    /** Url component dencoded string. */
+    /** Url component decoded string. */
     def urlComponentDecoded: String = {
       platform.safeDecodeURIComponent(str) match {
         case Right(decodedUrl) => decodedUrl
@@ -157,7 +114,7 @@ package object utils {
 
     def invalidMsg(uri: String): String = s"'$uri' is not a valid template uri."
 
-    val varPattern = "\\{(.[^{]*)\\}".r
+    val varPattern: Regex = "\\{(.[^{]*)\\}".r
     def variables(path: String): Seq[String] =
       varPattern.findAllIn(path).toSeq.map(v => v.replace("{", "").replace("}", ""))
   }

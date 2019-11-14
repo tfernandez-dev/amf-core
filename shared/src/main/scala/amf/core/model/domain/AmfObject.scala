@@ -1,6 +1,6 @@
 package amf.core.model.domain
 
-import amf.core.metamodel.{Field, Obj}
+import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.parser.{Annotations, Fields}
 
 /**
@@ -99,5 +99,21 @@ trait AmfObject extends AmfElement {
   def set(field: Field, value: AmfElement, annotations: Annotations): this.type = {
     fields.set(id, field, value, annotations)
     this
+  }
+
+  override private[amf] def cloneElement(branch:Map[String, AmfObject]): AmfObject = {
+    branch.get(id) match {
+      case Some(me) => me
+      case _ =>
+        val obj = newInstance()
+        fields.cloneFields(branch + (id -> obj)).into(obj.fields)
+        obj
+    }
+  }
+
+  private def newInstance(): AmfObject = {
+    meta match {
+      case creator:ModelDefaultBuilder => creator.modelInstance
+    }
   }
 }

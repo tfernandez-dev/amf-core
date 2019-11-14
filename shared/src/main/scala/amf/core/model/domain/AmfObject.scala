@@ -105,7 +105,7 @@ trait AmfObject extends AmfElement {
     branch.get(id) match {
       case Some(me) => me
       case _ =>
-        val obj = newInstance()
+        val obj = newInstance().withId(id)
         fields.cloneFields(branch + (id -> obj)).into(obj.fields)
         obj
     }

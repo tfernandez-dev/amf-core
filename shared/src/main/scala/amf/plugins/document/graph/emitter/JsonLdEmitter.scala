@@ -13,7 +13,6 @@ import amf.core.model.domain.DataNodeOps.adoptTree
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.DomainExtension
 import amf.core.parser.{Annotations, FieldEntry, Value}
-import amf.core.utils._
 import amf.core.vocabulary.{Namespace, ValueType}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.builder.DocBuilder
@@ -301,7 +300,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         sources(v)
       case Type.DateTime =>
         val dateTime = v.value.asInstanceOf[AmfScalar].value.asInstanceOf[SimpleDateTime]
-        typedScalar(b, emitDateFormat(dateTime), DataType.DateTime)
+        typedScalar(b, dateTime.toString, DataType.DateTime)
         sources(v)
       case Type.Date =>
         val maybeDateTime = v.value.asInstanceOf[AmfScalar].value match {
@@ -310,12 +309,10 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         }
         maybeDateTime match {
           case Some(dateTime) =>
-            if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
-              typedScalar(b, emitDateFormat(dateTime), DataType.DateTime)
-            } else {
-              typedScalar(b, f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d", DataType.Date)
-
-            }
+            typedScalar(
+              b,
+              dateTime.toString,
+              if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) DataType.DateTime else DataType.Date)
           case _ =>
             listWithScalar(b, v.value)
         }
@@ -366,7 +363,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
                 .asInstanceOf[Seq[AmfScalar]]
                 .foreach { e =>
                   val dateTime = e.value.asInstanceOf[SimpleDateTime]
-                  typedScalar(b, emitDateFormat(dateTime), DataType.DateTime)
+                  typedScalar(b, dateTime.toString, DataType.DateTime)
                 }
             case Type.Date =>
               seq.values
@@ -404,11 +401,9 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
   }
 
   private def emitSimpleDateTime(b: Part[T], dateTime: SimpleDateTime, inArray: Boolean = true): Unit = {
-    if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
-      typedScalar(b, emitDateFormat(dateTime), DataType.DateTime, inArray)
-    } else {
-      typedScalar(b, f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d", DataType.Date)
-    }
+    if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined)
+      typedScalar(b, dateTime.toString, DataType.DateTime, inArray)
+    else typedScalar(b, dateTime.toString, DataType.Date)
   }
 
   private def obj(b: Part[T], element: AmfObject, inArray: Boolean = false): Unit = {
@@ -601,8 +596,6 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
           b.entry(ctx.emitIri(SourceMapModel.Value.value.iri()), listWithScalar(_, v))
         }
     }
-
-  private def emitDateFormat(dateTime: SimpleDateTime) = dateTime.rfc3339
 
   private def scalar(b: Part[T], content: String, t: SType): Unit = b.obj(_.entry("@value", Scalar(t, content)))
 

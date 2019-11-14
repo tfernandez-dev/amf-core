@@ -7,7 +7,7 @@ import amf.core.model.StrField
 import amf.core.model.domain.{DataNode, DomainElement}
 import amf.core.parser.{Annotations, Fields}
 import org.yaml.model.YPart
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 
 case class VariableValue(fields: Fields, annotations: Annotations) extends DomainElement {

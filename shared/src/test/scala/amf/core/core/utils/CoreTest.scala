@@ -3,25 +3,10 @@ package amf.core.core.utils
 import amf.core.utils._
 import org.scalatest.FunSuite
 import org.scalatest.Matchers._
-
 /**
   * [[amf.core.utils]] test
   */
 class CoreTest extends FunSuite {
-
-  test("Null String") {
-    val stringNotNull = "test"
-    stringNotNull.notNull should be(stringNotNull)
-    val stringNull: String = null
-    stringNull.notNull should be("")
-  }
-
-  test("Quote String") {
-    val testString       = "test"
-    val quotedTestString = testString.quote
-    quotedTestString should be("\"" + testString + "\"")
-    quotedTestString.quote should be(quotedTestString)
-  }
 
   test("Escape special chars") {
     val testStringNewline = "test\ntest"

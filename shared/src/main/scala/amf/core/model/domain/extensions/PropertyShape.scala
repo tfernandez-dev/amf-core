@@ -7,7 +7,7 @@ import amf.core.model.domain.{DomainElement, Linkable, Shape}
 import amf.core.model.{BoolField, IntField, StrField}
 import amf.core.parser.{Annotations, ErrorHandler, Fields}
 import amf.core.traversal.ModelTraversalRegistry
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 
 /**
   * Property shape

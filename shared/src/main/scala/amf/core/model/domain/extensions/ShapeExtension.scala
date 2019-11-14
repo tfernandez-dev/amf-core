@@ -5,7 +5,7 @@ import amf.core.model.domain.{DataNode, DomainElement, Shape}
 import amf.core.metamodel.domain.extensions.ShapeExtensionModel._
 import amf.core.parser.{Annotations, Fields}
 import org.yaml.model.YPart
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 
 case class ShapeExtension(fields: Fields, annotations: Annotations) extends Extension {
 

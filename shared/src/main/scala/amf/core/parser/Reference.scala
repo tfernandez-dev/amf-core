@@ -11,7 +11,7 @@ import amf.core.services.RuntimeCompiler
 import amf.core.unsafe.PlatformSecrets
 import amf.internal.environment.Environment
 import org.yaml.model.YNode
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 import amf.core.vocabulary.Namespace
 import amf.plugins.features.validation.CoreValidations.{ExpectedModule, InvalidInclude}
 

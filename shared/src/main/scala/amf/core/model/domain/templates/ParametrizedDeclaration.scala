@@ -4,7 +4,7 @@ import amf.core.metamodel.Field
 import amf.core.metamodel.domain.templates.ParametrizedDeclarationModel._
 import amf.core.model.domain.NamedDomainElement
 import amf.core.parser.{Annotations, Fields}
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 
 abstract class ParametrizedDeclaration(fields: Fields, annotations: Annotations) extends NamedDomainElement {
 

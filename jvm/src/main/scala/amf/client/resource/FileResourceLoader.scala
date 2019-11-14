@@ -9,7 +9,7 @@ import amf.core.remote.FileNotFound
 import amf.core.remote.FutureConverter._
 import amf.core.remote.FileMediaType._
 import scala.concurrent.ExecutionContext.Implicits.global
-import amf.core.utils.Strings
+import amf.core.utils.AmfStrings
 import scala.concurrent.Future
 
 case class FileResourceLoader() extends BaseFileResourceLoader {

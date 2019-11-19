@@ -247,7 +247,12 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     case _                => None
   }
 
-  def cloneUnit(): BaseUnit = cloneElement(Map.empty).asInstanceOf[BaseUnit]
+  def cloneUnit(): BaseUnit = {
+    val cloned = cloneElement(Map.empty).asInstanceOf[BaseUnit]
+    cloned.parserRun = parserRun
+    cloned.raw = raw
+    cloned
+  }
 }
 
 object BaseUnit extends PlatformSecrets {

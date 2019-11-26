@@ -13,17 +13,23 @@ import scala.collection.mutable
 class EmissionContext(val prefixes: mutable.Map[String, String],
                       var base: String,
                       val options: RenderOptions,
-                      var declares: Boolean = false) {
+                      var emittingDeclarations: Boolean = false,
+                      var emittingReferences: Boolean = false) {
   var counter: Int = 1
 
   private val declarations: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
 
+  private val references: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
+
   private val typeCount: IdCounter = new IdCounter()
 
-  def nextTypeName: String = typeCount.genId("amf_inline_type")
+  def emittingDeclarations(d: Boolean): this.type = {
+    emittingDeclarations = d
+    this
+  }
 
-  def declares(d: Boolean): this.type = {
-    declares = d
+  def emittingReferences(r: Boolean): this.type = {
+    emittingReferences = r
     this
   }
 
@@ -37,12 +43,19 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
     this
   }
 
+  def addReferences(elements: Iterable[AmfElement]): this.type = {
+    references ++= elements
+    this
+  }
+
   def isDeclared(e: AmfElement): Boolean = declarations.contains(e)
 
   def isDeclared(id: String): Boolean =
     declarations.collect({ case obj: AmfObject if obj.id.equals(id) => obj }).nonEmpty
 
   def declared: Seq[AmfElement] = declarations.toSeq
+
+  def referenced: Seq[AmfElement] = references.toSeq
 
   def shouldCompact: Boolean = options.isCompactUris
 
@@ -96,4 +109,24 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 object EmissionContext {
   def apply(unit: BaseUnit, options: RenderOptions) =
     new EmissionContext(mutable.Map(), unit.id, options)
+}
+
+class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
+                               base: String,
+                               options: RenderOptions,
+                               emittingDeclarations: Boolean = false)
+    extends EmissionContext(prefixes, base, options, emittingDeclarations) {
+
+  override def emitId(uri: String): String = {
+    if (shouldCompact) {
+      if (uri == base) "./"
+      else uri.replace(base, "")
+    } else {
+      uri
+    }
+  }
+}
+
+object FlattenedEmissionContext {
+  def apply(unit: BaseUnit, options: RenderOptions) = new FlattenedEmissionContext(mutable.Map(), unit.id, options)
 }

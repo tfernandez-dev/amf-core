@@ -36,8 +36,9 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
 
   def link[T](label: String, annotations: Annotations = Annotations()): T = {
     val copied = linkCopy()
+    val hash = s"${copied.id}$label".hashCode
     copied
-      .withId(linkCounter.genId(copied.id + "/linked"))
+      .withId(s"${copied.id}/link-$hash")
       .withLinkTarget(this)
       .withLinkLabel(label)
       .add(annotations)

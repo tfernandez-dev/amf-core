@@ -1,6 +1,8 @@
 package amf.core.model
+import amf.core.annotations.{LexicalInformation, SourceVendor}
 import amf.core.model.document.Document
 import amf.core.model.domain.{ArrayNode, ObjectNode, ScalarNode}
+import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
 import org.scalatest.{FunSuite, Matchers}
 
@@ -37,4 +39,12 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
     cloned.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id should be(recursiveObj.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id)
     succeed
   }
+
+  test("Test annotations at object"){
+    objectNode.annotations += SourceVendor(Raml10)
+    val cloned = objectNode.cloneElement(Map.empty).asInstanceOf[ObjectNode]
+
+    cloned.annotations.contains(classOf[SourceVendor]) should be(true)
+  }
+
 }

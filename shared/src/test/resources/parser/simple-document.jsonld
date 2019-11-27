@@ -1,67 +1,64 @@
-[
-  {
-    "@id": "amf://id1",
-    "@type": [
-      "http://a.ml/vocabularies/document#Document",
-      "http://a.ml/vocabularies/document#Fragment",
-      "http://a.ml/vocabularies/document#Module",
-      "http://a.ml/vocabularies/document#Unit"
-    ],
-    "http://a.ml/vocabularies/document#encodes": [
-      {
-        "@id": "amf://id2",
-        "@type": [
-          "http://a.ml/vocabularies/data#Scalar",
-          "http://a.ml/vocabularies/data#Node",
-          "http://a.ml/vocabularies/document#DomainElement"
-        ],
-        "http://a.ml/vocabularies/data#value": [
-          {
-            "@value": "myValue"
-          }
-        ],
-        "http://www.w3.org/ns/shacl#datatype": [
-          {
-            "@id": "http://www.w3.org/2001/XMLSchema#String"
-          }
-        ]
-      }
-    ],
-    "http://a.ml/vocabularies/document#version": [
-      {
-        "@value": "2.0.0"
-      }
-    ],
-    "http://a.ml/vocabularies/document#declares": [
-      {
-        "@id": "amf://id3",
-        "@type": [
-          "http://a.ml/vocabularies/data#Array",
-          "http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq",
-          "http://a.ml/vocabularies/data#Node",
-          "http://a.ml/vocabularies/document#DomainElement"
-        ],
-        "http://www.w3.org/2000/01/rdf-schema#member": [
-          {
-            "@id": "amf://id4",
-            "@type": [
-              "http://a.ml/vocabularies/data#Scalar",
-              "http://a.ml/vocabularies/data#Node",
-              "http://a.ml/vocabularies/document#DomainElement"
-            ],
-            "http://a.ml/vocabularies/data#value": [
-              {
-                "@value": "myValue2"
-              }
-            ],
-            "http://www.w3.org/ns/shacl#datatype": [
-              {
-                "@id": "http://www.w3.org/2001/XMLSchema#String"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]
+{
+  "@graph": [
+    {
+      "@id": "amf://id2",
+      "@type": [
+        "http://a.ml/vocabularies/data#Scalar",
+        "http://a.ml/vocabularies/data#Node",
+        "http://a.ml/vocabularies/document#DomainElement"
+      ],
+      "http://a.ml/vocabularies/data#value": "myValue",
+      "http://www.w3.org/ns/shacl#datatype": [
+        {
+          "@id": "http://www.w3.org/2001/XMLSchema#String"
+        }
+      ]
+    },
+    {
+      "@id": "amf://id1",
+      "http://a.ml/vocabularies/document#declares": [
+        {
+          "@id": "amf://id3"
+        }
+      ],
+      "@type": [
+        "http://a.ml/vocabularies/document#Document",
+        "http://a.ml/vocabularies/document#Fragment",
+        "http://a.ml/vocabularies/document#Module",
+        "http://a.ml/vocabularies/document#Unit"
+      ],
+      "http://a.ml/vocabularies/document#encodes": {
+        "@id": "amf://id2"
+      },
+      "http://a.ml/vocabularies/document#version": "2.0.0"
+    },
+    {
+      "@id": "amf://id3",
+      "@type": [
+        "http://a.ml/vocabularies/data#Array",
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq",
+        "http://a.ml/vocabularies/data#Node",
+        "http://a.ml/vocabularies/document#DomainElement"
+      ],
+      "http://www.w3.org/2000/01/rdf-schema#member": [
+        {
+          "@id": "amf://id4"
+        }
+      ]
+    },
+    {
+      "@id": "amf://id4",
+      "@type": [
+        "http://a.ml/vocabularies/data#Scalar",
+        "http://a.ml/vocabularies/data#Node",
+        "http://a.ml/vocabularies/document#DomainElement"
+      ],
+      "http://a.ml/vocabularies/data#value": "myValue2",
+      "http://www.w3.org/ns/shacl#datatype": [
+        {
+          "@id": "http://www.w3.org/2001/XMLSchema#String"
+        }
+      ]
+    }
+  ]
+}

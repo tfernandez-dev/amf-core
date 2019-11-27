@@ -6,6 +6,8 @@ import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
 import org.scalatest.{FunSuite, Matchers}
 
+import scala.collection.mutable
+
 class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
 
   test("Test clone encoded at Document"){
@@ -17,7 +19,7 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
   }
 
   test("Test clone object node"){
-    val cloned: ObjectNode = objectNode.cloneElement(Map.empty).asInstanceOf[ObjectNode]
+    val cloned: ObjectNode = objectNode.cloneElement(mutable.Map.empty).asInstanceOf[ObjectNode]
 
     cloned.addProperty("newProp",ScalarNode("newValue",Some(DataType.String)))
 
@@ -33,7 +35,7 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
 
 
   test("Test clone recursive object"){
-    val cloned = recursiveObj.cloneElement(Map.empty).asInstanceOf[ObjectNode]
+    val cloned = recursiveObj.cloneElement(mutable.Map.empty).asInstanceOf[ObjectNode]
 
     cloned.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].allProperties().head should be(cloned)
     cloned.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id should be(recursiveObj.allProperties().head.asInstanceOf[ArrayNode].members.head.asInstanceOf[ObjectNode].id)
@@ -42,7 +44,7 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
 
   test("Test annotations at object"){
     objectNode.annotations += SourceVendor(Raml10)
-    val cloned = objectNode.cloneElement(Map.empty).asInstanceOf[ObjectNode]
+    val cloned = objectNode.cloneElement(mutable.Map.empty).asInstanceOf[ObjectNode]
 
     cloned.annotations.contains(classOf[SourceVendor]) should be(true)
   }

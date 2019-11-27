@@ -2,6 +2,8 @@ package amf.core.model.domain
 
 import amf.core.parser.Annotations
 
+import scala.collection.mutable
+
 /**
   * Amf Scalar
   */
@@ -45,5 +47,5 @@ case class AmfScalar(value: Any, annotations: Annotations = new Annotations()) e
     }
   }
 
-  override private[amf] def cloneElement(branch: Map[String, AmfObject]): AmfScalar = AmfScalar(value, annotations.copy())
+  override private[amf] def cloneElement(branch: mutable.Map[String, AmfObject]): AmfScalar = AmfScalar(value, annotations.copy())
 }

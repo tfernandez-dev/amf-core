@@ -3,6 +3,8 @@ package amf.core.model.domain
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.parser.{Annotations, Fields}
 
+import scala.collection.mutable
+
 /**
   * Created by pedro.colunga on 8/15/17.
   */
@@ -101,13 +103,14 @@ trait AmfObject extends AmfElement {
     this
   }
 
-  override private[amf] def cloneElement(branch:Map[String, AmfObject]): AmfObject = {
+  override private[amf] def cloneElement(branch: mutable.Map[String, AmfObject]): AmfObject = {
     branch.get(id) match {
       case Some(me) => me
       case _ =>
         val obj = newInstance().withId(id)
         obj.annotations ++= annotations
-        fields.cloneFields(branch + (id -> obj)).into(obj.fields)
+        branch.put(id ,obj)
+        fields.cloneFields(branch).into(obj.fields)
         obj
     }
   }

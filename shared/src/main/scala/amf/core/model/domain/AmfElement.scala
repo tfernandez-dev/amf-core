@@ -3,6 +3,8 @@ package amf.core.model.domain
 import amf.core.annotations.{LexicalInformation, LocalElement, SourceLocation, TrackedElement}
 import amf.core.parser.Annotations
 
+import scala.collection.mutable
+
 /**
   * Amf element including DomainElements and BaseUnits
   */
@@ -35,7 +37,7 @@ trait AmfElement {
   def isTrackedBy(trackId: String): Boolean =
     annotations.collect { case t: TrackedElement if t.parents.contains(trackId) => t }.nonEmpty
 
-  private[amf] def cloneElement(branch:Map[String, AmfObject]): AmfElement
+  private[amf] def cloneElement(branch: mutable.Map[String, AmfObject]): AmfElement
 }
 
 

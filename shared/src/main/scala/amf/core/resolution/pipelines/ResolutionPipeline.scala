@@ -58,4 +58,5 @@ object ResolutionPipeline {
   val DEFAULT_PIPELINE       = "default"
   val EDITING_PIPELINE       = "editing"
   val COMPATIBILITY_PIPELINE = "compatibility"
+  val CACHE_PIPELINE         = "cache"
 }

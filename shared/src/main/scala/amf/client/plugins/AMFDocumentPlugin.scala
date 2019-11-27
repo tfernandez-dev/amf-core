@@ -63,6 +63,7 @@ abstract class AMFDocumentPlugin extends AMFPlugin {
     */
   def parse(document: Root, ctx: ParserContext, platform: Platform, options: ParsingOptions): Option[BaseUnit]
 
+
   /**
     * Emit an Output for a given base unit
     * The type of Output is Managed by the DocBuilder

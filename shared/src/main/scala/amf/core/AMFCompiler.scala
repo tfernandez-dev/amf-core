@@ -5,6 +5,7 @@ import java.net.URISyntaxException
 import amf.client.plugins.AMFDocumentPlugin
 import amf.client.remote.Content
 import amf.core
+import amf.core.annotations.ReferenceTargets
 import amf.core.benchmark.ExecutionLog
 import amf.core.client.ParsingOptions
 import amf.core.exception.{CyclicReferenceException, UnsupportedMediaTypeException, UnsupportedVendorException}
@@ -14,6 +15,7 @@ import amf.core.parser.{
   ParsedDocument,
   ParsedReference,
   ParserContext,
+  Range,
   RefContainer,
   ReferenceKind,
   ReferenceResolutionResult,
@@ -39,6 +41,7 @@ import scala.concurrent.Future.failed
 
 object AMFCompilerRunCount {
   var count = 0
+
   def nextRun(): Int = synchronized {
     count += 1
     count
@@ -199,7 +202,7 @@ class AMFCompiler(val rawUrl: String,
           val newCtx = ctx.copyWithSonsReferences()
           domainPlugin.parse(documentWithReferences, newCtx, remote, parsingOptions) match {
             case Some(baseUnit) =>
-              baseUnit.withRaw(document.raw)
+              baseUnit.withRaw(document.raw).tagReferences(documentWithReferences)
             case None =>
               ExternalFragment()
                 .withId(document.location)
@@ -299,6 +302,20 @@ class AMFCompiler(val rawUrl: String,
     case Left(content) =>
       throw new Exception(s"Cannot parse document with mime type ${content.mime.getOrElse("none")}")
   }
+
+  implicit private class TaggedReferences[B <: BaseUnit](bu: B) {
+    def tagReferences(root: Root): B = {
+      root.references.foreach { reference =>
+        reference.origin.refs.foreach { origins =>
+          bu.add(
+            ReferenceTargets(reference.unit.location().getOrElse(reference.unit.id),
+                             Range(origins.node.location.inputRange)))
+        }
+      }
+      bu
+    }
+  }
+
 }
 
 object AMFCompiler {
@@ -336,6 +353,7 @@ case class Root(parsed: ParsedDocument,
                 references: Seq[ParsedReference],
                 referenceKind: ReferenceKind,
                 raw: String) {}
+
 object Root {
   def apply(parsed: ParsedDocument,
             location: String,

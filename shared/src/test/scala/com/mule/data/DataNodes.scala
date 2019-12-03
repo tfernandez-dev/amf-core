@@ -27,6 +27,7 @@ object DataNodes {
   val document: Document = Document()
     .withId("amf://document")
     .withLocation("http://document")
+    .withRoot(true)
     .withEncodes(person)
 
   val recursive: ObjectNode = ObjectNode()
@@ -40,6 +41,7 @@ object DataNodes {
   val fragment: Fragment = ExternalFragment()
     .withId("amf://fragment")
     .withLocation("http://fragment")
+    .withRoot(false)
     .withEncodes(recursive)
 
   val complex: Document = Document()

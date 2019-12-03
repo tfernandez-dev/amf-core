@@ -20,7 +20,7 @@ import org.yaml.model._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.{Failure, Success, Try}
+import scala.language.implicitConversions
 
 class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
     extends GraphParser
@@ -38,44 +38,26 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
     private val unresolvedExtReferencesMap =
       mutable.Map[String, ExternalSourceElement]()
 
-    private val referencesMap = mutable.Map[String, DomainElement]()
-    private val cache = mutable.Map[String, AmfObject]()
+    private val referencesMap                           = mutable.Map[String, DomainElement]()
+    private val cache                                   = mutable.Map[String, AmfObject]()
+    private val graphMap: mutable.HashMap[String, YMap] = mutable.HashMap.empty
 
     def parse(document: YDocument, location: String): BaseUnit = {
-      var result: Option[AmfObject] = None
       document.node.value match {
         case documentMap: YMap =>
           documentMap.key("@context").foreach(e => parseCompactUris(e.value))
-          documentMap.key("@graph").foreach { graphEntry =>
-            graphEntry.value.to[YSequence] match {
-              case Right(rootNodes) =>
-                val rootGraphNodeIterator = rootNodes.nodes.reverseIterator
-                while (rootGraphNodeIterator.hasNext){
-                  val map = rootGraphNodeIterator.next().as[YMap]
-                  val maybeObject = parse(map)
-                  val rawIdOption = retrieveId(map, ctx).map(transformIdFromContext)
-                  (rawIdOption, maybeObject) match {
-                    case _ @ (Some(id), Some(amfObject)) =>
-                      cache.put(id, amfObject)
-                      result = Some(amfObject)
-                    case _ =>
-                      val location = s"${map.location.sourceName}:${map.location.lineFrom}.${map.location.columnFrom}"
-                      ctx.violation(UnableToParseDocument, "", s"Cannot parse graph node at $location")
-                  }
-
-                }
-              case _ =>
-                ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
-            }
+          documentMap.key("@graph").flatMap { e =>
+            parseGraph(e.value)
+          } match {
+            case Some(b: BaseUnit) =>
+              b.withLocation(location)
+            case _ =>
+              ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
+              Document() // TODO returning empty document on failure
           }
         case _ =>
           ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
-      }
-      result match {
-        case _ @ Some(b: BaseUnit) => b.withLocation(location)
-        case _ =>
-          ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
-          Document() // TODO returning empty document on failure
+          Document()
       }
     }
 
@@ -86,6 +68,50 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
           ctx.compactUris ++= m.entries.flatMap(parseKeyValue).toMap
           ctx.baseId = ctx.compactUris.find { case (key, value) => key == "@base" }.map { case (_, value) => value }
         case _ =>
+      }
+    }
+
+    private def parseGraph(graph: YNode): Option[BaseUnit] = {
+      populateGraphMap(graph.as[YSequence])
+      getRootNodeFromGraphMap match {
+        case Some(rootNode) =>
+          parse(rootNode) match {
+            case Some(b: BaseUnit) =>
+              Some(b)
+            case Some(_) =>
+              ctx.violation(UnableToParseDocument, "", "Root node is not a Base Unit")
+              None
+            case _ =>
+              ctx.violation(UnableToParseDocument, "", "Unable to parse root node")
+              None
+          }
+
+        case None =>
+          ctx.violation(UnableToParseDocument, "", "Cannot find root node for flattened JSON-LD")
+          None
+      }
+    }
+
+    private def populateGraphMap(graphNodes: YSequence): Unit = {
+      def toMapEntry(node: YNode): Option[(String, YMap)] = {
+        val map = node.as[YMap] // All nodes at root level should be objects
+        retrieveId(map, ctx) match {
+          case Some(id) => Some((id, map))
+          case _        => None
+        }
+      }
+      graphNodes.nodes.flatMap { toMapEntry }.foreach {
+        case (id, map) => graphMap(id) = map
+      }
+    }
+
+    private def getRootNodeFromGraphMap: Option[YMap] = {
+      graphMap.values.find {
+        node =>
+          node.entries.find {
+            entry =>
+              expandUriFromContext(entry.key.as[String]) == BaseUnitModel.Root.toString()
+          }.exists(entry => entry.value.as[Boolean])
       }
     }
 
@@ -127,10 +153,23 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
 
     private def parse(map: YMap): Option[AmfObject] = { // todo fix uses
       if (isJsonLdLink(map)) {
-        retrieveId(map, ctx)
-          .map(transformIdFromContext)
-          .flatMap(cache.get)
-      } else {
+        retrieveId(map, ctx).flatMap { id =>
+          cache.get(id) match {
+            case Some(parsed) => Some(parsed)
+            case None         =>
+              // Cache miss
+              graphMap.get(id) match {
+                case Some(raw) => parse(raw)
+                case None =>
+                  ctx.violation(UnableToParseDocument, "", s"Cannot find node with $id")
+                  None
+              }
+
+          }
+        }
+
+      }
+      else {
         retrieveId(map, ctx)
           .flatMap(value => retrieveType(value, map).map(value2 => (value, value2)))
           .flatMap {
@@ -148,8 +187,8 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
                   val modelFields = model match {
                     case shapeModel: ShapeModel =>
                       shapeModel.fields ++ Seq(
-                        ShapeModel.CustomShapePropertyDefinitions,
-                        ShapeModel.CustomShapeProperties
+                          ShapeModel.CustomShapePropertyDefinitions,
+                          ShapeModel.CustomShapeProperties
                       )
                     case _ => model.fields
                   }
@@ -318,7 +357,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
       }
     }
 
-    private def isJsonLdLink(m: YMap): Boolean =  m.entries.size == 1 && m.key("@id").isDefined
+    private def isJsonLdLink(m: YMap): Boolean = m.entries.size == 1 && m.key("@id").isDefined
 
     private def traverse(instance: AmfObject, f: Field, node: YNode, sources: SourceMap, key: String) = {
       f.`type` match {

@@ -16,7 +16,8 @@
       "doc:encodes": {
         "@id": "amf://id2"
       },
-      "doc:version": "1.0.0"
+      "doc:version": "1.0.0",
+      "doc:root": true
     },
     {
       "@id": "amf://id3",

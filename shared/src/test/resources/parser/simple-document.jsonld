@@ -30,7 +30,8 @@
       "http://a.ml/vocabularies/document#encodes": {
         "@id": "amf://id2"
       },
-      "http://a.ml/vocabularies/document#version": "2.0.0"
+      "http://a.ml/vocabularies/document#version": "2.0.0",
+      "http://a.ml/vocabularies/document#root": true
     },
     {
       "@id": "amf://id3",

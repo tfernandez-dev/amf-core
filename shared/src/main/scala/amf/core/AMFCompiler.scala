@@ -202,7 +202,12 @@ class AMFCompiler(val rawUrl: String,
           val newCtx = ctx.copyWithSonsReferences()
           domainPlugin.parse(documentWithReferences, newCtx, remote, parsingOptions) match {
             case Some(baseUnit) =>
-              baseUnit.withRaw(document.raw).tagReferences(documentWithReferences)
+              if (document.location == context.root)
+                baseUnit.withRoot(true)
+              baseUnit
+                .withRaw(document.raw)
+                .tagReferences(documentWithReferences)
+
             case None =>
               ExternalFragment()
                 .withId(document.location)

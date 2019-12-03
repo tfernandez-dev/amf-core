@@ -1,6 +1,6 @@
 package amf.core.metamodel.document
 
-import amf.core.metamodel.Type.{Array, Iri, Str}
+import amf.core.metamodel.Type.{Array, Bool, Iri, Str}
 import amf.core.metamodel.domain.{ModelDoc, ModelVocabularies}
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.vocabulary.Namespace.Document
@@ -13,6 +13,9 @@ import amf.core.vocabulary.{Namespace, ValueType}
   * Base Units encode the domain elements and can reference other units to re-use descriptions.
   */
 trait BaseUnitModel extends Obj with ModelDefaultBuilder {
+
+  val Root = Field(Bool, Document + "root",
+    ModelDoc(ModelVocabularies.AmlDoc, "root", "Indicates if the base unit represents the root of the document model obtained from parsing"))
 
   val Location = Field(
     Str,
@@ -41,6 +44,7 @@ trait BaseUnitModel extends Obj with ModelDefaultBuilder {
     true
   )
 
+  // TODO: This is specific to web api, we should remove this from here
   val ModelVersion =
     Field(Str, Document + "version", ModelDoc(ModelVocabularies.AmlDoc, "version", "Version of the current model"))
 
@@ -50,7 +54,7 @@ object BaseUnitModel extends BaseUnitModel {
 
   override val `type`: List[ValueType] = List(Document + "Unit")
 
-  override val fields: List[Field] = List(ModelVersion, References, Usage, DescribedBy)
+  override val fields: List[Field] = List(ModelVersion, References, Usage, DescribedBy, Root)
 
   override def modelInstance = throw new Exception("BaseUnit is an abstract class")
 

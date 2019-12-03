@@ -34,7 +34,7 @@ trait ElementsFixture{
   protected val arrayNode: ArrayNode = ArrayNode().withId("amf://id3")
   arrayNode.addMember(scalarNode2)
   protected val objectNode: ObjectNode = ObjectNode().withId("amf://id2").addProperty("myProp1",arrayNode)
-  protected val document: Document = Document().withId("amf://id1").withLocation("http://local.com").withEncodes(scalarNode).withDeclares(Seq(arrayNode))
+  protected val document: Document = Document().withId("amf://id1").withLocation("http://local.com").withEncodes(scalarNode).withDeclares(Seq(arrayNode)).withRoot(true)
 
   protected val recursiveObjlvl2: ObjectNode = ObjectNode().withId("amf://id7")
   protected val arrayRecursive: ArrayNode = ArrayNode().withId("amf://id6").setArrayWithoutId(ArrayNodeModel.Member,Seq(recursiveObjlvl2))

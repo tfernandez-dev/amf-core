@@ -125,6 +125,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
             val amfArray = value.value.asInstanceOf[AmfArray]
             amfArray.values.foreach {
               case amfObject: AmfObject => pending.tryEnqueue(amfObject)
+              case _ => //Ignore
             }
           case _ => // Ignore
         }

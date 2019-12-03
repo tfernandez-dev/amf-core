@@ -3,11 +3,11 @@ package amf.core.model.document
 import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
 import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
-import amf.core.metamodel.document.BaseUnitModel.{Location, Usage, ModelVersion}
+import amf.core.metamodel.document.BaseUnitModel.{Location, ModelVersion, Root, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
 import amf.core.metamodel.{MetaModelTypeMapping, Obj}
-import amf.core.model.StrField
+import amf.core.model.{BoolField, StrField}
 import amf.core.model.document.FieldsFilter.Local
 import amf.core.model.domain._
 import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, FieldEntry, ParserContext, Value}
@@ -23,6 +23,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   // Set the current model version
   withModelVersion("2.0.0")
+
+  // Set the default parsingRoot
+  withRoot(false)
 
   // We store the parser run here to be able to find runtime validations for this model
   var parserRun: Option[Int] = None
@@ -45,6 +48,9 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   /** Returns the usage. */
   def usage: StrField = fields.field(Usage)
 
+  /** Returns true if the base unit is the root of the document model obtained from parsing **/
+  def root: BoolField = fields.field(Root)
+
   /** Returns the version. */
   def modelVersion: StrField = fields.field(ModelVersion)
 
@@ -61,6 +67,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   def withUsage(usage: String): this.type = set(Usage, usage)
 
   private def withModelVersion(version: String): this.type = set(ModelVersion, version)
+
+  def withRoot(value: Boolean): this.type = set(Root, value)
 
   def addReference(newRef: BaseUnit): Unit = synchronized(withReferences(references :+ newRef))
 

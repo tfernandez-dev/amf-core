@@ -10,12 +10,12 @@ trait IteratorTest extends FunSuite with Matchers {
 
   test("Complete iterator (simple document)") {
     val it = AmfElementStrategy.iterator(List(DataNodes.document))
-    it.size should be(15)
+    it.size should be(16)
   }
 
   test("Complete iterator (recursive fragment)") {
     val it = AmfElementStrategy.iterator(List(DataNodes.fragment))
-    it.size should be(10)
+    it.size should be(11)
   }
 
   test("Domain element iterator (recursive fragment) collect") {

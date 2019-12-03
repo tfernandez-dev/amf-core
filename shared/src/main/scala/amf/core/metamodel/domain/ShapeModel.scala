@@ -75,6 +75,18 @@ trait ShapeModel extends DomainElementModel with LinkableElementModel with KeyFi
                   Shacl + "not",
                   ModelDoc(ExternalModelVocabularies.Shacl, "not", "Logical not composition of data shapes"))
 
+  val If = Field(ShapeModel,
+                  Shacl + "if",
+                  ModelDoc(ExternalModelVocabularies.Shacl, "if", "Condition for applying composition of data shapes"))
+
+  val Then = Field(ShapeModel,
+                  Shacl + "then",
+                  ModelDoc(ExternalModelVocabularies.Shacl, "then", "Composition of data shape when if data shape is valid"))
+
+  val Else = Field(ShapeModel,
+                  Shacl + "else",
+                  ModelDoc(ExternalModelVocabularies.Shacl, "else", "Composition of data shape when if data shape is invalid"))
+
   override val key: Field = Name
 
   // RAML user-defined facets: definitions and values
@@ -107,7 +119,10 @@ object ShapeModel extends ShapeModel {
                                                                          And,
                                                                          Or,
                                                                          Xone,
-                                                                         Closure)
+                                                                         Closure,
+                                                                         If,
+                                                                         Then,
+                                                                         Else)
 
   override val `type`: List[ValueType] = List(Shacl + "Shape", Shapes + "Shape") ++ DomainElementModel.`type`
 

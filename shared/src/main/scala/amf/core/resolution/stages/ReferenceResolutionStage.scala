@@ -19,6 +19,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean)(override implicit val e
     with ElementResolutionStage[DomainElement] {
 
   var modelResolver: Option[ModelReferenceResolver] = None
+  val cache: mutable.Map[String, DomainElement]     = mutable.Map()
 
   override def resolve[T <: BaseUnit](model: T): T = {
     this.modelResolver = Some(new ModelReferenceResolver(model))
@@ -51,6 +52,7 @@ class ReferenceResolutionStage(keepEditingInfo: Boolean)(override implicit val e
 
   override def transformer: ElementStageTransformer[DomainElement] =
     new ReferenceResolution(
+      cache = cache,
       keepEditingInfo = keepEditingInfo,
       modelResolver = modelResolver,
       errorHandler = errorHandler,

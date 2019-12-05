@@ -171,7 +171,9 @@ class ParserSideValidationPlugin extends AMFFeaturePlugin with RuntimeValidator 
       AMFValidationResult(message, level, targetNode, targetProperty, validationId, position, location, this)
     if (enabled) {
       aggregatedReport.get(parserRun) match {
-        case Some(validations) => validations += validationError
+        case Some(validations) =>
+          // If the validation already exists (this could happens in some recursion cases) don't add it
+          if (!validations.exists((v => v.equals(validationError)))) validations += validationError
         case None =>
           aggregatedReport += (parserRun -> ListBuffer(validationError))
       }

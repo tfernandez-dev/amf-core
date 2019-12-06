@@ -1,7 +1,7 @@
 package amf.core.metamodel.domain
 
 import amf.core.metamodel.Field
-import amf.core.metamodel.Type.{Array, Iri, SortedArray, Str}
+import amf.core.metamodel.Type.{Array, Bool, Iri, SortedArray, Str}
 import amf.core.metamodel.domain.common.DescriptionField
 import amf.core.metamodel.domain.extensions.{PropertyShapeModel, ShapeExtensionModel}
 import amf.core.metamodel.domain.templates.KeyField
@@ -87,6 +87,18 @@ trait ShapeModel extends DomainElementModel with LinkableElementModel with KeyFi
                   Shacl + "else",
                   ModelDoc(ExternalModelVocabularies.Shacl, "else", "Composition of data shape when if data shape is invalid"))
 
+  val ReadOnly =
+    Field(Bool, Shapes + "readOnly", ModelDoc(ModelVocabularies.Shapes, "read only", "Read only property constraint"))
+
+  val WriteOnly = Field(Bool,
+    Shapes + "writeOnly",
+    ModelDoc(ModelVocabularies.Shapes, "write only", "Write only property constraint"))
+
+  val Deprecated = Field(
+    Bool,
+    Shapes + "deprecated",
+    ModelDoc(ModelVocabularies.Shapes, "deprecated", "Deprecated annotation for a property constraint"))
+
   override val key: Field = Name
 
   // RAML user-defined facets: definitions and values
@@ -122,7 +134,10 @@ object ShapeModel extends ShapeModel {
                                                                          Closure,
                                                                          If,
                                                                          Then,
-                                                                         Else)
+                                                                         Else,
+                                                                         ReadOnly,
+                                                                         WriteOnly,
+                                                                         Deprecated)
 
   override val `type`: List[ValueType] = List(Shacl + "Shape", Shapes + "Shape") ++ DomainElementModel.`type`
 

@@ -1,7 +1,7 @@
 package amf.client.model.domain
 
 import amf.client.convert.CoreClientConverters._
-import amf.client.model.StrField
+import amf.client.model.{BoolField, StrField}
 import amf.core.model.domain.{Shape => InternalShape}
 
 import scala.scalajs.js.annotation.JSExportAll
@@ -25,6 +25,12 @@ trait Shape extends DomainElement with Linkable with NamedDomainElement {
   def and: ClientList[Shape]                                    = _internal.and.asClient
   def xone: ClientList[Shape]                                   = _internal.xone.asClient
   def not: Shape                                                = _internal.not
+  def readOnly: BoolField                                       = _internal.readOnly
+  def writeOnly: BoolField                                      = _internal.writeOnly
+  def deprecated: BoolField                                     = _internal.deprecated
+  def ifShape: Shape                                            = _internal.ifShape
+  def elseShape: Shape                                          = _internal.elseShape
+  def thenShape: Shape                                          = _internal.thenShape
 
   def withName(name: String): this.type = {
     _internal.withName(name)
@@ -93,5 +99,35 @@ trait Shape extends DomainElement with Linkable with NamedDomainElement {
 
   def withCustomShapePropertyDefinition(name: String): PropertyShape = {
     _internal.withCustomShapePropertyDefinition(name)
+  }
+
+  def withReadOnly(readOnly: Boolean): this.type = {
+    _internal.withReadOnly(readOnly)
+    this
+  }
+
+  def withWriteOnly(writeOnly: Boolean): this.type = {
+    _internal.withWriteOnly(writeOnly)
+    this
+  }
+
+  def withDeprecated(deprecated: Boolean): this.type = {
+    _internal.withDeprecated(deprecated)
+    this
+  }
+
+  def withIf(ifShape: Shape): this.type = {
+    _internal.withIf(ifShape)
+    this
+  }
+
+  def withElse(elseShape: Shape): this.type = {
+    _internal.withElse(elseShape)
+    this
+  }
+
+  def withThen(thenShape: Shape): this.type = {
+    _internal.withThen(thenShape)
+    this
   }
 }

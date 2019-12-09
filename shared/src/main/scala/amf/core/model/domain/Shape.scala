@@ -2,7 +2,7 @@ package amf.core.model.domain
 
 import amf.core.metamodel.Field
 import amf.core.metamodel.domain.ShapeModel._
-import amf.core.model.StrField
+import amf.core.model.{BoolField, StrField}
 import amf.core.model.domain.extensions.{PropertyShape, ShapeExtension}
 import amf.core.parser.{Annotations, ErrorHandler}
 import amf.core.traversal.ModelTraversalRegistry
@@ -31,7 +31,12 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
   def not: Shape                                         = fields.field(Not)
   def customShapeProperties: Seq[ShapeExtension]         = fields.field(CustomShapeProperties)
   def customShapePropertyDefinitions: Seq[PropertyShape] = fields.field(CustomShapePropertyDefinitions)
-  // def closure: Seq[String]            = fields.field(Closure)
+  def readOnly: BoolField                                = fields.field(ReadOnly)
+  def writeOnly: BoolField                               = fields.field(WriteOnly)
+  def deprecated: BoolField                              = fields.field(Deprecated)
+  def ifShape: Shape                                     = fields.field(If)
+  def elseShape: Shape                                   = fields.field(Else)
+  def thenShape: Shape                                   = fields.field(Then)
 
   def withDisplayName(name: String): this.type        = set(DisplayName, name)
   def withDescription(description: String): this.type = set(Description, description)
@@ -46,20 +51,18 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
     setArray(CustomShapeProperties, properties)
   def withCustomShapePropertyDefinitions(propertyDefinitions: Seq[PropertyShape]): this.type =
     setArray(CustomShapePropertyDefinitions, propertyDefinitions)
-
   def withCustomShapePropertyDefinition(name: String): PropertyShape = {
     val result = PropertyShape().withName(name, Annotations())
     add(CustomShapePropertyDefinitions, result)
     result
   }
-  /*
-  def withClosure(closure: Seq[String]): this.type                     = set(Closure, closure)
+  def withReadOnly(readOnly: Boolean): this.type     = set(ReadOnly, readOnly)
+  def withWriteOnly(writeOnly: Boolean): this.type   = set(WriteOnly, writeOnly)
+  def withDeprecated(deprecated: Boolean): this.type = set(Deprecated, deprecated)
+  def withIf(ifShape: Shape): this.type              = set(If, ifShape)
+  def withElse(elseShape: Shape): this.type          = set(Else, elseShape)
+  def withThen(thenShape: Shape): this.type          = set(Then, thenShape)
 
-  def appendToClosure(shapeId: String): this.type = {
-    val updatedClosure = closure :+ shapeId
-    withClosure(updatedClosure)
-  }
-   */
   def withDefaultStr(value: String): Shape.this.type = set(DefaultValueString, value)
 
   def effectiveInherits: Seq[Shape] = {
@@ -101,7 +104,7 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
       // final facets maps
       effectiveInherits.foldLeft(initialSequence) { (acc: Seq[FacetsMap], baseShape: Shape) =>
         if (!traversed.contains(baseShape.id)) {
-          baseShape.collectCustomShapePropertyDefinitions(false, traversed += baseShape.id).flatMap {
+          baseShape.collectCustomShapePropertyDefinitions(onlyInherited = false, traversed += baseShape.id).flatMap {
             facetsMap: FacetsMap =>
               acc.map { accFacetsMap =>
                 accFacetsMap ++ facetsMap
@@ -131,7 +134,8 @@ abstract class Shape extends DomainElement with Linkable with NamedDomainElement
       case (f, v) =>
         val clonedValue = v.value match {
           case s: Shape if s.id != this.id && traversal.canTraverse(s.id) =>
-            traversal.runNested((t: ModelTraversalRegistry) => { s.cloneShape(recursionErrorHandler, recursionBase, t) })
+            traversal.runNested(
+              (t: ModelTraversalRegistry) => { s.cloneShape(recursionErrorHandler, recursionBase, t) })
           case s: Shape if s.id == this.id => s
           case a: AmfArray =>
             AmfArray(

@@ -17,9 +17,6 @@ case class PropertyShape(override private[amf] val _internal: InternalPropertySh
   def range: Shape          = _internal.range
   def minCount: IntField    = _internal.minCount
   def maxCount: IntField    = _internal.maxCount
-  def readOnly: BoolField   = _internal.readOnly
-  def writeOnly: BoolField  = _internal.writeOnly
-  def deprecated: BoolField = _internal.deprecated
   def patternName: StrField = _internal.patternName
 
   def withPath(path: String): this.type = {
@@ -38,21 +35,6 @@ case class PropertyShape(override private[amf] val _internal: InternalPropertySh
   }
   def withMaxCount(max: Int): this.type = {
     _internal.withMaxCount(max)
-    this
-  }
-
-  def withReadOnly(readOnly: Boolean): this.type = {
-    _internal.withReadOnly(readOnly)
-    this
-  }
-
-  def withWriteOnly(writeOnly: Boolean): this.type = {
-    _internal.withWriteOnly(writeOnly)
-    this
-  }
-
-  def withDeprecated(deprecated: Boolean): this.type = {
-    _internal.withDeprecated(deprecated)
     this
   }
 

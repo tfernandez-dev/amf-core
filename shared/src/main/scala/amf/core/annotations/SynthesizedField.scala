@@ -11,3 +11,5 @@ object SynthesizedField extends AnnotationGraphLoader {
   override def unparse(value: String, objects: Map[String, AmfElement]): Option[Annotation] =
     Some(SynthesizedField())
 }
+
+case class VirtualObject() extends Annotation

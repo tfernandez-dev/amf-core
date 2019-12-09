@@ -11,3 +11,9 @@ case class DeclaredElement() extends SerializableAnnotation with PerpetualAnnota
 object DeclaredElement extends AnnotationGraphLoader {
   override def unparse(value: String, objects: Map[String, AmfElement]): Option[Annotation] = Some(DeclaredElement())
 }
+
+trait ErrorDeclaration extends DomainElement {
+  val namespace: String
+
+  override def withId(value: String): ErrorDeclaration.this.type = super.withId(namespace + value)
+}

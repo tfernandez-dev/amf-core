@@ -18,9 +18,6 @@ case class PropertyShape(fields: Fields, annotations: Annotations) extends Shape
   def range: Shape          = fields.field(Range)
   def minCount: IntField    = fields.field(MinCount)
   def maxCount: IntField    = fields.field(MaxCount)
-  def readOnly: BoolField   = fields.field(ReadOnly)
-  def writeOnly: BoolField  = fields.field(WriteOnly)
-  def deprecated: BoolField = fields.field(Deprecated)
   def patternName: StrField = fields.field(PatternName)
 
   def withPath(path: String): this.type  = set(Path, path)
@@ -28,9 +25,6 @@ case class PropertyShape(fields: Fields, annotations: Annotations) extends Shape
 
   def withMinCount(min: Int): this.type              = set(MinCount, min)
   def withMaxCount(max: Int): this.type              = set(MaxCount, max)
-  def withReadOnly(readOnly: Boolean): this.type     = set(ReadOnly, readOnly)
-  def withWriteOnly(writeOnly: Boolean): this.type   = set(WriteOnly, writeOnly)
-  def withDeprecated(deprecated: Boolean): this.type = set(Deprecated, deprecated)
   def withPatternName(pattern: String): this.type    = set(PatternName, pattern)
 
   override def adopted(parent: String, cycle: Seq[String] = Seq()): this.type = {

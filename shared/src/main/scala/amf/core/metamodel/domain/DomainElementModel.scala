@@ -21,6 +21,7 @@ object ModelVocabularies {
   val Parser      = ModelVocabulary("parser", Namespace.AmfParser.base, "Internal namespace", "")
   val AmlDoc      = ModelVocabulary("doc", Namespace.Document.base, "Document Model vocabulary for AMF. The Document Model defines the basic modular units where domain descriptions can be encoded.", "aml_doc.yaml")
   val ApiContract = ModelVocabulary("apiContract", Namespace.ApiContract.base, "API contract vocabulary", "api_contract.yaml")
+  val ApiBinding  = ModelVocabulary("apiBinding", Namespace.ApiContract.base, "API binding vocabulary", "api_binding.yaml")
   val Core        = ModelVocabulary("core", Namespace.Core.base, "Core vocabulary with common classes and properties", "core.yaml")
   val Shapes      = ModelVocabulary("shapes", Namespace.Shapes.base, "Vocabulary defining data shapes, used as an extension to SHACL", "data_shapes.yaml")
   val Data        = ModelVocabulary("data", Namespace.Data.base, "Vocabulary defining a default set of classes to map data structures composed of recursive records of fields,\nlike the ones used in JSON or YAML into a RDF graph.\nThey can be validated using data shapes.", "data_model.yaml")

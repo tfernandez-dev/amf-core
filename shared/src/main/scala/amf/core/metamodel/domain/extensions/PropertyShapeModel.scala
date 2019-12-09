@@ -28,18 +28,6 @@ object PropertyShapeModel extends ShapeModel {
                        Shacl + "maxCount",
                        ModelDoc(ExternalModelVocabularies.Shacl, "max. count", "Maximum count property constraint"))
 
-  val ReadOnly =
-    Field(Bool, Shapes + "readOnly", ModelDoc(ModelVocabularies.Shapes, "read only", "Read only property constraint"))
-
-  val WriteOnly = Field(Bool,
-                        Shapes + "writeOnly",
-                        ModelDoc(ModelVocabularies.Shapes, "write only", "Write only property constraint"))
-
-  val Deprecated = Field(
-    Bool,
-    Shapes + "deprecated",
-    ModelDoc(ModelVocabularies.Shapes, "deprecated", "Deprecated annotation for a property constraint"))
-
   val PatternName = Field(Str,
                           Shapes + "patternName",
                           ModelDoc(ModelVocabularies.Shapes, "pattern name", "Patterned property constraint"))
@@ -47,7 +35,7 @@ object PropertyShapeModel extends ShapeModel {
   override val `type`: List[ValueType] = List(Shacl + "PropertyShape") ++ ShapeModel.`type`
 
   override def fields: List[Field] =
-    List(Path, Range, MinCount, MaxCount, ReadOnly, PatternName) ++ ShapeModel.fields ++ DomainElementModel.fields
+    List(Path, Range, MinCount, MaxCount, PatternName) ++ ShapeModel.fields ++ DomainElementModel.fields
 
   override def modelInstance = PropertyShape()
 

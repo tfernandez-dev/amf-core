@@ -15,6 +15,8 @@ object Namespace {
 
   val ApiContract = Namespace("http://a.ml/vocabularies/apiContract#")
 
+  val ApiBinding = Namespace("http://a.ml/vocabularies/apiBinding#")
+
   val Security = Namespace("http://a.ml/vocabularies/security#")
 
   val Shapes = Namespace("http://a.ml/vocabularies/shapes#")
@@ -54,7 +56,7 @@ object Namespace {
 
   val AmfRender = Namespace("http://a.ml/vocabularies/amf/render#")
 
-  val ns = mutable.HashMap(
+  val ns: mutable.HashMap[String, Namespace] = mutable.HashMap(
     "rdf"            -> Rdf,
     "sh"             -> Shacl,
     "shacl"          -> Shacl,
@@ -65,7 +67,8 @@ object Namespace {
     "xsd"            -> Xsd,
     "amf-parser"     -> AmfParser,
     "amf-core"       -> AmfCore,
-    "apiContract" -> ApiContract,
+    "apiContract"    -> ApiContract,
+    "apiBinding"     -> ApiBinding,
     "amf-resolution" -> AmfResolution,
     "amf-validation" -> AmfValidation,
     "amf-render"     -> AmfRender,
@@ -132,6 +135,8 @@ object Namespace {
     case "http://a.ml/vocabularies/document" => Some(Document)
 
     case "http://a.ml/vocabularies/apiContract" => Some(ApiContract)
+
+    case "http://a.ml/vocabularies/apiBinding" => Some(ApiBinding)
 
     case "http://a.ml/vocabularies/security" => Some(Security)
 

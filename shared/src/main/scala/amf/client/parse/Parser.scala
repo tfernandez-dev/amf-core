@@ -5,6 +5,7 @@ import amf.client.environment.{DefaultEnvironment, Environment}
 import amf.client.model.document.BaseUnit
 import amf.client.validate.ValidationReport
 import amf.core.client.ParsingOptions
+import amf.core.errorhandling.UnhandledErrorHandler
 import amf.core.model.document.{BaseUnit => InternalBaseUnit}
 import amf.core.remote.{Cache, Context}
 import amf.core.services.{RuntimeCompiler, RuntimeValidator}
@@ -90,10 +91,9 @@ class Parser(vendor: String, mediaType: String, private val env: Option[Environm
   def reportCustomValidation(profile: ProfileName, customProfilePath: String): ClientFuture[ValidationReport] =
     reportCustomValidationImplementation(profile, customProfilePath)
 
-  private def parseAsync(url: String,
+  private[amf] def parseAsync(url: String,
                          loader: Option[ResourceLoader] = None,
                          parsingOptions: ParsingOptions = ParsingOptions()): Future[InternalBaseUnit] = {
-    RuntimeValidator.reset()
 
     val environment = {
       val e = internalEnv()
@@ -106,7 +106,8 @@ class Parser(vendor: String, mediaType: String, private val env: Option[Environm
                     Context(platform),
                     env = environment,
                     cache = Cache(),
-                    parsingOptions = parsingOptions) map { model =>
+                    parsingOptions = parsingOptions,
+                    errorHandler = DefaultParserErrorHandler.withRun()) map { model =>
       parsedModel = Some(model)
       model
     }
@@ -143,7 +144,7 @@ class Parser(vendor: String, mediaType: String, private val env: Option[Environm
     val result = parsedModel match {
       case Some(model) =>
         for {
-          _      <- RuntimeValidator.loadValidationProfile(customProfilePath)
+          _      <- RuntimeValidator.loadValidationProfile(customProfilePath, errorHandler = UnhandledErrorHandler)
           report <- RuntimeValidator(model, profileName, env = internalEnv())
         } yield {
           report

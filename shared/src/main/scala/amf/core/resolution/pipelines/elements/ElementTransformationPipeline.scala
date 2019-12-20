@@ -1,8 +1,8 @@
 package amf.core.resolution.pipelines.elements
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.model.domain.DomainElement
-import amf.core.parser.ErrorHandler
-import amf.core.resolution.stages.elements.resolution.{ElementStageTransformer, ReferenceResolution}
+import amf.core.resolution.stages.elements.resolution.ElementStageTransformer
 
 abstract class ElementTransformationPipeline[T<:DomainElement](element:T, errorHandler:ErrorHandler) {
 

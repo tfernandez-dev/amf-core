@@ -4,6 +4,7 @@ import amf.client.plugins.{AMFDocumentPlugin, AMFPlugin}
 import amf.core.Root
 import amf.core.client.ParsingOptions
 import amf.core.emitter.{RenderOptions, ShapeRenderOptions}
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.Obj
 import amf.core.metamodel.domain._
 import amf.core.model.document.BaseUnit
@@ -26,7 +27,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
   override def init(): Future[AMFPlugin] = Future { this }
 
   override val ID: String     = Amf.name
-  override def dependencies() = Seq()
+  override def dependencies(): Seq[Nothing] = Seq()
 
   val vendors: Seq[String] = Seq(Amf.name)
 
@@ -40,7 +41,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
 
   override def serializableAnnotations(): Map[String, AnnotationGraphLoader] = Map.empty
 
-  override def documentSyntaxes = Seq(
+  override def documentSyntaxes: Seq[String] = Seq(
     "application/ld+json",
     "application/json",
     "application/amf+json"

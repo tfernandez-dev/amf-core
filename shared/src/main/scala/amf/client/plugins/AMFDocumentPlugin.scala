@@ -3,10 +3,11 @@ package amf.client.plugins
 import amf.core.Root
 import amf.core.client.ParsingOptions
 import amf.core.emitter.{RenderOptions, ShapeRenderOptions}
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.Obj
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.AnnotationGraphLoader
-import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, ParserContext, ReferenceHandler}
+import amf.core.parser.{ParserContext, ReferenceHandler}
 import amf.core.registries.AMFDomainEntityResolver
 import amf.core.remote.Platform
 import amf.core.resolution.pipelines.ResolutionPipeline
@@ -43,7 +44,7 @@ abstract class AMFDocumentPlugin extends AMFPlugin {
     * Resolves the provided base unit model, according to the semantics of the domain of the document
     */
   final def resolveWithHandle(unit: BaseUnit, pipelineId: String = ResolutionPipeline.DEFAULT_PIPELINE): BaseUnit =
-    resolve(unit, DefaultParserSideErrorHandler(unit), pipelineId)
+    resolve(unit, unit.errorHandler(), pipelineId)
 
   /**
     * Resolves the provided base unit model, according to the semantics of the domain of the document

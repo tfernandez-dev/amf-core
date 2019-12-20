@@ -4,7 +4,7 @@ import amf.client.plugins._
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.validation.AMFPayloadValidationPlugin
 import amf.plugins.document.graph.AMFGraphPlugin
-import amf.plugins.features.validation.ParserSideValidationPlugin
+import amf.plugins.features.validation.ParserSideValidationProfiler
 import amf.plugins.syntax.SYamlSyntaxPlugin
 
 import scala.collection.mutable
@@ -24,16 +24,13 @@ object AMF {
     AMFSerializer.init()
     val registeredSYamlPlugin                = SYamlSyntaxPlugin.init()
     val registeredAMFGraphPlugin             = AMFGraphPlugin.init()
-    val parserSideValidation                 = new ParserSideValidationPlugin()
-    val registeredParserSideValidationPlugin = parserSideValidation.init()
     Future
-      .sequence(Seq(registeredSYamlPlugin, registeredAMFGraphPlugin, registeredParserSideValidationPlugin))
+      .sequence(Seq(registeredSYamlPlugin, registeredAMFGraphPlugin))
       .flatMap { _ =>
         processInitializations(AMFPluginsRegistry.plugins.toSeq)
       } map { _ =>
       AMFPluginsRegistry.registerSyntaxPlugin(SYamlSyntaxPlugin)
       AMFPluginsRegistry.registerDocumentPlugin(AMFGraphPlugin)
-      AMFPluginsRegistry.registerFeaturePlugin(parserSideValidation)
     }
   }
 

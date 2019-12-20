@@ -1,6 +1,6 @@
 package amf.core.resolution.pipelines
 
-import amf.core.parser.ErrorHandler
+import amf.core.errorhandling.ErrorHandler
 import amf.core.resolution.stages.{ReferenceResolutionStage, ResolutionStage}
 import amf.{AmfProfile, ProfileName}
 

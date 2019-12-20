@@ -1,5 +1,6 @@
 package amf.core.parser
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.model.document.Fragment
 import amf.core.model.domain.DomainElement
 import amf.core.model.domain.extensions.CustomDomainProperty
@@ -11,7 +12,7 @@ import org.yaml.model.YPart
 class Declarations(var libraries: Map[String, Declarations] = Map(),
                    var fragments: Map[String, FragmentRef] = Map(),
                    var annotations: Map[String, CustomDomainProperty] = Map(),
-                   errorHandler: Option[ErrorHandler],
+                   errorHandler: ErrorHandler,
                    futureDeclarations: FutureDeclarations) {
 
   var promotedFragments: Seq[Fragment] = Seq[Fragment]()
@@ -48,10 +49,7 @@ class Declarations(var libraries: Map[String, Declarations] = Map(),
     }
   }
 
-  protected def error(message: String, ast: YPart): Unit = errorHandler match {
-    case Some(handler) => handler.violation(DeclarationNotFound, "", message, ast)
-    case _             => throw new Exception(message)
-  }
+  protected def error(message: String, ast: YPart): Unit = errorHandler.violation(DeclarationNotFound, "", message, ast)
 
   def declarables(): Seq[DomainElement] =
     annotations.values.toSeq
@@ -106,7 +104,7 @@ object FragmentRef {
 object Declarations {
 
   def apply(declarations: Seq[DomainElement],
-            errorHandler: Option[ErrorHandler],
+            errorHandler: ErrorHandler,
             futureDeclarations: FutureDeclarations): Declarations = {
     val result = new Declarations(errorHandler = errorHandler, futureDeclarations = futureDeclarations)
     declarations.foreach(result += _)

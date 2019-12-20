@@ -93,12 +93,12 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
             resolve,
             () =>
               if (unresolvedSeverity == "warning") {
-                ctx.warning(UnresolvedReference,
+                ctx.eh.warning(UnresolvedReference,
                             id,
                             s"Unresolved reference '$refName'",
                             refAst.get)
               } else {
-                ctx.violation(UnresolvedReference,
+                ctx.eh.violation(UnresolvedReference,
                               id,
                               s"Unresolved reference '$refName'",
                               refAst.get)

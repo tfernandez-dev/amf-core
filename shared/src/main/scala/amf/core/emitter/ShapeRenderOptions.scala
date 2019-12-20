@@ -2,7 +2,7 @@ package amf.core.emitter
 
 import amf.client.render.{ShapeRenderOptions => ClientShapeRenderOptions}
 import amf.client.resolve.ClientErrorHandlerConverter._
-import amf.core.parser.{ErrorHandler, UnhandledErrorHandler}
+import amf.core.errorhandling.{ErrorHandler, UnhandledErrorHandler}
 
 /**
   * JSON Schema options

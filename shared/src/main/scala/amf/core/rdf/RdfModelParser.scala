@@ -39,15 +39,18 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
     val unit = model.findNode(location) match {
       case Some(rootNode) =>
         parse(rootNode, findBaseUnit = true) match {
-          case Some(unit: BaseUnit) => unit.set(BaseUnitModel.Location, location.split("#").head)
+          case Some(unit: BaseUnit) =>
+            unit.set(BaseUnitModel.Location, location.split("#").head)
+            unit.withRunNumber(ctx.parserRun)
+            unit
           case _ =>
-            ctx.violation(UnableToParseRdfDocument,
+            ctx.eh.violation(UnableToParseRdfDocument,
               location,
               s"Unable to parse RDF model for location root node: $location")
             Document()
         }
       case _ =>
-        ctx.violation(UnableToParseRdfDocument,
+        ctx.eh.violation(UnableToParseRdfDocument,
           location,
           s"Unable to parse RDF model for location root node: $location")
         Document()
@@ -294,7 +297,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
                 case _ => // ignore
               }
             case _ =>
-              ctx.violation(
+              ctx.eh.violation(
                 UnableToParseRdfDocument,
                 instance.id,
                 s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
@@ -312,7 +315,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
         case l: SortedArray if properties.length == 1 =>
           instance.setArray(f, parseList(instance.id, l.element, findLink(properties.head)), annots(sources, key))
         case _: SortedArray =>
-          ctx.violation(
+          ctx.eh.violation(
             UnableToParseRdfDocument,
             instance.id,
             s"Error, more than one sorted array values found in node for property $key in node ${instance.id}")
@@ -421,7 +424,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
     foundType match {
       case Some(t) => findType(t)
       case None =>
-        ctx.violation(UnableToParseNode,
+        ctx.eh.violation(UnableToParseNode,
           id,
           s"Error parsing JSON-LD node, unknown @types $stringTypes",
           ctx.rootContextDocument)

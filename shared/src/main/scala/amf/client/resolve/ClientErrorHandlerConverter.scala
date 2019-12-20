@@ -1,8 +1,8 @@
 package amf.client.resolve
-import amf.client.convert.{BidirectionalMatcher, ClientInternalMatcher, CoreClientConverters}
-import amf.core.annotations.LexicalInformation
-import amf.core.parser.ErrorHandler
 import amf.client.convert.CoreClientConverters._
+import amf.client.convert.{BidirectionalMatcher, CoreClientConverters}
+import amf.core.annotations.LexicalInformation
+import amf.core.errorhandling.ErrorHandler
 import amf.core.parser
 
 object ClientErrorHandlerConverter {
@@ -21,40 +21,36 @@ object ClientErrorHandlerConverter {
   }
 
   def convert(clientErrorHandler: ClientErrorHandler): ErrorHandler =
-    new ErrorHandler {
-      override def reportConstraint(id: String,
-                                    node: String,
-                                    property: Option[String],
-                                    message: String,
-                                    range: Option[LexicalInformation],
-                                    level: String,
-                                    location: Option[String]): Unit = {
-        clientErrorHandler.reportConstraint(id,
-                                            node,
-                                            property.asClient,
-                                            message,
-                                            range.asClient,
-                                            level,
-                                            location.asClient)
-      }
+    (id: String,
+     node: String,
+     property: Option[String],
+     message: String,
+     range: Option[LexicalInformation],
+     level: String,
+     location: Option[String]) => {
+      clientErrorHandler.reportConstraint(id,
+                                          node,
+                                          property.asClient,
+                                          message,
+                                          range.asClient,
+                                          level,
+                                          location.asClient)
     }
 
   def convertToClient(errorHandler: ErrorHandler): ClientErrorHandler =
-    new ClientErrorHandler {
-      override def reportConstraint(id: String,
-                                    node: String,
-                                    property: CoreClientConverters.ClientOption[String],
-                                    message: String,
-                                    range: CoreClientConverters.ClientOption[parser.Range],
-                                    level: String,
-                                    location: CoreClientConverters.ClientOption[String]): Unit = {
-        errorHandler.reportConstraint(id,
-                                      node,
-                                      property.toScala,
-                                      message,
-                                      range.toScala.map(RangeToLexicalConverter.asInternal),
-                                      level,
-                                      location.toScala)
-      }
+    (id: String,
+     node: String,
+     property: CoreClientConverters.ClientOption[String],
+     message: String,
+     range: CoreClientConverters.ClientOption[parser.Range],
+     level: String,
+     location: CoreClientConverters.ClientOption[String]) => {
+      errorHandler.reportConstraint(id,
+                                    node,
+                                    property.toScala,
+                                    message,
+                                    range.toScala.map(RangeToLexicalConverter.asInternal),
+                                    level,
+                                    location.toScala)
     }
 }

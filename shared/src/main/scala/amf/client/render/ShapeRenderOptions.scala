@@ -2,7 +2,7 @@ package amf.client.render
 
 import amf.client.resolve.ClientErrorHandler
 import amf.client.resolve.ClientErrorHandlerConverter.ErrorHandlerConverter
-import amf.core.parser.UnhandledErrorHandler
+import amf.core.errorhandling.UnhandledErrorHandler
 
 import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 

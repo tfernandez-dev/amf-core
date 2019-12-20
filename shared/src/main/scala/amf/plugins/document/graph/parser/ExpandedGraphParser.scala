@@ -1,5 +1,6 @@
 package amf.plugins.document.graph.parser
 
+import amf.client.parse.DefaultParserErrorHandler
 import amf.core.annotations.DomainExtensionAnnotation
 import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
 import amf.core.metamodel._
@@ -16,12 +17,7 @@ import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.unsafe.TrunkPlatform
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.CoreValidations.{
-  NodeNotFound,
-  NotLinkable,
-  UnableToParseDocument,
-  UnableToParseNode
-}
+import amf.plugins.features.validation.CoreValidations.{NodeNotFound, NotLinkable, UnableToParseDocument, UnableToParseNode}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.convert.YRead.SeqNodeYRead
 import org.yaml.model._
@@ -61,7 +57,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
       maybeMaybeObject match {
         case Some(unit: BaseUnit) => unit.set(Location, location)
         case _ =>
-          ctx.violation(UnableToParseDocument, location, s"Unable to parse $document", document)
+          ctx.eh.violation(UnableToParseDocument, location, s"Unable to parse $document", document)
           Document()
       }
     }
@@ -89,7 +85,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
       stringTypes.find(findType(_).isDefined) match {
         case Some(t) => findType(t)
         case None =>
-          ctx.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $stringTypes", map)
+          ctx.eh.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $stringTypes", map)
           None
       }
     }
@@ -184,7 +180,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
             case unresolved: LinkNode =>
               unresolved.withLinkedDomainElement(link)
             case _ =>
-              ctx.violation(NotLinkable, instance.id, "Only linkable elements can be linked", instance.annotations)
+              ctx.eh.violation(NotLinkable, instance.id, "Only linkable elements can be linked", instance.annotations)
           }
           unresolvedReferences.update(link.id, Nil)
         case ref: ExternalSourceElement =>
@@ -476,7 +472,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
             (a: Annotations) =>
               Some(builder(a))
           case _ =>
-            ctx.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
+            ctx.eh.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
             (_: Annotations) =>
               None
         }
@@ -488,7 +484,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
 object ExpandedGraphParser {
   def apply: ExpandedGraphParser = ExpandedGraphParser(TrunkPlatform(""))
   def apply(platform: Platform): ExpandedGraphParser =
-    new ExpandedGraphParser(platform)(new GraphParserContext())
+    new ExpandedGraphParser(platform)(new GraphParserContext(eh = DefaultParserErrorHandler.withRun()))
 
   def canParse(document: SyamlParsedDocument): Boolean = {
     val maybeMaps = document.document.node.toOption[Seq[YMap]]

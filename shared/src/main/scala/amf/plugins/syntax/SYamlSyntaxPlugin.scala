@@ -41,8 +41,8 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
       platform.rdfFramework.get.syntaxToRdfModel(mediaType, text)
     } else {
       val parser = getFormat(mediaType) match {
-        case "json" => JsonParser.withSource(text, ctx.rootContextDocument)(ctx)
-        case _      => YamlParser(text, ctx.rootContextDocument)(ctx).withIncludeTag("!include")
+        case "json" => JsonParser.withSource(text, ctx.rootContextDocument)(ctx.eh)
+        case _      => YamlParser(text, ctx.rootContextDocument)(ctx.eh).withIncludeTag("!include")
       }
       val parts   = parser.parse(keepTokens = false)
       val comment = parts collectFirst { case c: YComment => c.metaText }

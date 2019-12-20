@@ -22,7 +22,7 @@ trait UnresolvedReference { this: DomainElement =>
         DeclarationPromise(
           resolve,
           () =>
-            c.violation(
+            c.eh.violation(
               UnresolvedReference,
               this,
               None,

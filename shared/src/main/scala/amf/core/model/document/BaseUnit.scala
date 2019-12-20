@@ -1,18 +1,20 @@
 package amf.core.model.document
 
+import amf.client.parse.DefaultParserErrorHandler
 import amf.core.annotations.{LexicalInformation, SourceAST, SourceNode, SourceVendor}
 import amf.core.emitter.RenderOptions
-import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.document.BaseUnitModel.{Location, ModelVersion, Root, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
 import amf.core.metamodel.{MetaModelTypeMapping, Obj}
-import amf.core.model.{BoolField, StrField}
 import amf.core.model.document.FieldsFilter.Local
 import amf.core.model.domain._
-import amf.core.parser.{DefaultParserSideErrorHandler, ErrorHandler, FieldEntry, ParserContext, Value}
+import amf.core.model.{BoolField, StrField}
+import amf.core.parser.{FieldEntry, ParserContext, Value}
 import amf.core.rdf.{RdfModel, RdfModelParser}
 import amf.core.remote.Vendor
+import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
 import amf.core.unsafe.PlatformSecrets
 import amf.plugins.features.validation.CoreValidations.RecursiveShapeSpecification
 
@@ -28,7 +30,18 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   withRoot(false)
 
   // We store the parser run here to be able to find runtime validations for this model
-  var parserRun: Option[Int] = None
+  private var run: Option[Int] = None
+
+  private[amf] def withRunNumber(parserRun:Int): BaseUnit = {
+    if(this.run.nonEmpty) // todo: exception or what?
+      this
+    else{
+      this.run = Some(parserRun)
+      this
+    }
+  }
+
+  def parserRun:Option[Int] = run
 
   /** Raw text  used to generated this unit */
   var raw: Option[String] = None
@@ -115,7 +128,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   def findInReferences(id: String): Option[BaseUnit] = references.find(_.id == id)
 
-  protected def defaultCycleRecoverer(errorHandler: ErrorHandler = DefaultParserSideErrorHandler(this))(
+  protected def defaultCycleRecoverer(errorHandler: ErrorHandler)(
     old: AmfObject,
     transformed: AmfObject): Option[AmfObject] = {
     transformed match {
@@ -257,13 +270,24 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   def cloneUnit(): BaseUnit = {
     val cloned = cloneElement(mutable.Map.empty).asInstanceOf[BaseUnit]
-    cloned.parserRun = parserRun
+    run.foreach(cloned.withRunNumber)
     cloned.raw = raw
     cloned
+  }
+
+  private[amf] def errorHandler(): ErrorHandler = {
+    run match {
+      case Some(num) => new DefaultParserErrorHandler(num)
+      case _ =>
+        val eh = DefaultParserErrorHandler.withRun()
+        run = Some(eh.parserRun)
+        eh
+
+    }
   }
 }
 
 object BaseUnit extends PlatformSecrets {
-  def fromNativeRdfModel(id: String, rdfModel: RdfModel, ctx: ParserContext = ParserContext()): BaseUnit =
+  def fromNativeRdfModel(id: String, rdfModel: RdfModel, ctx: ParserContext = ParserContext(eh = DefaultParserErrorHandler.withRun())): BaseUnit =
     new RdfModelParser(platform)(ctx).parse(rdfModel, id)
 }

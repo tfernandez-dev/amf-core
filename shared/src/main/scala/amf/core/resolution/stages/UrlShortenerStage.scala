@@ -1,9 +1,10 @@
 package amf.core.resolution.stages
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.Type.Iri
 import amf.core.metamodel.domain.LinkableElementModel
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain._
-import amf.core.parser.{Annotations, ErrorHandler, FieldEntry, Value}
+import amf.core.parser.{Annotations, FieldEntry, Value}
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable

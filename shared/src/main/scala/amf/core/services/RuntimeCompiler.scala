@@ -1,24 +1,23 @@
 package amf.core.services
 
+import amf.client.parse.DefaultParserErrorHandler
 import amf.core.client.ParsingOptions
 import amf.core.model.document.BaseUnit
+import amf.core.parser.errorhandler.AmfParserErrorHandler
 import amf.core.parser.{ParserContext, ReferenceKind, UnspecifiedReference}
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote.{Cache, Context}
+import amf.core.{CompilerContext, CompilerContextBuilder}
 import amf.internal.environment.Environment
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait RuntimeCompiler {
-  def build(url: String,
-            base: Context,
-            mediaType: Option[String],
+  def build(compilerContext: CompilerContext,
+           mediaType: Option[String],
             vendor: Option[String],
             referenceKind: ReferenceKind,
-            cache: Cache,
-            ctx: Option[ParserContext],
-            env: Environment = Environment(),
             parsingOptions: ParsingOptions = ParsingOptions()): Future[BaseUnit]
 }
 
@@ -32,19 +31,41 @@ object RuntimeCompiler {
             mediaType: Option[String],
             vendor: Option[String],
             base: Context,
-            referenceKind: ReferenceKind = UnspecifiedReference,
             cache: Cache,
+            referenceKind: ReferenceKind = UnspecifiedReference,
             ctx: Option[ParserContext] = None,
             env: Environment = Environment(),
-            parsingOptions: ParsingOptions = ParsingOptions()): Future[BaseUnit] = {
+            parsingOptions: ParsingOptions = ParsingOptions(),
+            errorHandler: AmfParserErrorHandler = DefaultParserErrorHandler.withRun()): Future[BaseUnit] = {
+
+    val context = new CompilerContextBuilder(url, base.platform,errorHandler).withCache(cache).withEnvironment(env).withFileContext(base).build()
     compiler match {
       case Some(runtimeCompiler) =>
         AMFPluginsRegistry.featurePlugins().foreach(_.onBeginParsingInvocation(url, mediaType))
-        runtimeCompiler.build(url, base, mediaType, vendor, referenceKind, cache, ctx, env, parsingOptions) map {
+        runtimeCompiler.build(context, mediaType, vendor,referenceKind, parsingOptions) map {
           parsedUnit =>
             AMFPluginsRegistry.featurePlugins().foldLeft(parsedUnit) {
               case (parsed, plugin) =>
                 plugin.onFinishedParsingInvocation(url, parsed)
+            }
+        }
+      case _ => throw new Exception("No registered runtime compiler")
+    }
+  }
+
+  def forContext(compilerContext: CompilerContext,
+            mediaType: Option[String],
+            vendor: Option[String],
+            referenceKind: ReferenceKind = UnspecifiedReference,
+            parsingOptions: ParsingOptions = ParsingOptions()): Future[BaseUnit] = {
+    compiler match {
+      case Some(runtimeCompiler) =>
+        AMFPluginsRegistry.featurePlugins().foreach(_.onBeginParsingInvocation(compilerContext.path, mediaType))
+        runtimeCompiler.build(compilerContext,mediaType, vendor, referenceKind,parsingOptions) map {
+          parsedUnit =>
+            AMFPluginsRegistry.featurePlugins().foldLeft(parsedUnit) {
+              case (parsed, plugin) =>
+                plugin.onFinishedParsingInvocation(compilerContext.path, parsed)
             }
         }
       case _ => throw new Exception("No registered runtime compiler")

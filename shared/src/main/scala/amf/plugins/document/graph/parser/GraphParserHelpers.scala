@@ -51,7 +51,7 @@ trait GraphParserHelpers {
         nonDocumentTypes ++ documentTypes
 
       case _ =>
-        ctx.violation(MissingTypeInNode, id, s"No @type declaration on node $map", map) // todo : review with pedro
+        ctx.eh.violation(MissingTypeInNode, id, s"No @type declaration on node $map", map) // todo : review with pedro
         Nil
     }
   }
@@ -60,7 +60,7 @@ trait GraphParserHelpers {
     map.key("@id") match {
       case Some(entry) => Some(entry.value.as[YScalar].text)
       case _ =>
-        ctx.violation(MissingIdInNode, "", s"No @id declaration on node $map", map)
+        ctx.eh.violation(MissingIdInNode, "", s"No @id declaration on node $map", map)
         None
     }
   }

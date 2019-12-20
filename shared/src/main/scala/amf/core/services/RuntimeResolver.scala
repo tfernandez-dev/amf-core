@@ -1,8 +1,8 @@
 package amf.core.services
 
-import amf.core.model.document.BaseUnit
 import amf.client.plugins.AMFDocumentPlugin
-import amf.core.parser.ErrorHandler
+import amf.core.errorhandling.ErrorHandler
+import amf.core.model.document.BaseUnit
 import amf.core.registries.AMFPluginsRegistry
 import amf.plugins.features.validation.CoreValidations.ResolutionValidation
 
@@ -21,7 +21,7 @@ object RuntimeResolver {
           ResolutionValidation,
           unit.id,
           None,
-          s"Cannot find domain plugin for vendor $vendor to resolve unit ${unit.location}",
+          s"Cannot find domain plugin for vendor $vendor to resolve unit ${ unit.location()}",
           unit.position(),
           unit.location()
         )

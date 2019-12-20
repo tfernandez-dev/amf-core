@@ -3,21 +3,20 @@ package amf.core.parser
 import amf.core.benchmark.ExecutionLog
 import amf.core.exception.CyclicReferenceException
 import amf.core.model.document._
-import amf.core.parser
 import amf.core.remote.File.FILE_PROTOCOL
 import amf.core.remote.HttpParts.{HTTPS_PROTOCOL, HTTP_PROTOCOL}
-import amf.core.remote.{Cache, Context}
 import amf.core.services.RuntimeCompiler
 import amf.core.unsafe.PlatformSecrets
-import amf.internal.environment.Environment
-import org.yaml.model.YNode
 import amf.core.utils.AmfStrings
 import amf.core.vocabulary.Namespace
+import amf.core.{CompilerContext, parser}
+import amf.internal.environment.Environment
 import amf.plugins.features.validation.CoreValidations.{ExpectedModule, InvalidInclude}
+import org.yaml.model.YNode
 
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class ReferenceResolutionResult(exception: Option[Throwable], unit: Option[BaseUnit])
 
@@ -29,43 +28,34 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
     copy(refs = refs :+ RefContainer(kind, ast, fragment))
   }
 
-  def resolve(base: Context,
-              cache: Cache,
-              ctx: ParserContext,
-              env: Environment,
+  def resolve(compilerContext: CompilerContext,
               nodes: Seq[YNode],
               allowRecursiveRefs: Boolean): Future[ReferenceResolutionResult] = {
 
     // If there is any ReferenceResolver attached to the environment, then first try to get the cached reference if it exists. If not, load and parse as usual.
-    env.resolver match {
+    compilerContext.environment.resolver match {
       case Some(resolver) =>
-        resolver.fetch(base.resolve(platform.normalizePath(url))) flatMap { cachedReference =>
+        resolver.fetch(compilerContext.resolvePath(url)) flatMap { cachedReference =>
           Future(ReferenceResolutionResult(None, Some(cachedReference.content)))
         } recoverWith {
-          case _ => resolveReference(base, cache, ctx, env, nodes, allowRecursiveRefs)
+          case _ => resolveReference(compilerContext, nodes, allowRecursiveRefs)
         }
-      case None => resolveReference(base, cache, ctx, env, nodes, allowRecursiveRefs)
+      case None => resolveReference(compilerContext, nodes, allowRecursiveRefs)
     }
   }
 
-  private def resolveReference(base: Context,
-                               cache: Cache,
-                               ctx: ParserContext,
-                               env: Environment,
+  private def resolveReference(compilerContext: CompilerContext,
                                nodes: Seq[YNode],
                                allowRecursiveRefs: Boolean): Future[ReferenceResolutionResult] = {
     val kinds = refs.map(_.linkType).distinct
     val kind  = if (kinds.size > 1) UnspecifiedReference else kinds.head
     try {
-      val res: Future[Future[ReferenceResolutionResult]] = RuntimeCompiler(url,
+      val context = compilerContext.forReference(url)
+      val res: Future[Future[ReferenceResolutionResult]] = RuntimeCompiler.forContext(context,
                                                                            None,
                                                                            None,
-                                                                           base,
-                                                                           kind,
-                                                                           cache,
-                                                                           Some(ctx),
-                                                                           env) map { eventualUnit =>
-        verifyMatchingKind(eventualUnit, kind, kinds, nodes, ctx)
+                                                                           kind) map { eventualUnit =>
+        verifyMatchingKind(eventualUnit, kind, kinds, nodes, context.parserContext)
         Future(parser.ReferenceResolutionResult(None, Some(eventualUnit)))
       } recover {
         case e: CyclicReferenceException if allowRecursiveRefs =>
@@ -100,14 +90,14 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       case _: Module => // if is a library, kind should be LibraryReference
         if (allKinds.contains(LibraryReference) && allKinds.contains(LinkReference))
           nodes.foreach(
-            ctx.violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
+            ctx.eh.violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
         else if (!LibraryReference.eq(definedKind))
-          nodes.foreach(ctx.violation(ExpectedModule, unit.id, "Libraries must be applied by using 'uses'", _))
+          nodes.foreach(ctx.eh.violation(ExpectedModule, unit.id, "Libraries must be applied by using 'uses'", _))
       // ToDo find a better way to skip vocabulary/dialect elements of this validation
       case _ if !unit.meta.`type`.exists(_.iri().contains(Namespace.Meta.base)) =>
         // if is not a library, and is not a vocabulary, kind should not be LibraryReference
         if (LibraryReference.eq(definedKind))
-          nodes.foreach(ctx.violation(InvalidInclude, unit.id, "Fragments must be imported by using '!include'", _))
+          nodes.foreach(ctx.eh.violation(InvalidInclude, unit.id, "Fragments must be imported by using '!include'", _))
       case _ => // nothing to do
     }
     unit

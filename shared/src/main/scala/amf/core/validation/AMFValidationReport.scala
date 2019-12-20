@@ -11,7 +11,7 @@ case class AMFValidationReport(conforms: Boolean,
 
   def toString(max: Int): String = {
     val str = StringBuilder.newBuilder
-    val validations = results.take(max).sorted.groupBy(_.level)
+    val validations = results.take(max).sortWith((c1,c2) => c1.compare(c2) < 0).groupBy(_.level)
 
     str.append(s"Model: $model\n")
     str.append(s"Profile: ${profile.profile}\n")

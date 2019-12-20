@@ -1,11 +1,12 @@
 package amf.core.model.domain.extensions
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.domain.ShapeModel
 import amf.core.metamodel.domain.extensions.PropertyShapeModel
 import amf.core.metamodel.domain.extensions.PropertyShapeModel._
 import amf.core.model.domain.{DomainElement, Linkable, Shape}
-import amf.core.model.{BoolField, IntField, StrField}
-import amf.core.parser.{Annotations, ErrorHandler, Fields}
+import amf.core.model.{IntField, StrField}
+import amf.core.parser.{Annotations, Fields}
 import amf.core.traversal.ModelTraversalRegistry
 import amf.core.utils.AmfStrings
 

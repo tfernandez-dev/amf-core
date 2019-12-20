@@ -1,9 +1,9 @@
 package amf.core.resolution.stages
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.domain.ExternalSourceElementModel
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.{DomainElement, ExternalSourceElement}
-import amf.core.parser.ErrorHandler
 import amf.core.resolution.stages.selectors.{ExternalSourceElementSelector, KnownElementIdSelector}
 
 import scala.collection.mutable

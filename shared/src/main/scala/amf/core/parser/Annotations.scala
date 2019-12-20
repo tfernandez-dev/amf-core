@@ -71,6 +71,8 @@ class Annotations() {
     collector ++= annotations.filter(filter)
     this
   }
+
+  def nonEmpty: Boolean = annotations.nonEmpty
 }
 
 object Annotations {

@@ -2,8 +2,8 @@ package amf.core.emitter
 
 import amf.client.render.{RenderOptions => ClientRenderOptions}
 import amf.client.resolve.ClientErrorHandlerConverter._
+import amf.core.errorhandling.{ErrorHandler, UnhandledErrorHandler}
 import amf.core.metamodel.Field
-import amf.core.parser.{ErrorHandler, UnhandledErrorHandler}
 
 /**
   * Render options

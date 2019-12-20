@@ -1,7 +1,7 @@
 package amf.core.services
 
-import amf.core.annotations.LexicalInformation
 import amf.core.emitter.RenderOptions
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.Field
 import amf.core.model.document.BaseUnit
 import amf.core.model.domain.DomainElement
@@ -39,7 +39,7 @@ trait RuntimeValidator {
   /**
     * Loads a validation profile from a URL
     */
-  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment()): Future[ProfileName]
+  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment(), errorHandler: ErrorHandler): Future[ProfileName]
 
   /**
     * Low level validation returning a SHACL validation report
@@ -73,36 +73,6 @@ trait RuntimeValidator {
                env: Environment,
                resolved: Boolean): Future[AMFValidationReport]
 
-  def reset()
-
-  def nestedValidation[T](merger: ValidationsMerger)(k: => T): T
-
-  /**
-    * Client code can use this function to register a new validation failure
-    */
-  def reportConstraintFailure(level: String,
-                              validationId: String,
-                              targetNode: String,
-                              targetProperty: Option[String] = None,
-                              message: String = "",
-                              position: Option[LexicalInformation] = None,
-                              parserRun: Int,
-                              location: Option[String])
-
-  /**
-    * Temporary disable checking of runtime validations for the duration of the passed block
-    */
-  def disableValidations[T]()(f: () => T): T
-
-  /**
-    * Async version of disable valdiations
-    */
-  def disableValidationsAsync[T]()(f: (() => Unit) => T): T
-
-  def aggregateReport(model: BaseUnit,
-                      profileName: ProfileName,
-                      messageStyle: MessageStyle,
-                      resolved: Boolean): Future[AMFValidationReport]
 }
 
 object RuntimeValidator {
@@ -119,8 +89,8 @@ object RuntimeValidator {
     }
   }
 
-  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment()): Future[ProfileName] =
-    validator.loadValidationProfile(validationProfilePath, env)
+  def loadValidationProfile(validationProfilePath: String, env: Environment = Environment(), errorHandler: ErrorHandler): Future[ProfileName] =
+    validator.loadValidationProfile(validationProfilePath, env, errorHandler)
 
   type PropertyInfo = (Annotations, Field)
   // When no property info is provided violation is thrown in domain element level
@@ -147,39 +117,6 @@ object RuntimeValidator {
             env: Environment = Environment(), resolved: Boolean = false): Future[AMFValidationReport] =
     validator.validate(model, profileName, messageStyle, env, resolved)
 
-  def aggregateReport(model: BaseUnit,
-                      profileName: ProfileName,
-                      messageStyle: MessageStyle = AMFStyle,
-                      resolved: Boolean = false): Future[AMFValidationReport] =
-    validator.aggregateReport(model, profileName, messageStyle, resolved)
-
-  def reset(): Unit = validator.reset()
-
-  def nestedValidation[T](merger: ValidationsMerger)(k: => T): T = validator.nestedValidation(merger)(k)
-
-  def disableValidations[T]()(f: () => T): T = validator.disableValidations()(f)
-
-  def disableValidationsAsync[T]()(f: (() => Unit) => T): T = validator.disableValidationsAsync()(f)
-
-  def reportConstraintFailure(level: String,
-                              validationId: String,
-                              targetNode: String,
-                              targetProperty: Option[String] = None,
-                              message: String = "",
-                              position: Option[LexicalInformation] = None,
-                              parserRun: Int,
-                              location: Option[String]): Unit = {
-    validator.reportConstraintFailure(
-      level,
-      validationId,
-      targetNode,
-      targetProperty,
-      message,
-      position,
-      parserRun,
-      location
-    )
-  }
 }
 
 class ValidationOptions() {
@@ -204,7 +141,7 @@ class ValidationOptions() {
     this
   }
 
-  def isPartialValidation(): Boolean = level == "partial"
+  def isPartialValidation: Boolean = level == "partial"
 }
 
 object DefaultValidationOptions extends ValidationOptions {}

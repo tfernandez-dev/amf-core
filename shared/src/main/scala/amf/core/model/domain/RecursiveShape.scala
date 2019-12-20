@@ -1,10 +1,11 @@
 package amf.core.model.domain
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.Obj
 import amf.core.metamodel.domain.RecursiveShapeModel
 import amf.core.metamodel.domain.RecursiveShapeModel._
 import amf.core.model.StrField
-import amf.core.parser.{Annotations, ErrorHandler, Fields}
+import amf.core.parser.{Annotations, Fields}
 import amf.core.traversal.ModelTraversalRegistry
 
 class RecursiveShape(override val fields: Fields, override val annotations: Annotations) extends Shape {

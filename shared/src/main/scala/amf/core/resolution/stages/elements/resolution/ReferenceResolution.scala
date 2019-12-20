@@ -1,10 +1,11 @@
 package amf.core.resolution.stages.elements.resolution
 import amf.core.annotations._
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.document.DocumentModel
 import amf.core.model.document.Document
-import amf.core.model.domain.{DomainElement, LinkNode, NamedDomainElement, Linkable}
-import amf.core.parser.{Annotations, ErrorHandler}
-import amf.core.resolution.stages.{ModelReferenceResolver, LinkNodeResolutionStage, LinkNodeResolver, ResolvedNamedEntity}
+import amf.core.model.domain.{DomainElement, LinkNode, Linkable, NamedDomainElement}
+import amf.core.parser.Annotations
+import amf.core.resolution.stages.{LinkNodeResolutionStage, LinkNodeResolver, ModelReferenceResolver, ResolvedNamedEntity}
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable

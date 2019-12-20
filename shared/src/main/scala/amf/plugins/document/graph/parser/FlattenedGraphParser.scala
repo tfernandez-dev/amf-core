@@ -1,4 +1,5 @@
 package amf.plugins.document.graph.parser
+import amf.client.parse.DefaultParserErrorHandler
 import amf.core.annotations.DomainExtensionAnnotation
 import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel}
@@ -52,11 +53,11 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
             case Some(b: BaseUnit) =>
               b.withLocation(location)
             case _ =>
-              ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
+              ctx.eh.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
               Document() // TODO returning empty document on failure
           }
         case _ =>
-          ctx.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
+          ctx.eh.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
           Document()
       }
     }
@@ -79,15 +80,15 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
             case Some(b: BaseUnit) =>
               Some(b)
             case Some(_) =>
-              ctx.violation(UnableToParseDocument, "", "Root node is not a Base Unit")
+              ctx.eh.violation(UnableToParseDocument, "", "Root node is not a Base Unit")
               None
             case _ =>
-              ctx.violation(UnableToParseDocument, "", "Unable to parse root node")
+              ctx.eh.violation(UnableToParseDocument, "", "Unable to parse root node")
               None
           }
 
         case None =>
-          ctx.violation(UnableToParseDocument, "", "Cannot find root node for flattened JSON-LD")
+          ctx.eh.violation(UnableToParseDocument, "", "Cannot find root node for flattened JSON-LD")
           None
       }
     }
@@ -128,7 +129,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
       stringTypes.find(findType(_).isDefined) match {
         case Some(t) => findType(t)
         case None =>
-          ctx.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $stringTypes", map)
+          ctx.eh.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $stringTypes", map)
           None
       }
     }
@@ -161,7 +162,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
               graphMap.get(id) match {
                 case Some(raw) => parse(raw)
                 case None =>
-                  ctx.violation(UnableToParseDocument, "", s"Cannot find node with $id")
+                  ctx.eh.violation(UnableToParseDocument, "", s"Cannot find node with $id")
                   None
               }
 
@@ -242,7 +243,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
             case unresolved: LinkNode =>
               unresolved.withLinkedDomainElement(link)
             case _ =>
-              ctx.violation(NotLinkable, instance.id, "Only linkable elements can be linked", instance.annotations)
+              ctx.eh.violation(NotLinkable, instance.id, "Only linkable elements can be linked", instance.annotations)
           }
           unresolvedReferences.update(link.id, Nil)
         case ref: ExternalSourceElement =>
@@ -537,7 +538,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
             (a: Annotations) =>
               Some(builder(a))
           case _ =>
-            ctx.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
+            ctx.eh.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
             (_: Annotations) =>
               None
         }
@@ -548,7 +549,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
 object FlattenedGraphParser {
   def apply: FlattenedGraphParser = FlattenedGraphParser(TrunkPlatform(""))
   def apply(platform: Platform): FlattenedGraphParser =
-    new FlattenedGraphParser(platform)(new GraphParserContext())
+    new FlattenedGraphParser(platform)(new GraphParserContext(eh = DefaultParserErrorHandler.withRun()))
 
   def canParse(document: SyamlParsedDocument): Boolean = {
     document.document.node.value match {

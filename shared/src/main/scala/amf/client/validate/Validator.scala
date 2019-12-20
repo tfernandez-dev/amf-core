@@ -1,10 +1,11 @@
 package amf.client.validate
 
-import amf.{AMFStyle, MessageStyle, ProfileName}
 import amf.client.convert.CoreClientConverters._
 import amf.client.environment.{DefaultEnvironment, Environment}
 import amf.client.model.document.BaseUnit
+import amf.core.errorhandling.UnhandledErrorHandler
 import amf.core.services.RuntimeValidator
+import amf.{AMFStyle, MessageStyle, ProfileName}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.scalajs.js.annotation.JSExportAll
@@ -27,7 +28,7 @@ object Validator {
 
   def loadValidationProfile(url: String,
                             env: Environment = DefaultEnvironment()): ClientFuture[ProfileName] =
-    RuntimeValidator.loadValidationProfile(url, env._internal).asClient
+    RuntimeValidator.loadValidationProfile(url, env._internal, UnhandledErrorHandler).asClient
 
   def emitShapesGraph(profileName: ProfileName): String =
     RuntimeValidator.emitShapesGraph(profileName)

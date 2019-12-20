@@ -26,6 +26,23 @@ case class AMFValidationResult(message: String,
     str.toString
   }
 
+  override def equals(obj: Any): Boolean = obj match {
+    case other:AMFValidationResult =>
+      other.message.equals(message) && other.validationId == validationId && other.location.getOrElse("") == location.getOrElse("") && samePosition(other.position)
+    case _ => false
+  }
+
+
+  override def hashCode(): Int = super.hashCode()
+
+  private def samePosition(otherPosition:Option[LexicalInformation]): Boolean = {
+    otherPosition match {
+      case Some(otherPos) if position.isDefined =>
+        val pos = position.get
+        otherPos.range.toString.equals(pos.range.toString)
+      case _ => position.isEmpty
+    }
+  }
   override def compare(that: AMFValidationResult): Int = {
 
     val thatPosition = if (that.position != null) that.position else None

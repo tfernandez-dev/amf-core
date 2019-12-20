@@ -1,15 +1,11 @@
 package amf.core.resolution.stages
 
 import amf.core.annotations._
+import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.document.DocumentModel
 import amf.core.model.document.{BaseUnit, Document, EncodesModel}
 import amf.core.model.domain._
-import amf.core.parser.ErrorHandler
-import amf.core.resolution.stages.elements.resolution.{
-  ElementResolutionStage,
-  ElementStageTransformer,
-  ReferenceResolution
-}
+import amf.core.resolution.stages.elements.resolution.{ElementResolutionStage, ElementStageTransformer, ReferenceResolution}
 import amf.core.resolution.stages.selectors.{KnownElementIdSelector, LinkNodeSelector, LinkSelector}
 
 import scala.collection.mutable

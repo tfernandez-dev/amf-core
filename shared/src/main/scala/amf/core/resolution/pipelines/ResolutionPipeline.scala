@@ -2,11 +2,11 @@ package amf.core.resolution.pipelines
 
 import amf.ProfileName
 import amf.core.benchmark.ExecutionLog
+import amf.core.errorhandling.ErrorHandler
 import amf.core.model.document.BaseUnit
-import amf.core.parser.ErrorHandler
 import amf.core.resolution.stages.ResolutionStage
 
-import scala.scalajs.js.annotation.{JSExportTopLevel, JSExportAll}
+import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 
 abstract class ResolutionPipeline(val eh: ErrorHandler) {
 

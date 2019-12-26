@@ -8,6 +8,9 @@ import amf.plugins.features.validation.CoreValidations.ResolutionValidation
 
 object RuntimeResolver {
 
+  def resolve(vendor: String, unit: BaseUnit, pipelineId: String): BaseUnit =
+    resolve(vendor, unit, pipelineId, unit.errorHandler())
+
   def resolve(vendor: String, unit: BaseUnit, pipelineId: String, errorHandler: ErrorHandler): BaseUnit = {
     val plugin = AMFPluginsRegistry.documentPluginForID(vendor) match {
       case Some(documentPlugin) => Some(documentPlugin)
@@ -21,7 +24,7 @@ object RuntimeResolver {
           ResolutionValidation,
           unit.id,
           None,
-          s"Cannot find domain plugin for vendor $vendor to resolve unit ${ unit.location()}",
+          s"Cannot find domain plugin for vendor $vendor to resolve unit ${unit.location()}",
           unit.position(),
           unit.location()
         )

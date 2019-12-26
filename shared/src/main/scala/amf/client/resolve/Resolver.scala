@@ -16,7 +16,7 @@ class Resolver(vendor: String) {
   def resolve(unit: BaseUnit): BaseUnit = resolve(unit, ResolutionPipeline.DEFAULT_PIPELINE)
 
   def resolve(unit: BaseUnit, pipeline: String): BaseUnit =
-    RuntimeResolver.resolve(vendor, unit, pipeline, DefaultErrorHandler())
+    RuntimeResolver.resolve(vendor, unit, pipeline)
 
   def resolve(unit: BaseUnit, pipeline: String, errorHandler: ClientErrorHandler): BaseUnit =
     RuntimeResolver.resolve(vendor, unit, pipeline, errorHandler)

@@ -7,12 +7,13 @@ import org.scalatest.{FunSuite, Matchers}
 
 class PluginContextTest extends FunSuite with Matchers {
 
+
   test("Test types without blacklist") {
     val ctx = PluginContext()
 
     CorePlugin.modelEntities.foreach { `type` =>
       val iri = defaultIri(`type`)
-      ctx.findType(iri) should be ('defined)
+      shouldBeDefined(ctx.findType(iri))
     }
 
     CorePlugin.modelEntities.filterNot(_ == SourceMapModel).foreach { `type` =>
@@ -27,7 +28,7 @@ class PluginContextTest extends FunSuite with Matchers {
 
     CorePlugin.modelEntities.foreach { `type` =>
       val iri = defaultIri(`type`)
-      ctx.findType(iri) should be ('empty)
+      shouldBeEmpty(ctx.findType(iri))
     }
 
     CorePlugin.modelEntities.foreach { `type` =>
@@ -35,5 +36,15 @@ class PluginContextTest extends FunSuite with Matchers {
         ctx.buildType(`type`)
       } should have message s"Cannot find builder for type ${`type`}"
     }
+  }
+
+  private def shouldBeDefined[T](opt: Option[T]): Unit = {
+    //  should be ('defined) not working on JS
+    opt.isDefined should be(true)
+  }
+
+  private def shouldBeEmpty[T](opt: Option[T]): Unit = {
+    //  should be ('empty) not working on JS
+    opt.isDefined should be(false)
   }
 }

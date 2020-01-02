@@ -65,6 +65,14 @@ trait Oas extends Vendor {
   override def toString: String = name.trim
 }
 
+trait Async extends Vendor {
+  def version: String
+
+  override val name: String = ("ASYNC " + version).trim
+
+  override def toString: String = name.trim
+}
+
 object Aml extends Vendor {
 
   override val name: String = "AML 1.0"
@@ -96,11 +104,11 @@ object Raml10 extends Raml {
   override def version: String = "1.0"
 }
 
-object AsyncApi extends Raml {
+object AsyncApi extends Async {
   override def version: String = ""
 }
 
-object AsyncApi20 extends Raml {
+object AsyncApi20 extends Async {
   override def version: String = "2.0"
 }
 

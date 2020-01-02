@@ -7,5 +7,6 @@ trait AMFPlugin {
   val ID: String
 
   def dependencies(): Seq[AMFPlugin]
+
   def init(): Future[AMFPlugin]
 }

@@ -406,8 +406,9 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
       .isInstanceOf[DeclaresModel] || typeModel.isInstanceOf[BaseUnitModel]
 
   private def retrieveType(id: String, node: Node, findBaseUnit: Boolean = false): Option[Obj] = {
-    val stringTypes = ts(node, ctx, id)
-    val foundType = stringTypes.find { t =>
+    val types = ts(node, ctx, id)
+
+    val foundType = types.find { t =>
       val maybeFoundType = findType(t)
       // this is just for self-encoding documents
       maybeFoundType match {
@@ -415,18 +416,18 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
         case Some(typeModel) if findBaseUnit && isUnitModel(typeModel)   => true
         case _                                                           => false
       }
-    } orElse(
+    } orElse {
       // if I cannot find it, I will return the matching one directly, this is used
       // in situations where the references a reified, for example, in the canonical web api spec
-      stringTypes.find(findType(_).isDefined)
-    )
+      types.find(findType(_).isDefined)
+    }
 
     foundType match {
       case Some(t) => findType(t)
       case None =>
         ctx.eh.violation(UnableToParseNode,
           id,
-          s"Error parsing JSON-LD node, unknown @types $stringTypes",
+          s"Error parsing JSON-LD node, unknown @types $types",
           ctx.rootContextDocument)
         None
     }
@@ -441,11 +442,9 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
     }
   }
 
-  private def types: Map[String, Obj] = AMFDomainRegistry.metadataRegistry.toMap
+  private def findType(`type`: String): Option[Obj] = ctx.plugins.findType(`type`)
 
-  private def findType(typeString: String): Option[Obj] = {
-    types.get(typeString).orElse(AMFDomainRegistry.findType(typeString))
-  }
+  private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
 
   private val deferredTypesSet = Set(
     (Namespace.Document + "Document").iri(),
@@ -459,21 +458,6 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
   private def ts(node: Node, ctx: ParserContext, id: String): Seq[String] = {
     node.classes.partition(deferredTypesSet.contains) match {
       case (deferred, others) => others ++ deferred.sorted // we just use the fact that lexical order is correct
-    }
-  }
-
-  private def buildType(modelType: Obj): Annotations => AmfObject = {
-    AMFDomainRegistry.metadataRegistry.get(modelType.`type`.head.iri()) match {
-      case Some(modelType: ModelDefaultBuilder) =>
-        (annotations: Annotations) =>
-          val instance = modelType.modelInstance
-          instance.annotations ++= annotations
-          instance
-      case _ =>
-        AMFDomainRegistry.buildType(modelType) match {
-          case Some(builder) => builder
-          case _             => throw new Exception(s"Cannot find builder for node type $modelType")
-        }
     }
   }
 

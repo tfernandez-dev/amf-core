@@ -7,7 +7,7 @@ import amf.core.vocabulary.Namespace.Document
 import amf.core.vocabulary.ValueType
 
 /**
-  * A Document that extends a target document, overwritting part of the information or overlaying additional information.
+  * A Document that extends a target document, overwriting part of the information or overlaying additional information.
   */
 trait ExtensionLikeModel extends DocumentModel {
 

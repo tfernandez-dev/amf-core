@@ -2,6 +2,7 @@ package amf.core.parser
 
 import amf.core.model.document.BaseUnit
 import amf.core.parser.errorhandler.ParserErrorHandler
+import amf.core.plugin.PluginContext
 import amf.core.validation.core.ValidationSpecification
 import org.mulesoft.lexer.SourceLocation
 import org.yaml.model.{IllegalTypeHandler, ParseErrorHandler, SyamlException, YError}
@@ -15,7 +16,10 @@ object EmptyFutureDeclarations {
 case class ParserContext(rootContextDocument: String = "",
                          refs: Seq[ParsedReference] = Seq.empty,
                          futureDeclarations: FutureDeclarations = EmptyFutureDeclarations(),
-                         eh: ParserErrorHandler) extends ParseErrorHandler  with IllegalTypeHandler {
+                         eh: ParserErrorHandler,
+                         plugins: PluginContext = PluginContext())
+    extends ParseErrorHandler
+    with IllegalTypeHandler {
 
   var globalSpace: mutable.Map[String, Any] = mutable.Map()
 

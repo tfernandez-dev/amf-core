@@ -138,11 +138,11 @@ object AMFPluginsRegistry {
     }
   }
 
-  def unregisterDomainPlugin(domainPlugin: AMFDomainPlugin) = {
+  def unregisterDomainPlugin(domainPlugin: AMFDomainPlugin): Unit = {
     domainPluginRegistry.remove(domainPlugin.ID)
     domainPlugin.serializableAnnotations().foreach {
       case (name, unloader) =>
-        AMFDomainRegistry.unregisterAnnotaion(name)
+        AMFDomainRegistry.unregisterAnnotation(name)
     }
     domainPlugin.modelEntities.foreach { entity =>
       AMFDomainRegistry.unregisterModelEntity(entity)

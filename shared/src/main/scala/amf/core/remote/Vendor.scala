@@ -2,23 +2,22 @@ package amf.core.remote
 
 import scala.scalajs.js.annotation.JSExportTopLevel
 
-/**
-  * Created by pedro.colunga on 10/9/17.
-  */
 @JSExportTopLevel("core.Vendor")
 object Vendor {
   def unapply(name: String): Option[Vendor] = {
     name match {
-      case Raml10.name  => Some(Raml10)
-      case Raml08.name  => Some(Raml08)
-      case Raml.name    => Some(Raml) // todo remove later
-      case Oas20.name   => Some(Oas20)
-      case Oas30.name   => Some(Oas30)
-      case Oas.name     => Some(Oas)
-      case Amf.name     => Some(Amf)
-      case Payload.name => Some(Payload)
-      case Aml.name     => Some(Aml)
-      case _            => None
+      case Raml10.name     => Some(Raml10)
+      case Raml08.name     => Some(Raml08)
+      case Raml.name       => Some(Raml)
+      case Oas20.name      => Some(Oas20)
+      case Oas30.name      => Some(Oas30)
+      case Oas.name        => Some(Oas)
+      case AsyncApi.name   => Some(AsyncApi)
+      case AsyncApi20.name => Some(AsyncApi20)
+      case Amf.name        => Some(Amf)
+      case Payload.name    => Some(Payload)
+      case Aml.name        => Some(Aml)
+      case _               => None
     }
   }
 
@@ -33,6 +32,8 @@ object Vendor {
   val OAS: Vendor     = Oas
   val OAS20: Vendor   = Oas20
   val OAS30: Vendor   = Oas30
+  val ASYNC: Vendor   = AsyncApi
+  val ASYNC20: Vendor = AsyncApi20
   val AMF: Vendor     = Amf
   val PAYLOAD: Vendor = Payload
   val AML: Vendor     = Aml
@@ -41,8 +42,9 @@ object Vendor {
 sealed trait Vendor {
   val name: String
 
-  def isRaml: Boolean = this == Raml || this == Raml10 || this == Raml08
-  def isOas: Boolean  = this == Oas || this == Oas20 || this == Oas30
+  def isRaml: Boolean  = this == Raml || this == Raml10 || this == Raml08
+  def isOas: Boolean   = this == Oas || this == Oas20 || this == Oas30
+  def isAsync: Boolean = this == AsyncApi || this == AsyncApi20
 }
 
 class UnknowVendor(override val name: String) extends Vendor
@@ -59,6 +61,14 @@ trait Oas extends Vendor {
   def version: String
 
   override val name: String = ("OAS " + version).trim
+
+  override def toString: String = name.trim
+}
+
+trait Async extends Vendor {
+  def version: String
+
+  override val name: String = ("ASYNC " + version).trim
 
   override def toString: String = name.trim
 }
@@ -89,8 +99,17 @@ object Raml extends Raml {
 object Raml08 extends Raml {
   override def version: String = "0.8"
 }
+
 object Raml10 extends Raml {
   override def version: String = "1.0"
+}
+
+object AsyncApi extends Async {
+  override def version: String = ""
+}
+
+object AsyncApi20 extends Async {
+  override def version: String = "2.0"
 }
 
 object Amf extends Vendor {

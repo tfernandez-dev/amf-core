@@ -19,6 +19,10 @@ object OasYamlHint extends Hint(Oas, Yaml)
 
 object OasJsonHint extends Hint(Oas, Json)
 
+object AsyncYamlHint extends Hint(AsyncApi, Yaml)
+
+object AsyncJsonHint extends Hint(AsyncApi, Json)
+
 object AmfJsonHint extends Hint(Amf, Json)
 
 object PayloadJsonHint extends Hint(Payload, Json)

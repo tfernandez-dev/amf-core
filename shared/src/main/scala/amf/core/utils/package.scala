@@ -77,6 +77,8 @@ package object utils {
 
     def asOasExtension = s"x-amf-$str"
 
+    def asAsyncExtension = s"x-amf-$str"
+
     def option: Option[String] = if (str.isEmpty) None else Option(str)
   }
 

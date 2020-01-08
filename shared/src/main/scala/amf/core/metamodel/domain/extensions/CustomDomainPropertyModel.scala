@@ -27,7 +27,7 @@ object CustomDomainPropertyModel extends DomainElementModel with KeyField with D
   /**
     * The name of the extension
     */
-  val Name = Field(Str, Core + "name", ModelDoc(ModelVocabularies.Core, "name", "name for an entity"))
+  val Name = Field(Str, Core + "name", ModelDoc(ModelVocabularies.Core, "name", "Name for an entity"))
 
   override val key: Field = Name
 

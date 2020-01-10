@@ -8,7 +8,7 @@ import amf.core.unsafe.PlatformSecrets
 import org.mulesoft.common.io.Output
 import org.yaml.model.{YComment, YDocument, YMap, YNode}
 import org.yaml.parser.{JsonParser, YamlParser}
-import org.yaml.render.{JsonRender, YamlRender}
+import org.yaml.render.{JsonRender, JsonRenderOptions, YamlRender}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -60,7 +60,7 @@ object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
         val ast = input.document
         render(mediaType, ast) { (format, ast) =>
           if (format == "yaml") YamlRender.render(writer, ast, expandReferences = false)
-          else JsonRender.render(ast, writer)
+          else JsonRender.render(ast, writer, options = JsonRenderOptions().withoutNonAsciiEncode)
           Some(writer)
         }
       case input: RdfModelDocument if platform.rdfFramework.isDefined =>

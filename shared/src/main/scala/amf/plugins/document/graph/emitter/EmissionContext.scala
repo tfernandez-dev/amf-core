@@ -23,6 +23,8 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   private val typeCount: IdCounter = new IdCounter()
 
+  def nextTypeName: String = typeCount.genId("amf_inline_type")
+
   def emittingDeclarations(d: Boolean): this.type = {
     emittingDeclarations = d
     this

@@ -454,7 +454,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
       ctx + shape
       shape.name.option() match {
         case None =>
-          shape.withName("inline-type")
+          shape.withName(ctx.nextTypeName)
           shape.annotations += InlineElement()
         case Some("schema") | Some("type") =>
           shape.annotations += InlineElement()

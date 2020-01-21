@@ -1,9 +1,10 @@
 package amf.core.resolution.stages.selectors
 
 import amf.core.metamodel.domain.ExternalSourceElementModel
-import amf.core.metamodel.{MetaModelTypeMapping, Obj}
-import amf.core.model.domain.{DomainElement, ExternalSourceElement, LinkNode, Linkable}
-import amf.core.vocabulary.{Namespace, ValueType}
+import amf.core.metamodel.{Obj, MetaModelTypeMapping}
+import amf.core.model.domain.{DomainElement, LinkNode, Linkable, ExternalSourceElement}
+import amf.core.vocabulary.Namespace._
+import amf.core.vocabulary.{ValueType, Namespace}
 
 import scala.collection.mutable
 
@@ -24,16 +25,21 @@ object LinkNodeSelector extends Selector {
   }
 }
 
-object ShapeSelector extends Selector with MetaModelTypeMapping {
+abstract class MetaModelSelector(namespace: Namespace, id: String) extends Selector with MetaModelTypeMapping {
   override def apply(element: DomainElement): Boolean = {
-    // Why don't we check directly if the domain element is an instance of Shape?
     val metaModelFound: Obj = metaModel(element)
-    val targetIri           = (Namespace.Shapes + "Shape").iri()
+    val targetIri           = (namespace + id).iri()
     metaModelFound.`type`.exists { t: ValueType =>
       t.iri() == targetIri
     }
   }
 }
+
+object ShapeSelector extends MetaModelSelector(Shapes, "Shape")
+
+object PropertyShapeSelector extends MetaModelSelector(Shacl, "property")
+
+object NodeShapeSelector extends MetaModelSelector(Shacl, "NodeShape")
 
 object ExternalSourceElementSelector extends Selector {
   override def apply(element: DomainElement): Boolean = {

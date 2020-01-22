@@ -322,17 +322,17 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                         element: Type,
                         sources: Value => Unit,
                         v: Option[Value] = None): Unit = {
-    b.list {
-      _.obj { b =>
+    b.obj { b =>
         val id = s"$parent/list"
         createIdNode(b, id)
-        b.entry("@type", ctx.emitIri((Namespace.Rdfs + "Seq").iri()))
-        seq.zipWithIndex.foreach {
-          case (e, i) =>
-            b.entry(
-              ctx.emitIri((Namespace.Rdfs + s"_${i + 1}").iri()), { b =>
-                b.list {
-                  b =>
+        val e = new Emission((part: Part[T]) => {
+          part.obj { rb =>
+            createIdNode(rb, id)
+            rb.entry("@type", ctx.emitIri((Namespace.Rdfs + "Seq").iri()))
+            seq.zipWithIndex.foreach {
+              case (e, i) =>
+                rb.entry(
+                  ctx.emitIri((Namespace.Rdfs + s"_${i + 1}").iri()), { b =>
                     element match {
                       case _: Obj =>
                         e match {
@@ -366,13 +366,17 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                           case other => scalar(b, other.toString)
                         }
                     }
-                }
-              }
-            )
-        }
-        v.foreach(sources)
+                  }
+                )
+            }
+            v.foreach(sources)
+          }
+        }) with Metadata
+        e.id = Some(id)
+        e.isDeclaration = ctx.emittingDeclarations
+        e.isReference = ctx.emittingReferences
+        pending.tryEnqueue(e)
       }
-    }
   }
 
   private def shouldReconstructInheritance(v: AmfElement, parent: String) = {

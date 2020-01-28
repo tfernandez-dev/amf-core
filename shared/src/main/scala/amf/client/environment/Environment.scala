@@ -46,6 +46,12 @@ case class Environment(private[amf] val _internal: InternalEnvironment) {
     val r = resolver.asInstanceOf[ReferenceResolver]
     Environment(_internal.withResolver(r))
   }
+  /**
+    * Defines an upper bound of yaml alias that will be resolved when parsing a DataNode
+    */
+  def setMaxYamlReferences(value: Long): Environment = {
+    Environment(_internal.setMaxYamlReferences(value))
+  }
 }
 
 object Environment {

@@ -13,12 +13,19 @@ import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
 @JSExportTopLevel("render.ShapeRenderOptions")
 class ShapeRenderOptions {
 
-  private var documentation: Boolean = true
-  private var eh: ClientErrorHandler = ErrorHandlerConverter.asClient(UnhandledErrorHandler)
+  private var documentation: Boolean     = true
+  private var compactedEmission: Boolean = false
+  private var eh: ClientErrorHandler     = ErrorHandlerConverter.asClient(UnhandledErrorHandler)
 
   /** Remove documentation items as examples, descriptions, display names, etc. */
   def withoutDocumentation: ShapeRenderOptions = {
     documentation = false
+    this
+  }
+
+  /** Render shape extracting common types to definitions. */
+  def withCompactedEmission: ShapeRenderOptions = {
+    compactedEmission = true
     this
   }
 
@@ -29,6 +36,7 @@ class ShapeRenderOptions {
 
   def errorHandler: ClientErrorHandler = eh
   def isWithDocumentation: Boolean     = documentation
+  def isWithCompactedEmission: Boolean = compactedEmission
 }
 
 object ShapeRenderOptions {

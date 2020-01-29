@@ -32,5 +32,7 @@ trait ClientPayloadValidator extends js.Object {
 
   def validate(payloadFragment: PayloadFragment): ClientFuture[ValidationReport] = js.native
 
+  def syncValidate(payload: String, mediaType: String): ValidationReport = js.native
+
   def isValid(payload: String, mediaType: String): ClientFuture[Boolean] = js.native
 }

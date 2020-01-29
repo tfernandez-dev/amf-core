@@ -32,4 +32,6 @@ trait ClientPayloadValidator {
   def validate(payloadFragment: PayloadFragment): ClientFuture[ValidationReport]
 
   def isValid(payload: String, mediaType: String): ClientFuture[Boolean]
+
+  def syncValidate(mediaType: String, payload: String): ValidationReport
 }

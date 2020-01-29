@@ -14,4 +14,7 @@ class PayloadValidator(private[amf] val _internal: InternalPayloadValidator) {
     _internal.validate(mediaType, payload).asClient
   def validate(payloadFragment: PayloadFragment): ClientFuture[ValidationReport] =
     _internal.validate(payloadFragment).asClient
-}
+
+  def syncValidate(mediaType: String, payload: String): ValidationReport =
+    _internal.syncValidate(mediaType, payload)
+ }

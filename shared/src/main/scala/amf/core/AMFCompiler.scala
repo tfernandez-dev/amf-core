@@ -59,12 +59,13 @@ class CompilerContext(url: String,
 
   def resolveContent(): Future[Content] = platform.resolve(location, environment)
 
-  def forReference(url:String): CompilerContext = {
-    new CompilerContextBuilder(url,fileContext.platform, parserContext.eh)
+  def forReference(url:String, withNormalizedUri: Boolean = true): CompilerContext = {
+    new CompilerContextBuilder(url, fileContext.platform, parserContext.eh)
       .withCache(cache)
       .withEnvironment(environment)
       .withBaseParserContext(parserContext)
       .withFileContext(fileContext)
+      .withNormalizedUri(withNormalizedUri)
       .build()
   }
 
@@ -84,6 +85,7 @@ class CompilerContextBuilder(url:String, platform: Platform,eh: ParserErrorHandl
   private var givenContent:Option[ParserContext] = None
   private var cache = Cache()
   private var environment = Environment()
+  private var normalizeUri: Boolean = true
 
   def withBaseParserContext(parserContext: ParserContext): this.type  = {
     givenContent = Some(parserContext)
@@ -105,6 +107,11 @@ class CompilerContextBuilder(url:String, platform: Platform,eh: ParserErrorHandl
     this
   }
 
+  def withNormalizedUri(normalizeUri: Boolean) = {
+    this.normalizeUri = normalizeUri
+    this
+  }
+
   /**
     * normalized url
     * */
@@ -113,13 +120,16 @@ class CompilerContextBuilder(url:String, platform: Platform,eh: ParserErrorHandl
       url.normalizePath
     } catch {
       case e: URISyntaxException =>
-        eh.violation(UriSyntaxError, path, e.getMessage, YNode(path))
+        eh.violation(UriSyntaxError, url, e.getMessage)
         url
       case e: Exception => throw new PathResolutionError(e.getMessage)
     }
   }
 
-  private def buildFileContext() = fileContext.update(path)
+  private def buildFileContext() = {
+    val uriToUpdate = if (normalizeUri) path else url
+    fileContext.update(uriToUpdate)
+  }
 
   private def buildParserContext(fc:Context) = givenContent match {
       case Some(given) if given.rootContextDocument.equals(fc.current) => given
@@ -127,9 +137,11 @@ class CompilerContextBuilder(url:String, platform: Platform,eh: ParserErrorHandl
       case None                                                      => ParserContext(fc.current, eh = eh)
     }
 
+
+
   def build(): CompilerContext = {
     val fc = buildFileContext()
-    new CompilerContext(url,path ,buildParserContext(fc), fc, cache, environment)
+    new CompilerContext(url, path,buildParserContext(fc), fc, cache, environment)
   }
 }
 

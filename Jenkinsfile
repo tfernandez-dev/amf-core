@@ -31,7 +31,7 @@ pipeline {
       when {
         anyOf {
           branch 'master'
-          branch 'compact-json-schema'
+          branch 'new_model'
         }
 
       }

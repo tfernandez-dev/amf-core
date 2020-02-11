@@ -18,7 +18,7 @@ trait ShapeModel extends DomainElementModel with LinkableElementModel with KeyFi
   val Name = Field(Str, Shacl + "name", ModelDoc(ExternalModelVocabularies.Shacl, "name", "Name for a data shape"))
 
   val DisplayName =
-    Field(Str, Core + "name", ModelDoc(ModelVocabularies.Core, "name", "Human readable name for the term"))
+    Field(Str, Core + "name", ModelDoc(ModelVocabularies.Core, "display name", "Human readable name for the term"))
 
   val Default = Field(
     DataNodeModel,

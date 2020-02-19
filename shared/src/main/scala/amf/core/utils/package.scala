@@ -7,6 +7,8 @@ import org.mulesoft.lexer.InputRange
 
 import scala.annotation.tailrec
 import org.mulesoft.common.core._
+import org.yaml.model.YNode
+import org.yaml.model.YNode.Alias
 
 import scala.util.matching.Regex
 
@@ -163,4 +165,22 @@ package object utils {
       current
     }
   }
+
+  case class AliasCounter(var count: Int = 0, maxThreshold: Long = AliasCounter.defaultThreshold) {
+    def exceedsThreshold(node: YNode): Boolean = {
+      register(node)
+      count > maxThreshold
+    }
+
+    def register(node: YNode): Unit = if (node.isInstanceOf[Alias]) count = count + 1
+  }
+
+  object AliasCounter {
+    val defaultThreshold = 10000
+    def apply(maxThreshold: Option[Long]): AliasCounter = maxThreshold match {
+      case Some(value) => apply(maxThreshold = value)
+      case None => apply()
+    }
+  }
+
 }

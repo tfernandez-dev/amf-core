@@ -2,7 +2,7 @@ package amf.core.parser
 
 import amf.core.CompilerContext
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ReferenceHandler {
 
@@ -10,7 +10,8 @@ trait ReferenceHandler {
   def collect(document: ParsedDocument, ctx: ParserContext): ReferenceCollector
 
   /** Update parsed reference if needed. */
-  def update(reference: ParsedReference, compilerContext: CompilerContext): Future[ParsedReference] =
+  def update(reference: ParsedReference, compilerContext: CompilerContext)(
+      implicit executionContext: ExecutionContext): Future[ParsedReference] =
     Future.successful(reference)
 }
 

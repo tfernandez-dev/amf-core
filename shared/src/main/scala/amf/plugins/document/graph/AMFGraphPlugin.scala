@@ -19,12 +19,11 @@ import amf.plugins.document.graph.parser.{ExpandedGraphParser, FlattenedGraphPar
 import org.yaml.builder.DocBuilder
 import org.yaml.model.YDocument
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
 
-  override def init(): Future[AMFPlugin] = Future { this }
+  override def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin] = Future { this }
 
   override val ID: String     = Amf.name
   override def dependencies(): Seq[Nothing] = Seq()

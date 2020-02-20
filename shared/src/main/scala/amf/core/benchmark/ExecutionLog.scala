@@ -2,15 +2,15 @@ package amf.core.benchmark
 
 import java.util.Date
 
-import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import amf.ExecutionContextBuilder
 
+import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
+import scala.concurrent.{ExecutionContext, Future}
 
 case class Log(stage: String, time: Long)
 
 case class Execution(startTime: Long, endTime: Long, logs: Seq[Log]) {
-  def log(stage: String, time: Long) = {
+  def log(stage: String, time: Long): Execution = {
     // System.err.println(stage)
     copy(logs = logs ++ Seq(Log(stage, time)), endTime = time)
   }
@@ -20,27 +20,30 @@ case class Execution(startTime: Long, endTime: Long, logs: Seq[Log]) {
 @JSExportAll
 @JSExportTopLevel("ExecutionLog")
 object ExecutionLog {
-  var executions: Seq[Execution] = Nil
-  var current: Option[Execution] = None
-  var stagesSeq: Seq[String] = Seq()
-  var stagesStartTime: Map[String,Long] = Map()
-  var stagesEndTime: Map[String,Long] = Map()
 
-  def startStage(name: String) = {
+  implicit val executionContext: ExecutionContext = ExecutionContextBuilder.getGlobalExecutionContext
+
+  var executions: Seq[Execution]         = Nil
+  var current: Option[Execution]         = None
+  var stagesSeq: Seq[String]             = Seq()
+  var stagesStartTime: Map[String, Long] = Map()
+  var stagesEndTime: Map[String, Long]   = Map()
+
+  def startStage(name: String): Unit = {
     current.foreach { _ =>
       stagesStartTime += (name -> new Date().getTime)
       stagesSeq = stagesSeq ++ Seq(name + "::SEP::start")
     }
   }
 
-  def endStage(name: String) = {
+  def endStage(name: String): Unit = {
     current.foreach { _ =>
       stagesEndTime += (name -> new Date().getTime)
       stagesSeq = stagesSeq ++ Seq(name + "::SEP::end")
     }
   }
 
-  def withStage[X](name: String)(fn: => X):X = {
+  def withStage[X](name: String)(fn: => X): X = {
     startStage(name)
     fn match {
       case f: Future[_] =>
@@ -49,41 +52,44 @@ object ExecutionLog {
           r
         }
         adapted.asInstanceOf[X]
-      case other        =>
+      case other =>
         endStage(name)
         other
     }
   }
 
-  def printStages() = {
+  def printStages(): Unit = {
     collectStages(stagesSeq).foreach { stageMessage =>
       System.err.println(stageMessage)
     }
   }
 
-  protected def collectStages(remaining: Seq[String] = stagesSeq, level: Int = 0, isOpen: Boolean = false): Seq[String] = {
+  protected def collectStages(remaining: Seq[String] = stagesSeq,
+                              level: Int = 0,
+                              isOpen: Boolean = false): Seq[String] = {
     remaining.headOption match {
       case Some(stage_timestamp) =>
-        var parts = stage_timestamp.split("::SEP::")
-        var stage = parts(0)
+        var parts  = stage_timestamp.split("::SEP::")
+        var stage  = parts(0)
         var status = parts(1)
         status match {
           case "start" =>
             // nested
             val newLevel = if (isOpen) {
               level + 2
-            } else {
+            }
+            else {
               level
             }
-            val nested = remaining.tail.takeWhile(!_.startsWith(s"$stage::SEP::end"))
+            val nested         = remaining.tail.takeWhile(!_.startsWith(s"$stage::SEP::end"))
             val nestedMessages = collectStages(nested, newLevel, isOpen = true)
 
             // remaining
-            val remainingTraces =  remaining.tail.dropWhile(t => !t.startsWith(s"$stage::SEP::end")).tail
-            val remainingMessages =  collectStages(remainingTraces, level, isOpen = true)
+            val remainingTraces   = remaining.tail.dropWhile(t => !t.startsWith(s"$stage::SEP::end")).tail
+            val remainingMessages = collectStages(remainingTraces, level, isOpen = true)
 
             // current
-            val elapsed = stagesEndTime(stage) - stagesStartTime(stage)
+            val elapsed      = stagesEndTime(stage) - stagesStartTime(stage)
             val stageMessage = (" " * level) ++ s"| [${elapsed} ms] $stage"
 
             Seq(stageMessage) ++ nestedMessages ++ remainingMessages
@@ -122,16 +128,17 @@ object ExecutionLog {
     this
   }
 
-  def buildReport() = {
-    executions.zipWithIndex.foreach { case (execution, i) =>
-      var prev = execution.startTime
-      System.err.println(s"---- Run $i (${execution.endTime - execution.startTime} ms) ----\n")
-      execution.logs.foreach { log =>
-        System.err.println(s"   (${log.time - prev} ms) ${log.stage}")
-        prev = log.time
-      }
-      System.err.println(s"   (${execution.endTime - prev} ms) Finished")
-      System.err.println("\n\n\n")
+  def buildReport(): Unit = {
+    executions.zipWithIndex.foreach {
+      case (execution, i) =>
+        var prev = execution.startTime
+        System.err.println(s"---- Run $i (${execution.endTime - execution.startTime} ms) ----\n")
+        execution.logs.foreach { log =>
+          System.err.println(s"   (${log.time - prev} ms) ${log.stage}")
+          prev = log.time
+        }
+        System.err.println(s"   (${execution.endTime - prev} ms) Finished")
+        System.err.println("\n\n\n")
     }
   }
 }

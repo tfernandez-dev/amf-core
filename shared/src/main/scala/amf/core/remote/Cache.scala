@@ -3,8 +3,7 @@ package amf.core.remote
 import amf.core.model.document.BaseUnit
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object GlobalCounter {
   var v = 0
@@ -12,7 +11,7 @@ object GlobalCounter {
 
 class Cache {
 
-  protected val cache: mutable.Map[String, Future[BaseUnit]] = mutable.Map()
+  protected val cache: mutable.Map[String, Future[BaseUnit]]      = mutable.Map()
   protected val dependencyGraph: mutable.Map[String, Set[String]] = mutable.Map()
 
   protected def addFromToEdge(from: String, to: String): Unit = {
@@ -24,7 +23,8 @@ class Cache {
     val fullPath: List[String] = acc ++ List(node)
     if (fullPath.size != fullPath.toSet.size) {
       Some(fullPath)
-    } else {
+    }
+    else {
       val sources = dependencyGraph.getOrElse(node, Set())
       val maybeCycles: Set[Option[List[String]]] = sources.map { source =>
         findCycles(source, fullPath)
@@ -33,16 +33,18 @@ class Cache {
     }
   }
 
-  protected def beforeLast(elms: List[String]):Option[String] = {
+  protected def beforeLast(elms: List[String]): Option[String] = {
     val lastTwo = elms.takeRight(2)
     if (lastTwo.size == 2) {
       lastTwo.headOption
-    } else {
+    }
+    else {
       None
     }
   }
 
-  def getOrUpdate(url: String, context: Context)(supplier: () => Future[BaseUnit]): Future[BaseUnit] = synchronized {
+  def getOrUpdate(url: String, context: Context)(supplier: () => Future[BaseUnit])(
+      implicit executionContext: ExecutionContext): Future[BaseUnit] = synchronized {
     beforeLast(context.history) foreach { from =>
       addFromToEdge(from, url)
     }
@@ -50,14 +52,15 @@ class Cache {
       case Some(_) =>
         if (cache(url).isCompleted) {
           cache(url)
-        } else {
+        }
+        else {
           cache.remove(url)
           supplier() map { res =>
             update(url, Future(res))
             res
           }
         }
-      case _           =>
+      case _ =>
         cache.get(url) match {
           case Some(value) =>
             value

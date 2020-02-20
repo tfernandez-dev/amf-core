@@ -10,14 +10,15 @@ import org.yaml.model.{YComment, YDocument, YMap, YNode}
 import org.yaml.parser.{JsonParser, YamlParser}
 import org.yaml.render.{JsonRender, JsonRenderOptions, YamlRender}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
 import scala.concurrent.Future
 
 object SYamlSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
 
   override val ID = "SYaml"
 
-  override def init(): Future[AMFPlugin] = Future { this }
+  override def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin] = Future { this }
 
   override def dependencies(): Seq[AMFPlugin] = Nil
 

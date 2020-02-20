@@ -4,7 +4,7 @@ import amf.core.model.document.BaseUnit
 import amf.core.rdf.{RdfFramework, RdfModel}
 import amf.core.services.ValidationOptions
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Created by antoniogarrote on 17/07/2017.
@@ -24,9 +24,11 @@ trait SHACLValidator extends RdfFramework {
     * @param shapesMediaType media type fo the shapes graph
     * @return JSON-LD encoded SHACL validation report
     */
-  def validate(data: String, dataMediaType: String, shapes: String, shapesMediaType: String): Future[String]
+  def validate(data: String, dataMediaType: String, shapes: String, shapesMediaType: String)(
+      implicit executionContext: ExecutionContext): Future[String]
 
-  def validate(data: BaseUnit, shapes: Seq[ValidationSpecification], options: ValidationOptions): Future[String]
+  def validate(data: BaseUnit, shapes: Seq[ValidationSpecification], options: ValidationOptions)(
+      implicit executionContext: ExecutionContext): Future[String]
 
   /**
     * Validates a data graph against a shapes graph. Graphs are expressed as Strings in a particular format, identified
@@ -37,11 +39,11 @@ trait SHACLValidator extends RdfFramework {
     * @param shapesMediaType media type fo the shapes graph
     * @return ValidationReport
     */
-  def report(data: String, dataMediaType: String, shapes: String, shapesMediaType: String): Future[ValidationReport]
+  def report(data: String, dataMediaType: String, shapes: String, shapesMediaType: String)(
+      implicit executionContext: ExecutionContext): Future[ValidationReport]
 
-  def report(data: BaseUnit,
-             shapes: Seq[ValidationSpecification],
-             options: ValidationOptions): Future[ValidationReport]
+  def report(data: BaseUnit, shapes: Seq[ValidationSpecification], options: ValidationOptions)(
+      implicit executionContext: ExecutionContext): Future[ValidationReport]
 
   /**
     * Registers a library in the validator

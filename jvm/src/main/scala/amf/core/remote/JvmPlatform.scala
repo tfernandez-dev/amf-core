@@ -1,10 +1,13 @@
 package amf.core.remote
 import java.net.URI
 
+import amf.client.execution.{BaseExecutionEnvironment, DefaultExecutionEnvironment, ExecutionEnvironment}
 import amf.client.resource.{FileResourceLoader, HttpResourceLoader}
 import amf.core.unsafe.PlatformBuilder
 import amf.internal.resource.{ResourceLoader, ResourceLoaderAdapter}
 import org.mulesoft.common.io.{FileSystem, Fs}
+
+import scala.concurrent.ExecutionContext
 
 class JvmPlatform extends Platform {
 
@@ -13,11 +16,22 @@ class JvmPlatform extends Platform {
   /** Underlying file system for platform. */
   override val fs: FileSystem = Fs
 
+  override val defaultExecutionEnvironment: ExecutionEnvironment = DefaultExecutionEnvironment()
+
+
   /** Platform out of the box [ResourceLoader]s */
-  override def loaders(): Seq[ResourceLoader] = Seq(
-    ResourceLoaderAdapter(FileResourceLoader()),
-    ResourceLoaderAdapter(HttpResourceLoader())
-  )
+  override def loaders(exec: BaseExecutionEnvironment = defaultExecutionEnvironment): Seq[ResourceLoader] = {
+    implicit val executionContext: ExecutionContext = exec.executionContext
+    loaders()
+  }
+
+  /** Platform out of the box [ResourceLoader]s */
+  override def loaders()(implicit executionContext: ExecutionContext): Seq[ResourceLoader] = {
+    Seq(
+      ResourceLoaderAdapter(FileResourceLoader.apply(executionContext)),
+      ResourceLoaderAdapter(HttpResourceLoader.apply(executionContext))
+    )
+  }
 
   /** Return temporary directory. */
   override def tmpdir(): String = System.getProperty("java.io.tmpdir")

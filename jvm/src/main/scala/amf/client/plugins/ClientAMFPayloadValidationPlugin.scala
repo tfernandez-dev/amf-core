@@ -6,6 +6,7 @@ import amf.client.model.document.PayloadFragment
 import amf.client.model.domain.Shape
 import amf.client.validate.ValidationReport
 
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js.annotation.JSExportAll
 
 @JSExportAll
@@ -27,11 +28,13 @@ trait ClientPayloadValidator {
   val validationMode: ValidationMode
   val env: Environment
 
-  def validate(payload: String, mediaType: String): ClientFuture[ValidationReport]
+  def validate(payload: String, mediaType: String)(
+      implicit executionContext: ExecutionContext): ClientFuture[ValidationReport]
 
-  def validate(payloadFragment: PayloadFragment): ClientFuture[ValidationReport]
-
-  def isValid(payload: String, mediaType: String): ClientFuture[Boolean]
+  def validate(payloadFragment: PayloadFragment)(
+      implicit executionContext: ExecutionContext): ClientFuture[ValidationReport]
 
   def syncValidate(mediaType: String, payload: String): ValidationReport
+
+  def isValid(payload: String, mediaType: String)(implicit executionContext: ExecutionContext): ClientFuture[Boolean]
 }

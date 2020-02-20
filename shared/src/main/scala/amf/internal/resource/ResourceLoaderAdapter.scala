@@ -4,10 +4,12 @@ import amf.client.remote.Content
 import amf.client.resource.{ResourceLoader => ClientResourceLoader}
 import amf.client.convert.CoreClientConverters._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Adapts a client ResourceLoader to an internal one. */
-case class ResourceLoaderAdapter(private[amf] val adaptee: ClientResourceLoader) extends ResourceLoader {
+case class ResourceLoaderAdapter(private[amf] val adaptee: ClientResourceLoader)(
+    implicit executionContext: ExecutionContext)
+    extends ResourceLoader {
 
   override def fetch(resource: String): Future[Content] = adaptee.fetch(resource).asInternal
 

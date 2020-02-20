@@ -3,15 +3,17 @@ package amf.client.resource
 import java.net.{HttpURLConnection, SocketTimeoutException}
 import java.util.concurrent.CompletableFuture
 
+import amf.client.execution.BaseExecutionEnvironment
 import amf.client.remote.Content
 import amf.core.lexer.CharArraySequence
 import amf.core.remote.FutureConverter._
 import amf.core.remote.{NetworkError, SocketTimeout, UnexpectedStatusCode}
+import amf.core.unsafe.PlatformSecrets
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-case class HttpResourceLoader() extends BaseHttpResourceLoader {
+class HttpResourceLoader private ()(implicit executionContext: ExecutionContext) extends BaseHttpResourceLoader {
+
   override def fetch(resource: String): CompletableFuture[Content] = {
     val u          = new java.net.URL(resource)
     val connection = u.openConnection.asInstanceOf[HttpURLConnection]
@@ -42,4 +44,10 @@ case class HttpResourceLoader() extends BaseHttpResourceLoader {
       Option(connection.getHeaderField("Content-Type"))
     )
   }
+}
+
+object HttpResourceLoader extends PlatformSecrets {
+  def apply(): HttpResourceLoader                               = apply(platform.defaultExecutionEnvironment)
+  def apply(exec: BaseExecutionEnvironment): HttpResourceLoader = apply(exec.executionContext)
+  def apply(executionContext: ExecutionContext): HttpResourceLoader = new HttpResourceLoader()(executionContext)
 }

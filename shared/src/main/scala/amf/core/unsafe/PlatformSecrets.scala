@@ -1,6 +1,8 @@
 package amf.core.unsafe
 
+import amf.client.execution.BaseExecutionEnvironment
 import amf.client.remote.Content
+import amf.core.execution.ExecutionEnvironment
 import amf.core.model.document.BaseUnit
 import amf.core.rdf.RdfModel
 import amf.core.remote.{Platform, UnsupportedFileSystem}
@@ -10,7 +12,7 @@ import amf.internal.environment.Environment
 import amf.internal.resource.ResourceLoader
 import org.mulesoft.common.io.FileSystem
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait PlatformSecrets {
   val platform: Platform = PlatformBuilder()
@@ -29,10 +31,12 @@ class TrunkDialectsRegistry(platform: Platform) extends PlatformDialectRegistry(
  */
 
 class TrunkValidator extends SHACLValidator {
-  override def validate(data: String, dataMediaType: String, shapes: String, shapesMediaType: String) =
+  override def validate(data: String, dataMediaType: String, shapes: String, shapesMediaType: String)(
+      implicit executionContext: ExecutionContext) =
     throw new Exception("Error, validation is not supported")
 
-  override def report(data: String, dataMediaType: String, shapes: String, shapesMediaType: String) =
+  override def report(data: String, dataMediaType: String, shapes: String, shapesMediaType: String)(
+      implicit executionContext: ExecutionContext) =
     throw new Exception("Error, validation is not supported")
 
   /**
@@ -45,14 +49,12 @@ class TrunkValidator extends SHACLValidator {
   override def registerLibrary(url: String, code: String): Unit =
     throw new Exception("Error, validation is not supported")
 
-  override def validate(data: BaseUnit,
-                        shapes: Seq[ValidationSpecification],
-                        options: ValidationOptions): Future[String] =
+  override def validate(data: BaseUnit, shapes: Seq[ValidationSpecification], options: ValidationOptions)(
+      implicit executionContext: ExecutionContext): Future[String] =
     throw new Exception("Error, validation is not supported")
 
-  override def report(data: BaseUnit,
-                      shapes: Seq[ValidationSpecification],
-                      options: ValidationOptions): Future[ValidationReport] =
+  override def report(data: BaseUnit, shapes: Seq[ValidationSpecification], options: ValidationOptions)(
+      implicit executionContext: ExecutionContext): Future[ValidationReport] =
     throw new Exception("Error, validation is not supported")
 
   override def emptyRdfModel(): RdfModel = throw new Exception("Error, validation is not supported")
@@ -74,11 +76,21 @@ case class TrunkPlatform(content: String,
 
   override def tmpdir(): String = throw new Exception("Unsupported tmpdir operation")
 
-  override def resolve(url: String, env: Environment = Environment()): Future[Content] =
+  override def resolve(url: String, env: Environment = Environment())(
+      implicit executionContext: ExecutionContext): Future[Content] =
     Future.successful(new Content(content, url, forcedMediaType))
 
   /** Platform out of the box [ResourceLoader]s */
-  override def loaders(): Seq[ResourceLoader] = wrappedPlatform.map(_.loaders()).getOrElse(Seq())
+  override def loaders(exec: BaseExecutionEnvironment = defaultExecutionEnvironment): Seq[ResourceLoader] = {
+    implicit val executionContext: ExecutionContext = exec.executionContext
+    loaders()
+  }
+
+
+  /** Platform out of the box [ResourceLoader]s */
+  override def loaders()(implicit executionContext: ExecutionContext): Seq[ResourceLoader] =
+    wrappedPlatform.map(_.loaders()).getOrElse(Seq())
+
 
   override def findCharInCharSequence(s: CharSequence)(p: Char => Boolean): Option[Char] =
     wrappedPlatform.flatMap(_.findCharInCharSequence(s)(p))
@@ -101,4 +113,7 @@ case class TrunkPlatform(content: String,
 
   /** Return the OS (win, mac, nux). */
   override def operativeSystem(): String = "trunk"
+
+  override val defaultExecutionEnvironment: BaseExecutionEnvironment = new BaseExecutionEnvironment(
+    ExecutionEnvironment()) {}
 }

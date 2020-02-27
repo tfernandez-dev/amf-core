@@ -35,7 +35,7 @@ object FlattenedJsonLdEmitter {
 
 
 class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(implicit ctx: EmissionContext)
-    extends MetaModelTypeMapping {
+    extends CommonEmitter with MetaModelTypeMapping {
 
   val pending: EmissionQueue[T]        = EmissionQueue()
   var root: Part[T]                    = _
@@ -53,10 +53,9 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
             */
           val declarationsEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.Declares)
           val referencesEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.References)
-          val declaredElements: Iterable[AmfElement] = declarationsEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-          val referencedElements: Iterable[AmfElement] = referencesEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-          ctx ++ declaredElements
-          ctx.addReferences(referencedElements)
+
+          extractDeclarationsAndReferencesToContext(declarationsEntry, referencesEntry, unit.annotations)
+
           unit.fields.removeField(ModuleModel.Declares)
           unit.fields.removeField(ModuleModel.References)
 
@@ -379,17 +378,9 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       }
   }
 
-  private def shouldReconstructInheritance(v: AmfElement, parent: String) = {
-    val valueIsDeclared  = ctx.isDeclared(v)
-    val parentIsDeclared = ctx.isDeclared(parent)
-    (!ctx.emittingDeclarations && !ctx.emittingReferences) || (valueIsDeclared && parentIsDeclared)
-  }
-
-  private def isResolvedInheritance(v: AmfElement) = v.annotations.contains(classOf[ResolvedInheritance])
-
   private def value(t: Type, v: Value, parent: String, sources: Value => Unit, b: Part[T]): Unit = {
     t match {
-      case _: ShapeModel if isResolvedInheritance(v.value) && shouldReconstructInheritance(v.value, parent) =>
+      case _: ShapeModel if ctx.canGenerateLink(v.value) =>
         extractToLink(v.value.asInstanceOf[Shape], b)
       case t: DomainElement with Linkable if t.isLink =>
         link(b, t)
@@ -452,8 +443,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
           a.element match {
             case _: Obj =>
               seq.values.asInstanceOf[Seq[AmfObject]].foreach {
-                case v @ (_: Shape)
-                    if isResolvedInheritance(v) && shouldReconstructInheritance(v, parent) =>
+                case v @ (_: Shape) if ctx.canGenerateLink(v) =>
                   extractToLink(v.asInstanceOf[Shape], b, true)
                 case elementInArray: DomainElement with Linkable if elementInArray.isLink =>
                   link(b, elementInArray, inArray = true)
@@ -541,7 +531,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   }
 
   private def extractToLink(shape: Shape, b: Part[T], inArray: Boolean = false): Unit = {
-    if (!ctx.isDeclared(shape)) {
+    if (!ctx.isDeclared(shape) && !ctx.isInReferencedShapes(shape)) {
       ctx + shape
       shape.name.option() match {
         case None =>

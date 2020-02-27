@@ -1,5 +1,6 @@
 package amf.core.resolution.stages
 
+import amf.core.annotations.Declares
 import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.document.DocumentModel
 import amf.core.model.document.{BaseUnit, DeclaresModel, EncodesModel}
@@ -17,7 +18,7 @@ class DeclarationsRemovalStage()(override implicit val errorHandler: ErrorHandle
 
   private def removeAllDeclarationsButSecuritySchemes(doc: DeclaresModel) = {
     val schemes = doc.declares.filter(_.meta.`type`.head.iri() == "http://a.ml/vocabularies/security#SecurityScheme")
-
+    persistDeclaredShapes(doc)
     if (schemes.isEmpty) {
       doc.fields.removeField(DocumentModel.Declares)
     } else {
@@ -26,5 +27,10 @@ class DeclarationsRemovalStage()(override implicit val errorHandler: ErrorHandle
         case _           =>
       }
     }
+  }
+
+  private def persistDeclaredShapes(doc: DeclaresModel): Unit = {
+    val declaredShapes = doc.declares.map(_.id)
+    doc.annotations += Declares(declaredShapes)
   }
 }

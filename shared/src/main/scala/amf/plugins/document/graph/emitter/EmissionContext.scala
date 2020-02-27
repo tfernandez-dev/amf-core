@@ -1,8 +1,8 @@
 package amf.plugins.document.graph.emitter
 
 import amf.core.emitter.RenderOptions
-import amf.core.model.document.BaseUnit
-import amf.core.model.domain.{AmfElement, AmfObject}
+import amf.core.model.document.{BaseUnit, Fragment, Module}
+import amf.core.model.domain.{AmfElement, DomainElement}
 import amf.core.utils.IdCounter
 import amf.core.vocabulary.Namespace
 import org.yaml.builder.DocBuilder.Entry
@@ -20,6 +20,9 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
   private val declarations: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
 
   private val references: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
+  private val normalizedReferenceShapes: mutable.LinkedHashSet[DomainElement] = mutable.LinkedHashSet.empty
+
+  private val validToExtract: mutable.LinkedHashSet[String] = mutable.LinkedHashSet.empty
 
   private val typeCount: IdCounter = new IdCounter()
 
@@ -47,13 +50,37 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def addReferences(elements: Iterable[AmfElement]): this.type = {
     references ++= elements
+    normalizedReferenceShapes ++= references.collect {
+      case fragment: Fragment => Seq(fragment.encodes)
+      case lib: Module => lib.declares
+    }.flatten
+    this
+  }
+
+  /**
+    * Used to register shapes that are either declarations or references but are not present in base unit (case of default pipeline)
+    * These shapes are registered as they can be extracted to declares and optimize emission of the jsonld.
+    */
+  def registerDeclaredAndReferencedFromAnnotations(ids: Seq[String]): this.type = {
+    validToExtract ++= ids
     this
   }
 
   def isDeclared(e: AmfElement): Boolean = declarations.contains(e)
 
-  def isDeclared(id: String): Boolean =
-    declarations.collect({ case obj: AmfObject if obj.id.equals(id) => obj }).nonEmpty
+  def isInReferencedShapes(e: AmfElement): Boolean = e match {
+    case e: DomainElement => normalizedReferenceShapes.contains(e)
+    case _ => false
+  }
+
+  def canGenerateLink(e: AmfElement): Boolean = emittingEncodes && (isDeclared(e) || isInReferencedShapes(e) || canBeExtractedToDeclares(e))
+
+  def canBeExtractedToDeclares(e: AmfElement): Boolean = e match {
+    case e: DomainElement => validToExtract.contains(e.id)
+    case _ => false
+  }
+
+  def emittingEncodes: Boolean = !emittingDeclarations && !emittingReferences
 
   def declared: Seq[AmfElement] = declarations.toSeq
 

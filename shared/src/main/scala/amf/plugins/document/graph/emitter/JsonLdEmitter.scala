@@ -31,7 +31,7 @@ object JsonLdEmitter {
 }
 
 class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(implicit ctx: EmissionContext)
-    extends MetaModelTypeMapping {
+    extends CommonEmitter with MetaModelTypeMapping {
 
   val cache: mutable.Map[String, T] = mutable.Map[String, T]()
 
@@ -39,7 +39,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
     val declaresEntry: Option[FieldEntry]   = unit.fields.entry(ModuleModel.Declares)
     val referencesEntry: Option[FieldEntry] = unit.fields.entry(ModuleModel.References)
 
-    extractDeclarationsAndReferencesToContext(declaresEntry, referencesEntry)
+    extractDeclarationsAndReferencesToContext(declaresEntry, referencesEntry, unit.annotations)
 
     unit.fields.removeField(ModuleModel.Declares)
     unit.fields.removeField(ModuleModel.References)
@@ -56,13 +56,6 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
     // Restore model previous version
     declaresEntry.foreach(e => unit.fields.setWithoutId(ModuleModel.Declares, e.array))
     referencesEntry.foreach(e => unit.fields.setWithoutId(ModuleModel.References, e.array))
-  }
-
-  private def extractDeclarationsAndReferencesToContext(declaresEntry: Option[FieldEntry], referencesEntry: Option[FieldEntry]) = {
-    val declaredElements: Iterable[AmfElement] = declaresEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-    val referencedElements: Iterable[AmfElement] = referencesEntry.map(_.value.value.asInstanceOf[AmfArray].values).getOrElse(Nil)
-    ctx ++ declaredElements
-    ctx.addReferences(referencedElements)
   }
 
   private def emitReferences(b: Entry[T], id: String, sources: SourceMap): Unit = {
@@ -289,17 +282,9 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
     }
   }
 
-  private def shouldReconstructInheritance(v: AmfElement, parent: String) = {
-    val valueIsDeclared  = ctx.isDeclared(v)
-    val parentIsDeclared = ctx.isDeclared(parent)
-    (!ctx.emittingDeclarations && !ctx.emittingReferences) || (valueIsDeclared && parentIsDeclared)
-  }
-
-  private def isResolvedInheritance(v: AmfElement) = v.annotations.contains(classOf[ResolvedInheritance])
-
   private def value(t: Type, v: Value, parent: String, sources: Value => Unit, b: Part[T]): Unit = {
     t match {
-      case _: ShapeModel if isResolvedInheritance(v.value) && shouldReconstructInheritance(v.value, parent) =>
+      case _: ShapeModel if ctx.canGenerateLink(v.value) =>
         extractToLink(v.value.asInstanceOf[Shape], b)
       case t: DomainElement with Linkable if t.isLink =>
         link(b, t)
@@ -360,8 +345,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
           a.element match {
             case _: Obj =>
               seq.values.asInstanceOf[Seq[AmfObject]].foreach {
-                case v @ (_: Shape)
-                    if isResolvedInheritance(v) && shouldReconstructInheritance(v, parent) =>
+                case v @ (_: Shape) if ctx.canGenerateLink(v) =>
                   extractToLink(v.asInstanceOf[Shape], b, true)
                 case elementInArray: DomainElement with Linkable if elementInArray.isLink =>
                   link(b, elementInArray, inArray = true)
@@ -450,7 +434,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
   }
 
   private def extractToLink(shape: Shape, b: Part[T], inArray: Boolean = false): Unit = {
-    if (!ctx.isDeclared(shape)) {
+    if (!ctx.isDeclared(shape) && !ctx.isInReferencedShapes(shape)) {
       ctx + shape
       shape.name.option() match {
         case None =>

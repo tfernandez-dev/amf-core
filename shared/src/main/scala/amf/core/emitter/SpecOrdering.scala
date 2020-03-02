@@ -2,7 +2,7 @@ package amf.core.emitter
 
 import amf.core.annotations.SourceVendor
 import amf.core.parser.Annotations
-import amf.core.remote.{Amf, Oas, Raml, Vendor}
+import amf.core.remote.{Amf, Async, Oas, Raml, Vendor}
 
 /**
   * Created by pedro.colunga on 8/22/17.
@@ -34,6 +34,7 @@ object SpecOrdering {
     left match {
       case _: Oas  => right.isInstanceOf[Oas]
       case _: Raml => right.isInstanceOf[Raml]
+      case _: Async => right.isInstanceOf[Async]
       case _       => false
     }
   }

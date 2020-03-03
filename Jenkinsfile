@@ -31,6 +31,7 @@ pipeline {
       when {
         anyOf {
           branch 'master'
+          branch 'support/*'
           branch 'new_model'
         }
 

@@ -7,7 +7,7 @@ import amf.core.errorhandling.ErrorHandler
 import amf.core.metamodel.document.BaseUnitModel.{Location, ModelVersion, Root, Usage}
 import amf.core.metamodel.document.DocumentModel
 import amf.core.metamodel.document.DocumentModel.References
-import amf.core.metamodel.{MetaModelTypeMapping, Obj}
+import amf.core.metamodel.{Field, MetaModelTypeMapping, Obj}
 import amf.core.model.document.FieldsFilter.Local
 import amf.core.model.domain._
 import amf.core.model.{BoolField, StrField}
@@ -32,16 +32,16 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   // We store the parser run here to be able to find runtime validations for this model
   private var run: Option[Int] = None
 
-  private[amf] def withRunNumber(parserRun:Int): BaseUnit = {
-    if(this.run.nonEmpty) // todo: exception or what?
+  private[amf] def withRunNumber(parserRun: Int): BaseUnit = {
+    if (this.run.nonEmpty) // todo: exception or what?
       this
-    else{
+    else {
       this.run = Some(parserRun)
       this
     }
   }
 
-  def parserRun:Option[Int] = run
+  def parserRun: Option[Int] = run
 
   /** Raw text  used to generated this unit */
   var raw: Option[String] = None
@@ -106,7 +106,7 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   }
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(
-    implicit errorHandler: ErrorHandler): BaseUnit = {
+      implicit errorHandler: ErrorHandler): BaseUnit = {
     val domainElementAdapter = (o: AmfObject) => {
       o match {
         case e: DomainElement => selector(e)
@@ -120,17 +120,16 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
       }
     }
     transformByCondition(this,
-      domainElementAdapter,
-      transformationAdapter,
-      cycleRecoverer = defaultCycleRecoverer(errorHandler))
+                         domainElementAdapter,
+                         transformationAdapter,
+                         cycleRecoverer = defaultCycleRecoverer(errorHandler))
     this
   }
 
   def findInReferences(id: String): Option[BaseUnit] = references.find(_.id == id)
 
-  protected def defaultCycleRecoverer(errorHandler: ErrorHandler)(
-    old: AmfObject,
-    transformed: AmfObject): Option[AmfObject] = {
+  protected def defaultCycleRecoverer(errorHandler: ErrorHandler)(old: AmfObject,
+                                                                  transformed: AmfObject): Option[AmfObject] = {
     transformed match {
       case s: Shape =>
         Some(RecursiveShape(s))
@@ -150,108 +149,129 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
                                      transformation: (AmfObject, Boolean) => Option[AmfObject],
                                      traversed: mutable.Set[String] = mutable.Set(),
                                      cycles: Set[String] = Set.empty,
-                                     cycleRecoverer: (AmfObject, AmfObject) => Option[AmfObject]): AmfObject = {
-    if (!traversed.contains(element.id)) {
-      // not visited yet
-      if (predicate(element)) { // matches predicate, we transform
-        transformation(element, false) match {
-          case Some(transformed: AmfObject) =>
-            if (cycles.contains(transformed.id)) {
-              cycleRecoverer(element, transformed).orNull
-            } else {
-              transformed
-            }
-          case other => other.orNull
-        }
-      } else {
-            // not matches the predicate, we traverse
-            // we first process declarations, then the encoding
-        traversed += element.id
-        val effectiveFields: Iterable[FieldEntry] = element match {
-              case doc: DeclaresModel =>
-                doc.fields.fields().filter(f => f.field == DocumentModel.References) ++
-                  doc.fields.fields().filter(f => f.field == DocumentModel.Declares) ++
-                  doc.fields
-                    .fields()
-                    .filterNot(f => f.field == DocumentModel.Declares || f.field == DocumentModel.References)
-              case bu: BaseUnit =>
-                bu.fields.fields().filter(_.field == DocumentModel.References) ++
-                  bu.fields.fields().filterNot(_.field == DocumentModel.References)
-              case _ => element.fields.fields()
-            }
-            effectiveFields
-              .map { entry =>
-                (entry.field, entry.value)
-              }
-              .foreach {
-                case (f, v: Value) if v.value.isInstanceOf[AmfObject] =>
-                  Option(
-                    transformByCondition(v.value.asInstanceOf[AmfObject],
-                                         predicate,
-                                         transformation,
-                                         traversed,
-                                         cycles + element.id,
-                                         cycleRecoverer = cycleRecoverer)) match {
-                    case Some(transformedValue: AmfObject) =>
-                      element.fields.setWithoutId(f, transformedValue, v.annotations.copyFiltering(a => a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode]))
-                      element match {
-                        case s: Shape if transformedValue.isInstanceOf[RecursiveShape] =>
-                          transformedValue
-                            .asInstanceOf[RecursiveShape]
-                            .fixpointTarget
-                            .foreach(t => s.closureShapes += t)
-                        case _ => // ignore
-                      }
-                    case Some(_) => // ignore
-                    case None    => element.fields.removeField(f)
-                  }
-                case (f, v: Value) if v.value.isInstanceOf[AmfArray] =>
-                  val newElements = v.value
-                    .asInstanceOf[AmfArray]
-                    .values
-                    .map {
-                      case elem: AmfObject =>
-                        val transformedValue =
-                          transformByCondition(elem,
-                                               predicate,
-                                               transformation,
-                                               traversed,
-                                               cycles + element.id,
-                                               cycleRecoverer = cycleRecoverer)
-                        element match {
-                          case s: Shape if transformedValue.isInstanceOf[RecursiveShape] =>
-                            transformedValue
-                              .asInstanceOf[RecursiveShape]
-                              .fixpointTarget
-                              .foreach(t => s.closureShapes += t)
-                          case _ => // ignore
-                        }
-                        Some(transformedValue)
-                      case other =>
-                        Some(other)
-                    }
-                    .filter(_.isDefined)
-                    .map(_.get)
-                  element.fields.setWithoutId(f, AmfArray(newElements), v.annotations)
+                                     cycleRecoverer: (AmfObject, AmfObject) => Option[AmfObject]): AmfObject =
+    transformByCondition(element,
+                         TransformationData(predicate, transformation, cycleRecoverer),
+                         TraversalData(traversed, cycles))
 
-                case _ => // ignore
-              }
-        element
-      }
-
-    } else
+  protected def transformByCondition(element: AmfObject,
+                                     transformationData: TransformationData,
+                                     traversalData: TraversalData): AmfObject = {
+    if (!traversalData.traversed.contains(element.id)) {
+      traverseElement(element, transformationData, traversalData)
+    } else {
       element match {
         // target of the link has been traversed, we still visit the link in case a transformer wants to
         // transform links/references, but we will not traverse to avoid loops
         case linkable: Linkable if linkable.isLink =>
-          if (predicate(element)) {
-            transformation(element, true).orNull // passing the cycle boolean flat!
+          if (transformationData.predicate(element)) {
+            transformationData.transformation(element, true).orNull // passing the cycle boolean flat!
           } else {
             element
           }
         // traversed and not visited
         case _ => element
       }
+    }
+  }
+
+  private def traverseElement(element: AmfObject,
+                              transformationData: TransformationData,
+                              traversalData: TraversalData) = {
+    // not visited yet
+    if (transformationData.predicate(element)) { // matches predicate, we transform
+      transformationData.transformation(element, false) match {
+        case Some(transformed: AmfObject) =>
+          if (traversalData.cycles.contains(transformed.id)) {
+            transformationData.cycleRecoverer(element, transformed).orNull
+          } else {
+            transformed
+          }
+        case other => other.orNull
+      }
+    } else {
+      // not matches the predicate, we traverse
+      // we first process declarations, then the encoding
+      traversalData.traversed += element.id
+      val effectiveFields: Iterable[FieldEntry] = effectiveFieldsForElement(element)
+      effectiveFields
+        .map(entry => (entry.field, entry.value))
+        .foreach {
+          case (f, v: Value) if v.value.isInstanceOf[AmfObject] =>
+            traverseObjectEntry(element, transformationData, traversalData, f, v)
+          case (f, v: Value) if v.value.isInstanceOf[AmfArray] =>
+            traverseArrayEntry(element, transformationData, traversalData, f, v)
+
+          case _ => // ignore
+        }
+      element
+    }
+  }
+
+  private def effectiveFieldsForElement(element: AmfObject) = {
+    element match {
+      case doc: DeclaresModel =>
+        doc.fields.fields().filter(f => f.field == DocumentModel.References) ++
+          doc.fields.fields().filter(f => f.field == DocumentModel.Declares) ++
+          doc.fields
+            .fields()
+            .filterNot(f => f.field == DocumentModel.Declares || f.field == DocumentModel.References)
+      case bu: BaseUnit =>
+        bu.fields.fields().filter(_.field == DocumentModel.References) ++
+          bu.fields.fields().filterNot(_.field == DocumentModel.References)
+      case _ => element.fields.fields()
+    }
+  }
+
+  private def traverseObjectEntry(element: AmfObject,
+                                  transformationData: TransformationData,
+                                  traversalData: TraversalData,
+                                  f: Field,
+                                  v: Value) = {
+    Option(transformByCondition(v.value.asInstanceOf[AmfObject], transformationData, traversalData + element.id)) match {
+      case Some(transformedValue: AmfObject) =>
+        element.fields.setWithoutId(
+          f,
+          transformedValue,
+          v.annotations.copyFiltering(a =>
+            a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode]))
+        addClosuresToRecursion(element, transformedValue)
+      case Some(_) => // ignore
+      case None    => element.fields.removeField(f)
+    }
+  }
+
+  private def traverseArrayEntry(element: AmfObject,
+                                 transformationData: TransformationData,
+                                 traversalData: TraversalData,
+                                 f: Field,
+                                 v: Value) = {
+    val newElements = v.value
+      .asInstanceOf[AmfArray]
+      .values
+      .map {
+        case elem: AmfObject =>
+          val transformedValue =
+            transformByCondition(elem, transformationData, traversalData + element.id)
+          addClosuresToRecursion(element, transformedValue)
+          Some(transformedValue)
+        case other =>
+          Some(other)
+      }
+      .filter(_.isDefined)
+      .map(_.get)
+    element.fields.setWithoutId(f, AmfArray(newElements), v.annotations)
+  }
+
+  private def addClosuresToRecursion(element: AmfObject, transformedValue: AmfObject): Unit = {
+    element match {
+      case s: Shape if transformedValue.isInstanceOf[RecursiveShape] =>
+        transformedValue
+          .asInstanceOf[RecursiveShape]
+          .fixpointTarget
+          .foreach(t => s.closureShapes += t)
+      case _ => // ignore
+    }
   }
 
   def toNativeRdfModel(renderOptions: RenderOptions = new RenderOptions()): RdfModel = {
@@ -288,6 +308,27 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 }
 
 object BaseUnit extends PlatformSecrets {
-  def fromNativeRdfModel(id: String, rdfModel: RdfModel, ctx: ParserContext = ParserContext(eh = DefaultParserErrorHandler.withRun())): BaseUnit =
+  def fromNativeRdfModel(id: String,
+                         rdfModel: RdfModel,
+                         ctx: ParserContext = ParserContext(eh = DefaultParserErrorHandler.withRun())): BaseUnit =
     new RdfModelParser(platform)(ctx).parse(rdfModel, id)
+}
+
+/**
+  * Holder for transformation data in transform by condition
+  * @param predicate selector
+  * @param transformation transformation function
+  * @param cycleRecoverer fallback when recursions are found
+  */
+sealed case class TransformationData(predicate: AmfObject => Boolean,
+                                     transformation: (AmfObject, Boolean) => Option[AmfObject],
+                                     cycleRecoverer: (AmfObject, AmfObject) => Option[AmfObject])
+
+/**
+  * Holder for traversal data in transform by condition
+  * @param traversed all traversed elements
+  * @param cycles elements in current traversal path
+  */
+sealed case class TraversalData(traversed: mutable.Set[String] = mutable.Set(), cycles: Set[String] = Set.empty) {
+  def +(element: String): TraversalData = TraversalData(traversed, cycles + element)
 }

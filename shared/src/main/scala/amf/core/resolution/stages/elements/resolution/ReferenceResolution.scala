@@ -6,7 +6,12 @@ import amf.core.model.document.Document
 import amf.core.model.domain.{DomainElement, LinkNode, NamedDomainElement, Linkable}
 import amf.core.parser.Annotations
 import amf.core.resolution.stages.elements.resolution.ReferenceResolution.{Condition, VALID_DECLARATION_CONDITION}
-import amf.core.resolution.stages.{ModelReferenceResolver, LinkNodeResolutionStage, LinkNodeResolver, ResolvedNamedEntity}
+import amf.core.resolution.stages.{
+  ModelReferenceResolver,
+  LinkNodeResolutionStage,
+  LinkNodeResolver,
+  ResolvedNamedEntity
+}
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable
@@ -19,11 +24,12 @@ class ReferenceResolution(errorHandler: ErrorHandler,
                             (d: DomainElement, l: Linkable) => d)
     extends ElementStageTransformer[DomainElement] {
 
-  override def transform(element: DomainElement): Option[DomainElement] = transform(element, Seq(VALID_DECLARATION_CONDITION))
+  override def transform(element: DomainElement): Option[DomainElement] =
+    transform(element, Seq(VALID_DECLARATION_CONDITION))
 
   def transform(element: DomainElement, conditions: Seq[Condition]): Option[DomainElement] = {
     element match {
-      case l: Linkable if l.linkTarget.isDefined =>
+      case l: Linkable if l.isLink =>
         if (cache.contains(l.linkTarget.get.id)) Some(cache(l.linkTarget.get.id))
         else {
           val target = l.effectiveLinkTarget() match {
@@ -87,7 +93,7 @@ class ReferenceResolution(errorHandler: ErrorHandler,
     if (!visited.contains(element.id)) {
       visited += element.id
       element match {
-        case l: Linkable if l.linkTarget.isDefined =>
+        case l: Linkable if l.isLink =>
           adoptParentAnnotations(element.annotations, resolved)
           if (element.annotations.contains(classOf[DeclaredElement])) cache.put(element.id, resolved)
           traverseLinks(l.linkTarget.get, resolved, visited)

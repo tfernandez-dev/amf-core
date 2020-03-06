@@ -51,12 +51,10 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
     val kind  = if (kinds.size > 1) UnspecifiedReference else kinds.head
     try {
       val context = compilerContext.forReference(url)
-      val res: Future[Future[ReferenceResolutionResult]] = RuntimeCompiler.forContext(context,
-                                                                           None,
-                                                                           None,
-                                                                           kind) map { eventualUnit =>
-        verifyMatchingKind(eventualUnit, kind, kinds, nodes, context.parserContext)
-        Future(parser.ReferenceResolutionResult(None, Some(eventualUnit)))
+      val res: Future[Future[ReferenceResolutionResult]] = RuntimeCompiler.forContext(context, None, None, kind) map {
+        eventualUnit =>
+          verifyMatchingKind(eventualUnit, kind, kinds, nodes, context.parserContext)
+          Future(parser.ReferenceResolutionResult(None, Some(eventualUnit)))
       } recover {
         case e: CyclicReferenceException if allowRecursiveRefs =>
           val fullUrl = e.history.last
@@ -127,19 +125,34 @@ case class ReferenceCollector() {
 
 object EmptyReferenceCollector extends ReferenceCollector {}
 
+/**
+  * Splits references between their base url and local path
+  * E.g. https://some.path.json#/local/path -> ("https://some.path.json", "local/path")
+  */
 object ReferenceFragmentPartition {
+  // Is it always a URL? If we can have local references then it is not a URL
   def apply(url: String): (String, Option[String]) = {
-    if ((url.normalizeUrl.startsWith(FILE_PROTOCOL) || url.startsWith(HTTPS_PROTOCOL) || url.startsWith(HTTP_PROTOCOL)) && !url
-          .startsWith("#")) {
+    if (isExternalReference(url)) {
       url.split("#") match { // how can i know if the # its part of the uri or not? uri not valid???
-        case Array(u) if u.endsWith("#") => (u.substring(0, u.length - 2), None)
-        case Array(u)                    => (u, None)
-        case Array(u, fragment)          => (u, Some(fragment))
-        case other                       =>
+        case Array(basePath) if basePath.endsWith("#") => (basePath.substring(0, basePath.length - 2), None)
+        case Array(basePath)                           => (basePath, None)
+        case Array(basePath, localPath)                => (basePath, Some(localPath))
+        case other                                     =>
           //  -1 of the length diff and -1 for # char
           val str = url.substring(0, url.length - 1 - other.last.length)
           (str, Some(other.last))
       }
     } else (url, None)
+  }
+
+  /**
+    * Checks if reference corresponds to a remote resource
+    * @param referenceLocator like an URL but not uniform since we can have local references
+    * @return
+    */
+  private def isExternalReference(referenceLocator: String) = {
+    (referenceLocator.normalizeUrl.startsWith(FILE_PROTOCOL) || referenceLocator.startsWith(HTTPS_PROTOCOL) || referenceLocator
+      .startsWith(HTTP_PROTOCOL)) && !referenceLocator
+      .startsWith("#")
   }
 }

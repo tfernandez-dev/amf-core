@@ -32,6 +32,7 @@ pipeline {
         anyOf {
           branch 'master'
           branch 'new_model'
+          branch 'support/4.0.6'
         }
 
       }

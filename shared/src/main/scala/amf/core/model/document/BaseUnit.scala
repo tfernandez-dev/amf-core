@@ -268,8 +268,10 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
     case _                => None
   }
 
-  def cloneUnit(): BaseUnit = {
-    val cloned = cloneElement(mutable.Map.empty).asInstanceOf[BaseUnit]
+  def cloneUnit(): BaseUnit = cloneElement(mutable.Map.empty).asInstanceOf[BaseUnit]
+
+  override def cloneElement(branch: mutable.Map[String, AmfObject]): AmfObject = {
+    val cloned = super.cloneElement(branch).asInstanceOf[BaseUnit]
     run.foreach(cloned.withRunNumber)
     cloned.raw = raw
     cloned

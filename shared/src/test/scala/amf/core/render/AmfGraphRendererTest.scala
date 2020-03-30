@@ -5,7 +5,7 @@ import amf.client.convert.{BaseUnitConverter, NativeOps}
 import amf.client.render.{AmfGraphRenderer, RenderOptions}
 import amf.core.io.FileAssertionTest
 import amf.core.metamodel.domain.ArrayNodeModel
-import amf.core.model.document.Document
+import amf.core.model.document.{Document, Module}
 import amf.core.model.domain.{ArrayNode, ObjectNode, ScalarNode}
 import amf.core.vocabulary.Namespace
 import org.scalatest.AsyncFunSuite
@@ -34,6 +34,10 @@ trait ElementsFixture{
   protected val arrayNode: ArrayNode = ArrayNode().withId("amf://id3")
   arrayNode.addMember(scalarNode2)
   protected val objectNode: ObjectNode = ObjectNode().withId("amf://id2").addProperty("myProp1",arrayNode)
+
+  protected val module: Module = Module().withId("amf://i21").withLocation("http://local2.com")
+  protected val documentWithRef: Document = Document().withId("amf://id11").withLocation("http://local1.com").withRoot(true).withReferences(Seq(module))
+
   protected val document: Document = Document().withId("amf://id1").withLocation("http://local.com").withEncodes(scalarNode).withDeclares(Seq(arrayNode)).withRoot(true)
 
   protected val recursiveObjlvl2: ObjectNode = ObjectNode().withId("amf://id7")

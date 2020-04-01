@@ -104,13 +104,14 @@ trait AmfObject extends AmfElement {
     this
   }
 
-  override private[amf] def cloneElement(branch: mutable.Map[String, AmfObject]): AmfObject = {
-    branch.get(id) match {
+  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]): AmfObject = {
+    val hash = hashCode()
+    branch.get(hash) match {
       case Some(me) => me
       case _ =>
         val obj = newInstance().withId(id)
         obj.annotations ++= annotations
-        branch.put(id ,obj)
+        branch.put(hash ,obj)
         fields.cloneFields(branch).into(obj.fields)
         obj
     }

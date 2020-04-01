@@ -1,5 +1,6 @@
 package amf.core.model.domain
 
+import amf.core.annotations.ErrorDeclaration
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.parser.{Annotations, Fields}
 
@@ -116,8 +117,9 @@ trait AmfObject extends AmfElement {
   }
 
   private def newInstance(): AmfObject = {
-    meta match {
-      case creator:ModelDefaultBuilder => creator.modelInstance
+    this match {
+      case e: ErrorDeclaration => e.newErrorInstance
+      case _  => meta.asInstanceOf[ModelDefaultBuilder].modelInstance // make meta be model default builder also
     }
   }
 }

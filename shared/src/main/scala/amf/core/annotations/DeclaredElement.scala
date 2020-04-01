@@ -16,4 +16,6 @@ trait ErrorDeclaration extends DomainElement {
   val namespace: String
 
   override def withId(value: String): ErrorDeclaration.this.type = super.withId(namespace + value)
+
+  def newErrorInstance:ErrorDeclaration
 }

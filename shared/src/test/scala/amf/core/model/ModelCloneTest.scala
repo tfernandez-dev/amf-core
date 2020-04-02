@@ -1,7 +1,7 @@
 package amf.core.model
-import amf.core.annotations.{LexicalInformation, SourceVendor}
+import amf.core.annotations.SourceVendor
 import amf.core.model.document.Document
-import amf.core.model.domain.{ArrayNode, ObjectNode, ScalarNode}
+import amf.core.model.domain.{ArrayNode, LinkNode, ObjectNode, ScalarNode}
 import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
 import amf.core.vocabulary.Namespace.XsdTypes
@@ -70,5 +70,14 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
 
     obj.asInstanceOf[ObjectNode].allPropertiesWithName().keySet.head should be("myProp1")
     local.asInstanceOf[ObjectNode].allPropertiesWithName().keySet.head should be("localProp")
+  }
+
+  test("Test clone link node with internal linked domain element "){
+    val scalarNode = ScalarNode("linkValue", Some(XsdTypes.xsdString.iri())).withId("amf://linkNode1")
+    val linkNode = LinkNode("link", "linkValue").withId("amf://linkNode2").withLinkedDomainElement( scalarNode)
+
+    val cloned = linkNode.cloneElement(mutable.Map.empty)
+    cloned.linkedDomainElement.get.id should be(scalarNode.id)
+
   }
 }

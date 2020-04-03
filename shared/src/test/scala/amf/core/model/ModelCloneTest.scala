@@ -1,9 +1,10 @@
 package amf.core.model
-import amf.core.annotations.{LexicalInformation, SourceVendor}
+import amf.core.annotations.SourceVendor
 import amf.core.model.document.Document
-import amf.core.model.domain.{ArrayNode, ObjectNode, ScalarNode}
+import amf.core.model.domain.{ArrayNode, LinkNode, ObjectNode, ScalarNode}
 import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
+import amf.core.vocabulary.Namespace.XsdTypes
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.mutable
@@ -56,5 +57,27 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
     cloned.parserRun.get should be(1)
 
     cloned.references.head.parserRun.get should be(1)
+  }
+
+  test("Test clone document with duplicated ids"){
+    val localNode = ObjectNode().withId(objectNode.id).addProperty("localProp",ScalarNode().withId("amf://localId").withDataType(XsdTypes.xsdString.iri()).withValue("aValue"))
+    val doc = Document().withId("amf://localDoc").withDeclares(Seq(objectNode, localNode))
+    val cloned :Document = doc.cloneUnit().asInstanceOf[Document]
+    val obj = cloned.declares.head
+    val local = cloned.declares.last
+
+    obj.id should be(local.id)
+
+    obj.asInstanceOf[ObjectNode].allPropertiesWithName().keySet.head should be("myProp1")
+    local.asInstanceOf[ObjectNode].allPropertiesWithName().keySet.head should be("localProp")
+  }
+
+  test("Test clone link node with internal linked domain element "){
+    val scalarNode = ScalarNode("linkValue", Some(XsdTypes.xsdString.iri())).withId("amf://linkNode1")
+    val linkNode = LinkNode("link", "linkValue").withId("amf://linkNode2").withLinkedDomainElement( scalarNode)
+
+    val cloned = linkNode.cloneElement(mutable.Map.empty)
+    cloned.linkedDomainElement.get.id should be(scalarNode.id)
+
   }
 }

@@ -1,6 +1,8 @@
 package amf.core.model.domain
 
+import amf.core.annotations.ErrorDeclaration
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
+import amf.core.model.document.RecursiveUnit
 import amf.core.parser.{Annotations, Fields}
 
 import scala.collection.mutable
@@ -103,21 +105,25 @@ trait AmfObject extends AmfElement {
     this
   }
 
-  override private[amf] def cloneElement(branch: mutable.Map[String, AmfObject]): AmfObject = {
-    branch.get(id) match {
+  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]): AmfObject = {
+    val hash = hashCode()
+    branch.get(hash) match {
       case Some(me) => me
       case _ =>
         val obj = newInstance().withId(id)
         obj.annotations ++= annotations
-        branch.put(id ,obj)
+        branch.put(hash ,obj)
         fields.cloneFields(branch).into(obj.fields)
         obj
     }
   }
 
   private def newInstance(): AmfObject = {
-    meta match {
-      case creator:ModelDefaultBuilder => creator.modelInstance
+    this match {
+      case e: ErrorDeclaration => e.newErrorInstance
+      case _: RecursiveUnit =>
+        RecursiveUnit()
+      case _  => meta.asInstanceOf[ModelDefaultBuilder].modelInstance // make meta be model default builder also
     }
   }
 }

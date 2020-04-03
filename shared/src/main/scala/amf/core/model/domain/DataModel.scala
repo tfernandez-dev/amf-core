@@ -15,6 +15,8 @@ import amf.core.vocabulary.Namespace.Data
 import amf.core.vocabulary.{Namespace, ValueType}
 import org.yaml.model.{YPart, YSequence}
 
+import scala.collection.mutable
+
 /**
   * Base class for all dynamic DataNodes
   */
@@ -355,6 +357,14 @@ class LinkNode(override val fields: Fields, val annotations: Annotations) extend
 
   def withLink(link: String): this.type   = set(LinkNodeModel.Value, link)
   def withAlias(alias: String): this.type = set(LinkNodeModel.Alias, alias)
+
+  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]) = {
+    val node = super.cloneElement(branch).asInstanceOf[LinkNode]
+    linkedDomainElement
+      .map(_.cloneElement(branch))
+      .collectFirst({case clonedLinked:DomainElement => node.withLinkedDomainElement(clonedLinked)})
+    node
+  }
 
   var linkedDomainElement: Option[DomainElement] = None
 

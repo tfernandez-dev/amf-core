@@ -360,7 +360,9 @@ class LinkNode(override val fields: Fields, val annotations: Annotations) extend
 
   override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]) = {
     val node = super.cloneElement(branch).asInstanceOf[LinkNode]
-    linkedDomainElement.foreach(node.withLinkedDomainElement)
+    linkedDomainElement
+      .map(_.cloneElement(branch))
+      .collectFirst({case clonedLinked:DomainElement => node.withLinkedDomainElement(clonedLinked)})
     node
   }
 

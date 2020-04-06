@@ -157,9 +157,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
   protected def transformByCondition(element: AmfObject,
                                      transformationData: TransformationData,
                                      traversalData: TraversalData): AmfObject = {
-    if (!traversalData.traversed.contains(element.id)) {
-      traverseElement(element, transformationData, traversalData)
-    } else {
+    if (!traversalData.traversed.contains(element.id)) traverseElement(element, transformationData, traversalData)
+    else {
       element match {
         // target of the link has been traversed, we still visit the link in case a transformer wants to
         // transform links/references, but we will not traverse to avoid loops

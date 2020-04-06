@@ -25,7 +25,6 @@ case class ParserContext(rootContextDocument: String = "",
 
   def forLocation(newLocation: String): ParserContext = {
     val copied: ParserContext = this.copy(rootContextDocument = newLocation)
-    copied.reportDisambiguation = reportDisambiguation
     copied.globalSpace = globalSpace
     copied
   }
@@ -44,14 +43,11 @@ case class ParserContext(rootContextDocument: String = "",
   private def getSonsParsedReferences: Seq[ParsedReference] =
     sonsReferences.values.map(u => ParsedReference(u, new Reference(u.location().getOrElse(u.id), Nil))).toSeq
 
-  def copyWithSonsReferences(): ParserContext = {
+  def  copyWithSonsReferences(): ParserContext = {
     val context = this.copy(refs = this.refs ++ getSonsParsedReferences)
-    context.reportDisambiguation = this.reportDisambiguation
     context.globalSpace = this.globalSpace
     context
   }
-
-  var reportDisambiguation: mutable.Set[String] = mutable.Set()
 
   val parserRun: Int = eh.parserRun
 

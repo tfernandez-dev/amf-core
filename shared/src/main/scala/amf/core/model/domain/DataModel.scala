@@ -358,7 +358,7 @@ class LinkNode(override val fields: Fields, val annotations: Annotations) extend
   def withLink(link: String): this.type   = set(LinkNodeModel.Value, link)
   def withAlias(alias: String): this.type = set(LinkNodeModel.Alias, alias)
 
-  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]) = {
+  override private[amf] def cloneElement(branch: mutable.Map[AmfObject, AmfObject]) = {
     val node = super.cloneElement(branch).asInstanceOf[LinkNode]
     linkedDomainElement
       .map(_.cloneElement(branch))

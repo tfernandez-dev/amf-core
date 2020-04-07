@@ -1,10 +1,14 @@
 package amf.core.model
-import amf.core.annotations.SourceVendor
+import amf.core.annotations.{ErrorDeclaration, SourceVendor}
+import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
+import amf.core.metamodel.domain.DomainElementModel
 import amf.core.model.document.Document
-import amf.core.model.domain.{ArrayNode, LinkNode, ObjectNode, ScalarNode}
+import amf.core.model.domain.{AmfElement, AmfObject, ArrayNode, DomainElement, LinkNode, ObjectNode, ScalarNode}
+import amf.core.parser.{Annotations, Fields}
 import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
 import amf.core.vocabulary.Namespace.XsdTypes
+import amf.core.vocabulary.ValueType
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.mutable
@@ -80,4 +84,36 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
     cloned.linkedDomainElement.get.id should be(scalarNode.id)
 
   }
+
+  test("Test clone with elements that have same hash code"){
+    case class SomeType(fields: Fields, annotations: Annotations) extends DomainElement {
+      override def meta: Obj = new Obj with ModelDefaultBuilder {
+        override def fields: List[Field] = Nil
+        override val `type`: List[ValueType] = Nil
+        override def modelInstance: AmfObject = SomeType(Fields(), Annotations())
+      }
+      override def componentId: String = "someId"
+      override def hashCode(): Int = 1
+    }
+
+    val type1 = SomeType(Fields(), Annotations())
+    type1.withId("amf://type-1-id")
+    val type2 = SomeType(Fields(), Annotations())
+    type2.withId("amf://type-1-id")
+
+    val doc = Document().withId("amf://id1").withDeclares(Seq(type1, type2))
+    val clonedDoc = doc.cloneUnit()
+    val declares = clonedDoc.asInstanceOf[Document].declares
+    val type1Cloned = declares.head
+    val type2Cloned = declares(1)
+
+    // cloned instances are effectively different
+    (type1 eq type1Cloned) should be(false)
+    (type2 eq type2Cloned) should be(false)
+
+    // when cloning document, both objects must be cloned
+    (type1Cloned eq type2Cloned) should be(false)
+
+  }
+
 }

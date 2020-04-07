@@ -1,5 +1,6 @@
 package amf.core.model.domain
 
+import java.util
 import amf.core.annotations.ErrorDeclaration
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.model.document.RecursiveUnit
@@ -105,14 +106,13 @@ trait AmfObject extends AmfElement {
     this
   }
 
-  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]): AmfObject = {
-    val hash = hashCode()
-    branch.get(hash) match {
-      case Some(me) => me
+  override private[amf] def cloneElement(branch: mutable.Map[AmfObject, AmfObject]): AmfObject = {
+    branch.get(this) match {
+      case Some(me) if me.meta.`type`.head.iri() == meta.`type`.head.iri() => me
       case _ =>
         val obj = newInstance().withId(id)
         obj.annotations ++= annotations
-        branch.put(hash ,obj)
+        branch.put(this ,obj)
         fields.cloneFields(branch).into(obj.fields)
         obj
     }

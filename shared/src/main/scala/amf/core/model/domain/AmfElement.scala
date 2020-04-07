@@ -37,7 +37,7 @@ trait AmfElement {
   def isTrackedBy(trackId: String): Boolean =
     annotations.collect { case t: TrackedElement if t.parents.contains(trackId) => t }.nonEmpty
 
-  private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]): AmfElement
+  private[amf] def cloneElement(branch: mutable.Map[AmfObject, AmfObject]): AmfElement
 }
 
 

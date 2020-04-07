@@ -47,5 +47,5 @@ case class AmfScalar(value: Any, annotations: Annotations = new Annotations()) e
     }
   }
 
-  override private[amf] def cloneElement(branch: mutable.Map[Int, AmfObject]): AmfScalar = AmfScalar(value, annotations.copy())
+  override private[amf] def cloneElement(branch: mutable.Map[AmfObject, AmfObject]): AmfScalar = AmfScalar(value, annotations.copy())
 }

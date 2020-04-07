@@ -232,7 +232,7 @@ class Fields {
     copied
   }
 
-  private[amf] def cloneFields(branch: mutable.Map[Int, AmfObject]): Fields = {
+  private[amf] def cloneFields(branch: mutable.Map[AmfObject, AmfObject]): Fields = {
     val cloned = new Fields()
     fs.foreach{ case (field, value) =>  cloned.fs += (field -> value.cloneValue(branch)) }
     cloned
@@ -308,7 +308,7 @@ class Value(var value: AmfElement, val annotations: Annotations) {
 
   def cloneAnnotated(annotation: Annotation) = Value(value, Annotations(annotations))
 
-  def cloneValue(branch:mutable.Map[Int, AmfObject]) = Value(value.cloneElement(branch), annotations.copy())
+  def cloneValue(branch:mutable.Map[AmfObject, AmfObject]) = Value(value.cloneElement(branch), annotations.copy())
 }
 
 object Value {

@@ -1,7 +1,7 @@
 package amf.core.model
 import amf.core.annotations.{ErrorDeclaration, SourceVendor}
-import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.metamodel.domain.DomainElementModel
+import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.model.document.Document
 import amf.core.model.domain.{AmfElement, AmfObject, ArrayNode, DomainElement, LinkNode, ObjectNode, ScalarNode}
 import amf.core.parser.{Annotations, Fields}
@@ -114,6 +114,38 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
     // when cloning document, both objects must be cloned
     (type1Cloned eq type2Cloned) should be(false)
 
+  }
+
+  test("test clone id for error declaration"){
+    case class Error() extends ErrorDeclaration{
+      override val namespace: String = "http://amferror.com/#MyErrorClass/"
+
+      override def newErrorInstance: ErrorDeclaration = Error()
+
+      override def meta: Obj = new DomainElementModel {
+        override val `type`: List[ValueType] = DomainElementModel.`type`
+
+        override def modelInstance: AmfObject = Error()
+
+        override def fields: List[Field] = Nil
+      }
+
+      /** Set of fields composing object. */
+      override val fields: Fields = Fields()
+
+      /** Value , path + field value that is used to compose the id when the object its adopted */
+      override def componentId: String = "errorTrat"
+
+      /** Set of annotations for element. */
+      override val annotations: Annotations = Annotations()
+    }
+
+    val error = Error().withId("id1")
+
+    val doc = Document().withId("amf://id1").withDeclares(Seq(error))
+    val unit = doc.cloneUnit()
+    val head = unit.asInstanceOf[Document].declares.head
+    head.id should be(error.id)
   }
 
 }

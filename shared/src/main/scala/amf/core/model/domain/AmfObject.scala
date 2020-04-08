@@ -110,7 +110,8 @@ trait AmfObject extends AmfElement {
     branch.get(this) match {
       case Some(me) if me.meta.`type`.head.iri() == meta.`type`.head.iri() => me
       case _ =>
-        val obj = newInstance().withId(id)
+        val obj = newInstance()
+        obj.id = id
         obj.annotations ++= annotations
         branch.put(this ,obj)
         fields.cloneFields(branch).into(obj.fields)

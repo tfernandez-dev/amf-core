@@ -14,6 +14,8 @@ object StaticErrorCollector{
     }
   }
 
+  def clean(): Unit = errorsForUnitCount.clear()
+
   def getRun(parserRun:Int): Seq[AMFValidationResult] = errorsForUnitCount.getOrElse(parserRun, Nil)
 
 }

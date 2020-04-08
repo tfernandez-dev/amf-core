@@ -67,6 +67,7 @@ object InflectorBase {
   addIrregular("move", "moves")
   addIrregular("foot", "feet")
   addIrregular("tooth", "teeth")
+  addIrregular("initiative", "initiatives")
 
   private val uncountables = List("equipment", "information", "rice", "money", "species", "series", "fish", "sheep")
 

@@ -119,12 +119,5 @@ trait AmfObject extends AmfElement {
     }
   }
 
-  private def newInstance(): AmfObject = {
-    this match {
-      case e: ErrorDeclaration => e.newErrorInstance
-      case _: RecursiveUnit =>
-        RecursiveUnit()
-      case _  => meta.asInstanceOf[ModelDefaultBuilder].modelInstance // make meta be model default builder also
-    }
-  }
+  private def newInstance(): AmfObject = meta.asInstanceOf[ModelDefaultBuilder].modelInstance // make meta be model default builder also
 }

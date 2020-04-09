@@ -3,7 +3,7 @@ import amf.core.annotations.{ErrorDeclaration, SourceVendor}
 import amf.core.metamodel.domain.DomainElementModel
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.model.document.Document
-import amf.core.model.domain.{AmfElement, AmfObject, ArrayNode, DomainElement, LinkNode, ObjectNode, ScalarNode}
+import amf.core.model.domain._
 import amf.core.parser.{Annotations, Fields}
 import amf.core.remote.Raml10
 import amf.core.render.ElementsFixture
@@ -122,7 +122,7 @@ class ModelCloneTest extends FunSuite with ElementsFixture with Matchers{
 
       override def newErrorInstance: ErrorDeclaration = Error()
 
-      override def meta: Obj = new DomainElementModel {
+      override def originalMeta: Obj = new DomainElementModel {
         override val `type`: List[ValueType] = DomainElementModel.`type`
 
         override def modelInstance: AmfObject = Error()

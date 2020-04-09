@@ -9,16 +9,16 @@ object Common {
   val releases: MavenRepository  = "MuleSoft releases" at s"$nexus/releases"
 
   val settings: Seq[Def.Setting[_]] = Seq(
-    scalaVersion := "2.12.10",
-    parallelExecution in Test := false,
-    fork in Test := false,
-    scalacOptions ++= Seq("-unchecked", "-target:jvm-1.8", "-feature", "-deprecation", "-Xfatal-warnings"),
-    scalacOptions ++= Seq("-encoding", "utf-8"),
-    javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+      scalaVersion := "2.12.11",
+      parallelExecution in Test := false,
+      fork in Test := false,
+      scalacOptions ++= Seq("-unchecked", "-target:jvm-1.8", "-feature", "-deprecation", "-Xfatal-warnings"),
+      scalacOptions ++= Seq("-encoding", "utf-8"),
+      javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
   )
 
   val publish: Seq[Def.Setting[_]] = Seq(
-    publishTo := Some(if (isSnapshot.value) snapshots else releases)
+      publishTo := Some(if (isSnapshot.value) snapshots else releases)
   )
 
   def credentials(): Seq[Credentials] = {
@@ -40,12 +40,13 @@ object Common {
       cs.flatMap({
         case (user, password) =>
           Seq(
-            Credentials("Sonatype Nexus Repository Manager", "repository-master.mulesoft.org", user, password),
-            Credentials("Sonatype Nexus Repository Manager", "repository.mulesoft.org", user, password)
+              Credentials("Sonatype Nexus Repository Manager", "repository-master.mulesoft.org", user, password),
+              Credentials("Sonatype Nexus Repository Manager", "repository.mulesoft.org", user, password)
           )
       })
 
-    } else {
+    }
+    else {
 
       val ivyCredentials   = Path.userHome / ".ivy2" / ".credentials"
       val mavenCredentials = Path.userHome / ".m2" / "settings.xml"
@@ -58,11 +59,12 @@ object Common {
           val id = (s \ "id").text
           if (servers.contains(id)) {
             Some(
-              Credentials("Sonatype Nexus Repository Manager",
-                          servers(id),
-                          (s \ "username").text,
-                          (s \ "password").text))
-          } else {
+                Credentials("Sonatype Nexus Repository Manager",
+                            servers(id),
+                            (s \ "username").text,
+                            (s \ "password").text))
+          }
+          else {
             None
           }
         })

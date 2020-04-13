@@ -46,13 +46,6 @@ object Core extends PlatformSecrets {
   def validate(model: BaseUnit, profileName: ProfileName, messageStyle: MessageStyle): ClientFuture[ValidationReport] =
     validate(model, profileName, messageStyle, DefaultEnvironment())
 
-  def validateWithExecutionEnvironment(model: BaseUnit,
-                                       profileName: ProfileName,
-                                       messageStyle: MessageStyle,
-                                       env: ClientOption[Environment],
-                                       exec: BaseExecutionEnvironment): ClientFuture[ValidationReport] =
-    Validator.validateWithExecutionEnvironment(model, profileName, exec, messageStyle, env, resolved = false)
-
   def validateResolved(model: BaseUnit,
                        profileName: ProfileName,
                        messageStyle: MessageStyle,
@@ -64,23 +57,11 @@ object Core extends PlatformSecrets {
                        messageStyle: MessageStyle): ClientFuture[ValidationReport] =
     validateResolved(model, profileName, messageStyle, DefaultEnvironment())
 
-  def validateResolvedWithExecutionEnvironment(model: BaseUnit,
-                                               profileName: ProfileName,
-                                               messageStyle: MessageStyle,
-                                               env: ClientOption[Environment],
-                                               exec: BaseExecutionEnvironment): ClientFuture[ValidationReport] =
-    Validator.validateWithExecutionEnvironment(model, profileName, exec, messageStyle, env, resolved = true)
-
   def loadValidationProfile(url: String, env: Environment): ClientFuture[ProfileName] =
     Validator.loadValidationProfile(url, env)
 
   def loadValidationProfile(url: String): ClientFuture[ProfileName] =
     loadValidationProfile(url, DefaultEnvironment())
-
-  def loadValidationProfileWithExecutionEnvironment(url: String,
-                                                    env: ClientOption[Environment],
-                                                    exec: BaseExecutionEnvironment): ClientFuture[ProfileName] =
-    Validator.loadValidationProfileWithExecutionEnvironment(url, env, exec)
 
   def emitShapesGraph(profileName: ProfileName): String =
     Validator.emitShapesGraph(profileName)

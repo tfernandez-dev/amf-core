@@ -19,7 +19,9 @@ import scala.scalajs.js.annotation.JSExportAll
 @JSExportAll
 object Core extends PlatformSecrets {
 
-  def init(exec: BaseExecutionEnvironment = platform.defaultExecutionEnvironment): ClientFuture[Unit] = {
+  def init(): ClientFuture[Unit] = init(platform.defaultExecutionEnvironment)
+
+  def init(exec: BaseExecutionEnvironment): ClientFuture[Unit] = {
     implicit val executionContext: ExecutionContext = exec.executionContext
     CoreRegister.register(platform)
     // Init the core component

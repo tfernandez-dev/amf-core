@@ -7,29 +7,35 @@ import amf.core.errorhandling.UnhandledErrorHandler
 import amf.core.services.RuntimeValidator
 import amf.{AMFStyle, MessageStyle, ProfileName}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.scalajs.js.annotation.JSExportAll
+import scala.concurrent.ExecutionContext
+import scala.scalajs.js.annotation.JSExport
 
-@JSExportAll
 object Validator {
 
+  @JSExport
   def validate(model: BaseUnit,
                profileName: ProfileName,
                messageStyle: MessageStyle = AMFStyle,
                env: Environment = DefaultEnvironment(),
-               resolved: Boolean = false): ClientFuture[ValidationReport] =
+               resolved: Boolean = false): ClientFuture[ValidationReport] = {
+    implicit val executionContext: ExecutionContext = env.executionEnvironment.executionContext
     RuntimeValidator(
-      model._internal,
-      profileName,
-      messageStyle,
-      env._internal,
-      resolved
+        model._internal,
+        profileName,
+        messageStyle,
+        env._internal,
+        resolved,
+        env.executionEnvironment
     ).map(report => report).asClient
+  }
 
-  def loadValidationProfile(url: String,
-                            env: Environment = DefaultEnvironment()): ClientFuture[ProfileName] =
-    RuntimeValidator.loadValidationProfile(url, env._internal, UnhandledErrorHandler).asClient
+  @JSExport
+  def loadValidationProfile(url: String, env: Environment = DefaultEnvironment()): ClientFuture[ProfileName] = {
+    implicit val executionContext: ExecutionContext = env.executionEnvironment.executionContext
+    RuntimeValidator.loadValidationProfile(url, env._internal, UnhandledErrorHandler, env.executionEnvironment).asClient
+  }
 
+  @JSExport
   def emitShapesGraph(profileName: ProfileName): String =
     RuntimeValidator.emitShapesGraph(profileName)
 }

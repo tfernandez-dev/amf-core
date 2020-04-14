@@ -10,8 +10,7 @@ import amf.core.remote.{Cache, Context}
 import amf.core.{CompilerContext, CompilerContextBuilder}
 import amf.internal.environment.Environment
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait RuntimeCompiler {
   def build(compilerContext: CompilerContext,
@@ -36,7 +35,7 @@ object RuntimeCompiler {
             ctx: Option[ParserContext] = None,
             env: Environment = Environment(),
             parsingOptions: ParsingOptions = ParsingOptions(),
-            errorHandler: AmfParserErrorHandler = DefaultParserErrorHandler.withRun()): Future[BaseUnit] = {
+            errorHandler: AmfParserErrorHandler = DefaultParserErrorHandler.withRun())(implicit executionContext: ExecutionContext): Future[BaseUnit] = {
 
     val context = new CompilerContextBuilder(url, base.platform,errorHandler).withCache(cache).withEnvironment(env).withFileContext(base).build()
     compiler match {
@@ -57,7 +56,7 @@ object RuntimeCompiler {
             mediaType: Option[String],
             vendor: Option[String],
             referenceKind: ReferenceKind = UnspecifiedReference,
-            parsingOptions: ParsingOptions = ParsingOptions()): Future[BaseUnit] = {
+            parsingOptions: ParsingOptions = ParsingOptions())(implicit executionContext: ExecutionContext): Future[BaseUnit] = {
     compiler match {
       case Some(runtimeCompiler) =>
         AMFPluginsRegistry.featurePlugins().foreach(_.onBeginParsingInvocation(compilerContext.path, mediaType))

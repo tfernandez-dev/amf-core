@@ -2,6 +2,7 @@ package amf.client.parse
 
 import amf.client.convert.CoreClientConverters._
 import amf.client.environment.{DefaultEnvironment, Environment}
+import amf.client.execution.BaseExecutionEnvironment
 import amf.client.model.document.BaseUnit
 import amf.client.validate.ValidationReport
 import amf.core.client.ParsingOptions
@@ -9,19 +10,25 @@ import amf.core.errorhandling.UnhandledErrorHandler
 import amf.core.model.document.{BaseUnit => InternalBaseUnit}
 import amf.core.remote.{Cache, Context}
 import amf.core.services.{RuntimeCompiler, RuntimeValidator}
+import amf.internal.environment
 import amf.internal.resource.{ResourceLoader, StringResourceLoader}
 import amf.{MessageStyle, ProfileName, RAMLStyle}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js.annotation.JSExport
 
 /**
   * Base class for parsers.
   */
-class Parser(vendor: String, mediaType: String, private val env: Option[Environment]) {
+class Parser(vendor: String, mediaType: String, private val env: Option[Environment] = None) {
 
-  private var parsedModel: Option[InternalBaseUnit] = None
+  private var parsedModel: Option[InternalBaseUnit]       = None
+  private val executionEnvironment: BaseExecutionEnvironment = env match {
+    case Some(environment) => environment.executionEnvironment
+    case None => platform.defaultExecutionEnvironment
+  }
+
+  private implicit val executionContext: ExecutionContext = executionEnvironment.executionContext
 
   /**
     * Asynchronously generate a BaseUnit from the unit located in the given url.
@@ -92,28 +99,30 @@ class Parser(vendor: String, mediaType: String, private val env: Option[Environm
     reportCustomValidationImplementation(profile, customProfilePath)
 
   private[amf] def parseAsync(url: String,
-                         loader: Option[ResourceLoader] = None,
-                         parsingOptions: ParsingOptions = ParsingOptions()): Future[InternalBaseUnit] = {
+                              loader: Option[ResourceLoader] = None,
+                              parsingOptions: ParsingOptions = ParsingOptions()): Future[InternalBaseUnit] = {
 
     val environment = {
       val e = internalEnv()
       loader.map(e.add).getOrElse(e)
     }
 
-    RuntimeCompiler(url,
-                    Option(mediaType),
-                    Some(vendor),
-                    Context(platform),
-                    env = environment,
-                    cache = Cache(),
-                    parsingOptions = parsingOptions,
-                    errorHandler = DefaultParserErrorHandler.withRun()) map { model =>
+    RuntimeCompiler(
+      url,
+      Option(mediaType),
+      Some(vendor),
+      Context(platform),
+      env = environment,
+      cache = Cache(),
+      parsingOptions = parsingOptions,
+      errorHandler = DefaultParserErrorHandler.withRun()
+    ) map { model =>
       parsedModel = Some(model)
       model
     }
   }
 
-  private def internalEnv() = env.getOrElse(DefaultEnvironment())._internal
+  private def internalEnv(): environment.Environment = env.getOrElse(DefaultEnvironment(executionEnvironment))._internal
 
   /**
     * Generates the validation report for the last parsed model.
@@ -125,7 +134,8 @@ class Parser(vendor: String, mediaType: String, private val env: Option[Environm
   private def report(profileName: ProfileName,
                      messageStyle: MessageStyle = RAMLStyle): ClientFuture[ValidationReport] = {
 
-    val result = parsedModel.map(RuntimeValidator(_, profileName, messageStyle, internalEnv())) match {
+    val result = parsedModel.map(
+      RuntimeValidator(_, profileName, messageStyle, internalEnv(), resolved = false, executionEnvironment)) match {
       case Some(validation) => validation
       case None             => Future.failed(new Exception("No parsed model or current validation found, cannot validate"))
     }

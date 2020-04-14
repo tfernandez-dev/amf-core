@@ -4,12 +4,10 @@ import amf.client.plugins._
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.validation.AMFPayloadValidationPlugin
 import amf.plugins.document.graph.AMFGraphPlugin
-import amf.plugins.features.validation.ParserSideValidationProfiler
 import amf.plugins.syntax.SYamlSyntaxPlugin
 
 import scala.collection.mutable
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 object AMF {
 
@@ -19,7 +17,7 @@ object AMF {
   /**
     * Initializes AMF and all the registered plugins
     */
-  def init(): Future[Unit] = {
+  def init()(implicit executionContext: ExecutionContext): Future[Unit] = {
     AMFCompiler.init()
     AMFSerializer.init()
     val registeredSYamlPlugin                = SYamlSyntaxPlugin.init()
@@ -45,7 +43,7 @@ object AMF {
     case feature: AMFPayloadValidationPlugin => AMFPluginsRegistry.registerPayloadValidationPlugin(feature)
   }
 
-  protected def processInitializations(plugins: Seq[AMFPlugin]): Future[Unit] = {
+  protected def processInitializations(plugins: Seq[AMFPlugin])(implicit executionContext: ExecutionContext): Future[Unit] = {
     if (plugins.isEmpty) {
       Future {}
     } else {

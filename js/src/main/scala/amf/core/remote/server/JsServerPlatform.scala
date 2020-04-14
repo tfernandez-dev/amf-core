@@ -1,11 +1,13 @@
 package amf.core.remote.server
 
+import amf.client.execution.{BaseExecutionEnvironment, DefaultExecutionEnvironment, ExecutionEnvironment}
 import amf.internal.resource.{ResourceLoader, ResourceLoaderAdapter}
 import amf.core.remote.File.FILE_PROTOCOL
 import amf.core.remote._
 import amf.core.remote.server.JsServerPlatform.OS
 import org.mulesoft.common.io.{FileSystem, Fs}
 
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSExportAll, JSImport}
 
@@ -22,10 +24,15 @@ class JsServerPlatform extends JsPlatform {
   }
 
   /** Platform out of the box [ResourceLoader]s */
-  override def loaders(): Seq[ResourceLoader] = Seq(
-    ResourceLoaderAdapter(JsServerFileResourceLoader()),
-    ResourceLoaderAdapter(JsServerHttpResourceLoader())
-  )
+  override def loaders(exec: BaseExecutionEnvironment = defaultExecutionEnvironment): Seq[ResourceLoader] = {
+    implicit val executionContext: ExecutionContext = exec.executionContext
+    loaders()
+  }
+
+  override def loaders()(implicit executionContext: ExecutionContext): Seq[ResourceLoader] = Seq(
+      ResourceLoaderAdapter(JsServerFileResourceLoader()),
+      ResourceLoaderAdapter(JsServerHttpResourceLoader())
+    )
 
   /** Return temporary directory. */
   override def tmpdir(): String = OS.tmpdir() + "/"
@@ -33,9 +40,9 @@ class JsServerPlatform extends JsPlatform {
   override def resolvePath(uri: String): String = {
     uri match {
       case File(path) if fs.separatorChar == '/' => FILE_PROTOCOL + normalizeURL(path)
-      case File(path) => FILE_PROTOCOL + normalizeURL(path).replace(fs.separatorChar.toString, "/")
-      case HttpParts(protocol, host, path) => protocol + host + normalizePath(withTrailingSlash(path))
-      case _                               => uri
+      case File(path)                            => FILE_PROTOCOL + normalizeURL(path).replace(fs.separatorChar.toString, "/")
+      case HttpParts(protocol, host, path)       => protocol + host + normalizePath(withTrailingSlash(path))
+      case _                                     => uri
     }
   }
 

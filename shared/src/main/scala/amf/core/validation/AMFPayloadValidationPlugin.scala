@@ -4,7 +4,7 @@ import amf.core.model.document.PayloadFragment
 import amf.core.model.domain.Shape
 import amf.internal.environment.Environment
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AMFPayloadValidationPlugin extends AMFPlugin {
 
@@ -23,14 +23,15 @@ trait PayloadValidator {
   val validationMode: ValidationMode
   val env: Environment
 
-  def validate(mediaType: String, payload: String): Future[AMFValidationReport]
+  def validate(mediaType: String, payload: String)(
+      implicit executionContext: ExecutionContext): Future[AMFValidationReport]
 
-  def validate(payloadFragment: PayloadFragment): Future[AMFValidationReport]
+  def validate(payloadFragment: PayloadFragment)(
+      implicit executionContext: ExecutionContext): Future[AMFValidationReport]
 
   def syncValidate(mediaType: String, payload: String): AMFValidationReport
 
-  def isValid(mediaType: String, payload: String): Future[Boolean]
-
+  def isValid(mediaType: String, payload: String)(implicit executionContext: ExecutionContext): Future[Boolean]
 }
 
 case class PayloadParsingResult(fragment: PayloadFragment, results: List[AMFValidationResult]) {

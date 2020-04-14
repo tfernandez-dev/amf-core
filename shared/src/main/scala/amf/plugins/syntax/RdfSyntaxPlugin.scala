@@ -7,14 +7,13 @@ import amf.core.rdf.RdfModelDocument
 import amf.core.unsafe.PlatformSecrets
 import org.mulesoft.common.io.Output
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object RdfSyntaxPlugin extends AMFSyntaxPlugin with PlatformSecrets {
 
   override val ID = "Rdf"
 
-  override def init(): Future[AMFPlugin] = Future { this }
+  override def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin] = Future { this }
 
   override def dependencies(): Seq[AMFPlugin] = Nil
 

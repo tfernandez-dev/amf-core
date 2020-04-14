@@ -2,13 +2,14 @@ package amf.core.remote
 
 import java.net.URI
 
+import amf.client.execution.{DefaultExecutionEnvironment, ExecutionEnvironment}
 import amf.core.remote.server.Path
 
 import scala.scalajs.js.URIUtils
 
 trait JsPlatform extends Platform {
 
-  override  def name = "js"
+  override def name = "js"
 
   override def findCharInCharSequence(stream: CharSequence)(p: Char => Boolean): Option[Char] = stream.toString.find(p)
 
@@ -27,4 +28,6 @@ trait JsPlatform extends Platform {
   override def normalizeURL(url: String): String = Path.normalize(url)
 
   override def normalizePath(url: String): String = fixFilePrefix(new URI(encodeURI(url)).normalize.toString)
+
+  override val defaultExecutionEnvironment: ExecutionEnvironment = DefaultExecutionEnvironment()
 }

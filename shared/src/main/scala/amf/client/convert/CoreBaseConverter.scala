@@ -2,12 +2,40 @@ package amf.client.convert
 
 import amf.ProfileName
 import amf.client.model.document.{BaseUnit => ClientBaseUnit, PayloadFragment => ClientPayloadFragment}
-import amf.client.model.domain.{AbstractDeclaration => ClientAbstractDeclaration, ArrayNode => ClientArrayNode, CustomDomainProperty => ClientCustomDomainProperty, DataNode => ClientDataNode, DomainElement => ClientDomainElement, DomainExtension => ClientDomainExtension, Graph => ClientGraph, ObjectNode => ClientObjectNode, ParametrizedDeclaration => ClientParameterizedDeclaration, PropertyShape => ClientPropertyShape, ScalarNode => ClientScalarNode, Shape => ClientShape, VariableValue => ClientVariableValue, ShapeExtension => ClientShapeExtension}
-import amf.client.model.{Annotations => ClientAnnotations, AnyField => ClientAnyField, BoolField => ClientBoolField, DoubleField => ClientDoubleField, FloatField => ClientFloatField, IntField => ClientIntField, StrField => ClientStrField}
+import amf.client.model.domain.{
+  AbstractDeclaration => ClientAbstractDeclaration,
+  ArrayNode => ClientArrayNode,
+  CustomDomainProperty => ClientCustomDomainProperty,
+  DataNode => ClientDataNode,
+  DomainElement => ClientDomainElement,
+  DomainExtension => ClientDomainExtension,
+  Graph => ClientGraph,
+  ObjectNode => ClientObjectNode,
+  ParametrizedDeclaration => ClientParameterizedDeclaration,
+  PropertyShape => ClientPropertyShape,
+  ScalarNode => ClientScalarNode,
+  Shape => ClientShape,
+  ShapeExtension => ClientShapeExtension,
+  VariableValue => ClientVariableValue
+}
+import amf.client.model.{
+  Annotations => ClientAnnotations,
+  AnyField => ClientAnyField,
+  BoolField => ClientBoolField,
+  DoubleField => ClientDoubleField,
+  FloatField => ClientFloatField,
+  IntField => ClientIntField,
+  StrField => ClientStrField
+}
 import amf.client.remote.Content
 import amf.client.resource.{ResourceLoader => ClientResourceLoader}
-import amf.client.reference.{ReferenceResolver => ClientReferenceResolver, CachedReference => ClientCachedReference}
-import amf.client.validate.{ValidationCandidate => ClientValidationCandidate, ValidationReport => ClientValidatorReport, ValidationResult => ClientValidationResult, ValidationShapeSet => ClientValidationShapeSet}
+import amf.client.reference.{CachedReference => ClientCachedReference, ReferenceResolver => ClientReferenceResolver}
+import amf.client.validate.{
+  ValidationCandidate => ClientValidationCandidate,
+  ValidationReport => ClientValidatorReport,
+  ValidationResult => ClientValidationResult,
+  ValidationShapeSet => ClientValidationShapeSet
+}
 import amf.core.model._
 import amf.core.model.document.{BaseUnit, PayloadFragment}
 import amf.core.model.domain._
@@ -17,12 +45,11 @@ import amf.core.parser.Annotations
 import amf.core.remote.Vendor
 import amf.core.unsafe.PlatformSecrets
 import amf.core.validation.{AMFValidationReport, AMFValidationResult, ValidationCandidate, ValidationShapeSet}
-import amf.internal.reference.{ReferenceResolver, ReferenceResolverAdapter, CachedReference}
+import amf.internal.reference.{CachedReference, ReferenceResolver, ReferenceResolverAdapter}
 import amf.internal.resource.{ResourceLoader, ResourceLoaderAdapter}
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
@@ -50,8 +77,8 @@ trait CoreBaseConverter
     with CachedReferenceConverter
     with ReferenceResolverConverter {
 
-  implicit def asClient[Internal, Client](from: Internal)(
-      implicit m: InternalClientMatcher[Internal, Client]): Client = m.asClient(from)
+  implicit def asClient[Internal, Client](from: Internal)(implicit m: InternalClientMatcher[Internal, Client]): Client =
+    m.asClient(from)
 
   implicit def asInternal[Internal, Client](from: Client)(
       implicit m: ClientInternalMatcher[Client, Internal]): Internal = m.asInternal(from)
@@ -89,24 +116,42 @@ trait BidirectionalMatcher[Internal, Client]
     extends ClientInternalMatcher[Client, Internal]
     with InternalClientMatcher[Internal, Client]
 
+/** Return internal instance for given client representation with implicit execution context. */
+trait ClientInternalMatcherWithEC[Client, Internal] {
+  def asInternal(from: Client)(implicit executionContext: ExecutionContext): Internal
+}
+
+/** Return client instance for given internal representation with implicit execution context. */
+trait InternalClientMatcherWithEC[Internal, Client] {
+  def asClient(from: Internal)(implicit executionContext: ExecutionContext): Client
+}
+
+/** Matcher functioning in two directions with implicit execution context. */
+trait BidirectionalMatcherWithEC[Internal, Client]
+    extends ClientInternalMatcherWithEC[Client, Internal]
+    with InternalClientMatcherWithEC[Internal, Client]
+
 trait FutureConverter {
 
   type ClientFuture[T]
 
   implicit class InternalFutureOps[Internal, Client](from: Future[Internal])(
-      implicit m: InternalClientMatcher[Internal, Client]) {
+      implicit m: InternalClientMatcher[Internal, Client],
+      executionContext: ExecutionContext) {
     def asClient: ClientFuture[Client] = asClientFuture(from.map(m.asClient))
   }
 
   implicit class ClientFutureOps[Internal, Client](from: ClientFuture[Client])(
-      implicit m: ClientInternalMatcher[Client, Internal]) {
+      implicit m: ClientInternalMatcher[Client, Internal],
+      executionContext: ExecutionContext) {
     def asInternal: Future[Internal] = asInternalFuture(from, m)
   }
 
-  protected def asClientFuture[T](from: Future[T]): ClientFuture[T]
+  protected def asClientFuture[T](from: Future[T])(implicit executionContext: ExecutionContext): ClientFuture[T]
 
-  protected def asInternalFuture[Client, Internal](from: ClientFuture[Client],
-                                                   matcher: ClientInternalMatcher[Client, Internal]): Future[Internal]
+  protected def asInternalFuture[Client, Internal](
+      from: ClientFuture[Client],
+      matcher: ClientInternalMatcher[Client, Internal])(implicit executionContext: ExecutionContext): Future[Internal]
 }
 
 trait CollectionConverter {
@@ -128,14 +173,31 @@ trait CollectionConverter {
     def asClient: ClientOption[Client] = asClientOption(from, m)
   }
 
+  implicit class InternalOptionOpsWithEC[Internal, Client](from: Option[Internal])(
+      implicit m: InternalClientMatcherWithEC[Internal, Client],
+      executionContext: ExecutionContext) {
+    def asClient: ClientOption[Client] = asClientOptionWithEC(from, m)
+  }
+
   implicit class ClientListOps[Internal, Client](from: ClientList[Client])(
       implicit m: ClientInternalMatcher[Client, Internal]) {
     def asInternal: Seq[Internal] = asInternalSeq(from, m)
   }
 
+  implicit class ClientListOpsWithEC[Internal, Client](from: ClientList[Client])(
+      implicit m: ClientInternalMatcherWithEC[Client, Internal],
+      executionContext: ExecutionContext) {
+    def asInternal: Seq[Internal] = asInternalSeqWithEC(from, m)
+  }
+
   implicit class ClientOptionOps[Client](from: ClientOption[Client]) {
     def toScala: Option[Client] = toScalaOption(from)
   }
+
+//  implicit class ClientOptionOpsWithEC[Client](from: ClientOption[Client])(
+//      implicit executionContext: ExecutionContext) {
+//    def toScala: Option[Client] = toScalaOptionWithEC(from)
+//  }
 
   implicit class InternalMapOps[Internal, Client](from: mutable.Map[String, Internal])(
       implicit m: InternalClientMatcher[Internal, Client]) {
@@ -143,7 +205,7 @@ trait CollectionConverter {
   }
 
   implicit class InternalImmutableMapOps[Internal, Client](from: Map[String, Internal])(
-    implicit m: InternalClientMatcher[Internal, Client]) {
+      implicit m: InternalClientMatcher[Internal, Client]) {
     def asClient: ClientMap[Client] = asClientImmutableMap(from, m)
   }
 
@@ -157,28 +219,49 @@ trait CollectionConverter {
     def asClient: ClientList[Client] = asClientList(from, m)
   }
 
+  implicit class InternalSeqOpsWithEC[Internal, Client](from: Seq[Internal])(
+      implicit m: InternalClientMatcherWithEC[Internal, Client],
+      executionContext: ExecutionContext) {
+    def asClient: ClientList[Client] = asClientListWithEC(from, m)
+  }
+
   protected def asClientOption[Internal, Client](from: Option[Internal],
                                                  m: InternalClientMatcher[Internal, Client]): ClientOption[Client]
+
+  protected def asClientOptionWithEC[Internal, Client](from: Option[Internal],
+                                                       m: InternalClientMatcherWithEC[Internal, Client])(
+      implicit executionContext: ExecutionContext): ClientOption[Client]
 
   protected def toScalaOption[E](from: ClientOption[E]): Option[E]
 
   protected def toClientOption[E](from: Option[E]): ClientOption[E]
 
+//  protected def toScalaOptionWithEC[E](from: ClientOption[E])(implicit executionContext: ExecutionContext): Option[E]
+//
+//  protected def toClientOptionWithEC[E](from: Option[E])(implicit executionContext: ExecutionContext): ClientOption[E]
+
   private[convert] def asClientList[Internal, Client](from: Seq[Internal],
                                                       m: InternalClientMatcher[Internal, Client]): ClientList[Client]
+
+  private[convert] def asClientListWithEC[Internal, Client](
+      from: Seq[Internal],
+      m: InternalClientMatcherWithEC[Internal, Client])(implicit executionContext: ExecutionContext): ClientList[Client]
 
   protected def asClientMap[Internal, Client](from: mutable.Map[String, Internal],
                                               m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
 
   protected def asClientImmutableMap[Internal, Client](from: Map[String, Internal],
-                                              m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
-
+                                                       m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
 
   protected def asClientLinkedMap[Internal, Client](from: mutable.LinkedHashMap[String, Internal],
                                                     m: InternalClientMatcher[Internal, Client]): ClientMap[Client]
 
   protected def asInternalSeq[Client, Internal](from: ClientList[Client],
                                                 m: ClientInternalMatcher[Client, Internal]): Seq[Internal]
+
+  protected def asInternalSeqWithEC[Client, Internal](
+      from: ClientList[Client],
+      m: ClientInternalMatcherWithEC[Client, Internal])(implicit executionContext: ExecutionContext): Seq[Internal]
 }
 
 trait FieldConverter extends CollectionConverter {
@@ -381,12 +464,14 @@ trait ResourceLoaderConverter {
   type ClientLoader <: ClientResourceLoader
   type Loader
 
-  implicit object ResourceLoaderMatcher extends BidirectionalMatcher[ResourceLoader, ClientResourceLoader] {
-    override def asInternal(from: ClientResourceLoader): ResourceLoader = ResourceLoaderAdapter(from)
+  implicit object ResourceLoaderMatcher extends BidirectionalMatcherWithEC[ResourceLoader, ClientResourceLoader] {
+    override def asInternal(from: ClientResourceLoader)(implicit executionContext: ExecutionContext): ResourceLoader =
+      ResourceLoaderAdapter(from)
 
-    override def asClient(from: ResourceLoader): ClientResourceLoader = from match {
-      case ResourceLoaderAdapter(adaptee) => adaptee
-    }
+    override def asClient(from: ResourceLoader)(implicit executionContext: ExecutionContext): ClientResourceLoader =
+      from match {
+        case ResourceLoaderAdapter(adaptee) => adaptee
+      }
   }
 
 }
@@ -394,10 +479,13 @@ trait ResourceLoaderConverter {
 trait ReferenceResolverConverter {
   type ClientReference <: ClientReferenceResolver
 
-  implicit object ReferenceResolverMatcher extends BidirectionalMatcher[ReferenceResolver, ClientReferenceResolver] {
-    override def asInternal(from: ClientReferenceResolver): ReferenceResolver = ReferenceResolverAdapter(from)
+  implicit object ReferenceResolverMatcher
+      extends BidirectionalMatcherWithEC[ReferenceResolver, ClientReferenceResolver] {
+    override def asInternal(from: ClientReferenceResolver)(
+        implicit executionContext: ExecutionContext): ReferenceResolver = ReferenceResolverAdapter(from)
 
-    override def asClient(from: ReferenceResolver): ClientReferenceResolver = from match {
+    override def asClient(from: ReferenceResolver)(
+        implicit executionContext: ExecutionContext): ClientReferenceResolver = from match {
       case ReferenceResolverAdapter(adaptee) => adaptee
     }
   }
@@ -426,8 +514,7 @@ trait ValidationCandidateConverter {
 
 trait ValidationShapeSetConverter {
 
-  implicit object ValidationShapeSetMatcher
-      extends BidirectionalMatcher[ValidationShapeSet, ClientValidationShapeSet] {
+  implicit object ValidationShapeSetMatcher extends BidirectionalMatcher[ValidationShapeSet, ClientValidationShapeSet] {
     override def asClient(from: ValidationShapeSet): ClientValidationShapeSet = ClientValidationShapeSet(from)
 
     override def asInternal(from: ClientValidationShapeSet): ValidationShapeSet = from._internal

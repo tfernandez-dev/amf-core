@@ -1,6 +1,7 @@
 package amf.core.remote
 
 import amf.ProfileName
+import amf.client.execution.BaseExecutionEnvironment
 import amf.client.model.AmfObjectWrapper
 import amf.client.remote.Content
 import amf.core.metamodel.Obj
@@ -14,8 +15,7 @@ import amf.internal.resource.ResourceLoader
 import org.mulesoft.common.io.{AsyncFile, FileSystem, SyncFile}
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait FileMediaType {
   def mimeFromExtension(extension: String): Option[String] =
@@ -46,6 +46,7 @@ trait Platform extends FileMediaType {
 
   /** Underlying file system for platform. */
   val fs: FileSystem
+  val defaultExecutionEnvironment: BaseExecutionEnvironment
   var testingCommandLine: Boolean = false
 
   def exit(code: Int): Unit = System.exit(code)
@@ -66,6 +67,7 @@ trait Platform extends FileMediaType {
 
   def registerWrapper(model: Obj)(builder: (AmfObject) => AmfObjectWrapper): Option[AmfObject => AmfObjectWrapper] =
     wrappersRegistry.put(model.`type`.head.iri(), builder)
+
   def registerWrapperPredicate(p: (Obj) => Boolean)(
       builder: (AmfObject) => AmfObjectWrapper): Option[AmfObject => AmfObjectWrapper] =
     wrappersRegistryFn.put(p, builder)
@@ -106,7 +108,8 @@ trait Platform extends FileMediaType {
     case _ => throw new Exception(s"Cannot build object of type $entity")
   }
 
-  private def loaderConcat(url: String, loaders: Seq[ResourceLoader]): Future[Content] = loaders.toList match {
+  private def loaderConcat(url: String, loaders: Seq[ResourceLoader])(
+      implicit executionContext: ExecutionContext): Future[Content] = loaders.toList match {
     case Nil         => throw new UnsupportedUrlScheme(url)
     case head :: Nil => head.fetch(url)
     case head :: tail =>
@@ -116,13 +119,31 @@ trait Platform extends FileMediaType {
   }
 
   /** Resolve remote url. */
-  def resolve(url: String, env: Environment = Environment()): Future[Content] =
+  def resolve(url: String)(implicit executionContext: ExecutionContext): Future[Content] = {
+    val env = Environment(executionContext)
+    loaderConcat(url, env.loaders.filter(_.accepts(url)))
+  }
+
+  /** Resolve remote url. */
+  def resolve(url: String, env: Environment)(implicit executionContext: ExecutionContext): Future[Content] =
     loaderConcat(url, env.loaders.filter(_.accepts(url)))
 
   /** Platform out of the box [ResourceLoader]s */
-  def loaders(): Seq[ResourceLoader]
+  def loaders(exec: BaseExecutionEnvironment = defaultExecutionEnvironment): Seq[ResourceLoader] = {
+    implicit val executionContext: ExecutionContext = exec.executionContext
+    loaders()
+  }
 
-  def ensureFileAuthority(str: String): String = if (str.startsWith("file:")) { str } else { s"file://$str" }
+  /** Platform out of the box [ResourceLoader]s */
+  def loaders()(implicit executionContext: ExecutionContext): Seq[ResourceLoader]
+
+  def ensureFileAuthority(str: String): String =
+    if (str.startsWith("file:")) {
+      str
+    }
+    else {
+      s"file://$str"
+    }
 
   /** Test path resolution. */
   def resolvePath(path: String): String
@@ -147,10 +168,10 @@ trait Platform extends FileMediaType {
       case _: Throwable => Left(url)
     }
 
-  /** validates and normalize complete url*/
+  /** validates and normalize complete url */
   def normalizeURL(url: String): String
 
-  /** normalize path method for file fetching in amf compiler*/
+  /** normalize path method for file fetching in amf compiler */
   def normalizePath(url: String): String
 
   /** Register an alias for a namespace */
@@ -163,7 +184,7 @@ trait Platform extends FileMediaType {
   protected def customValidationLibraryHelperLocation: String = "http://a.ml/amf/validation.js"
 
   /** Write specified content on given url. */
-  def write(url: String, content: String): Future[Unit] = {
+  def write(url: String, content: String)(implicit executionContext: ExecutionContext): Future[Unit] = {
     url match {
       case File(path) => writeFile(path, content)
       case _          => Future.failed(new Exception(s"Unsupported write operation: $url"))
@@ -177,14 +198,17 @@ trait Platform extends FileMediaType {
   def operativeSystem(): String
 
   /** Write specified content on specified file path. */
-  protected def writeFile(path: String, content: String): Future[Unit] = fs.asyncFile(path).write(content)
+  protected def writeFile(path: String, content: String)(implicit executionContext: ExecutionContext): Future[Unit] =
+    fs.asyncFile(path).write(content)
 
   protected def fixFilePrefix(res: String): String = {
     if (res.startsWith("file://") || res.startsWith("file:///")) {
       res
-    } else if (res.startsWith("file:/")) {
+    }
+    else if (res.startsWith("file:/")) {
       res.replace("file:/", "file:///")
-    } else {
+    }
+    else {
       res
     }
   }
@@ -236,9 +260,11 @@ object Relative {
 /** Unsupported file system. */
 object UnsupportedFileSystem extends FileSystem {
 
-  override def syncFile(path: String): SyncFile   = unsupported
+  override def syncFile(path: String): SyncFile = unsupported
+
   override def asyncFile(path: String): AsyncFile = unsupported
-  override def separatorChar: Char                = unsupported
+
+  override def separatorChar: Char = unsupported
 
   private def unsupported = throw new Exception(s"Unsupported operation")
 }
@@ -252,7 +278,8 @@ case class NetworkError(cause: Throwable) extends FileLoaderException("Network E
 case class UnexpectedStatusCode(resource: String, code: Int)
     extends Exception(s"Unexpected status code '$code' for resource '$resource'")
 
-class UnsupportedUrlScheme(url: String)    extends Exception("Unsupported Url scheme: " + url)
+class UnsupportedUrlScheme(url: String) extends Exception("Unsupported Url scheme: " + url)
+
 class PathResolutionError(message: String) extends Exception("Error resolving path: " + message)
 
 abstract class FileLoaderException(msj: String, e: Throwable) extends Throwable(msj, e)

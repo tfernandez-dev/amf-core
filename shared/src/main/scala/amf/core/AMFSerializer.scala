@@ -109,7 +109,7 @@ class AMFSerializer(unit: BaseUnit,
 }
 
 object AMFSerializer {
-  def init(): Unit = {
+  def init()(implicit executionContext: ExecutionContext): Unit = {
     if (RuntimeSerializer.serializer.isEmpty) {
       RuntimeSerializer.register(new RuntimeSerializer {
         override def dump(unit: BaseUnit,
@@ -126,7 +126,6 @@ object AMFSerializer {
                                 vendor: String,
                                 options: RenderOptions,
                                 shapeOptions: ShapeRenderOptions): Future[Unit] = {
-          import scala.concurrent.ExecutionContext.Implicits.global
           new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).renderToFile(platform, file)
         }
       })

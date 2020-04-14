@@ -9,7 +9,7 @@ import amf.core.metamodel.domain.templates.VariableValueModel
 import amf.core.metamodel.domain.{ExternalDomainElementModel, RecursiveShapeModel}
 import amf.core.model.domain.AnnotationGraphLoader
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /** Core plugin. No need of registering nor initializing. Used solely for model registry. */
 object CorePlugin extends AMFDomainPlugin {
@@ -46,5 +46,5 @@ object CorePlugin extends AMFDomainPlugin {
 
   override def dependencies(): Seq[AMFPlugin] = Seq.empty
 
-  override def init(): Future[AMFPlugin] = Future.successful(this)
+  override def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin] = Future.successful(this)
 }

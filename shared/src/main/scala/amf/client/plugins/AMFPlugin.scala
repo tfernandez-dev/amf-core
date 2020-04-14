@@ -1,6 +1,6 @@
 package amf.client.plugins
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AMFPlugin {
 
@@ -8,5 +8,5 @@ trait AMFPlugin {
 
   def dependencies(): Seq[AMFPlugin]
 
-  def init(): Future[AMFPlugin]
+  def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin]
 }

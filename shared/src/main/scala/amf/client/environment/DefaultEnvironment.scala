@@ -10,7 +10,8 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 @JSExportTopLevel("client.DefaultEnvironment")
 object DefaultEnvironment extends PlatformSecrets {
   @JSExport("apply")
-  def apply(exec: BaseExecutionEnvironment = platform.defaultExecutionEnvironment): Environment = {
+  def apply(): Environment = this.apply(platform.defaultExecutionEnvironment)
+  def apply(exec: BaseExecutionEnvironment): Environment = {
     implicit val executionContext: ExecutionContext = exec.executionContext
     val loaders: ClientList[ClientLoader]           = platform.loaders().asClient.asInstanceOf[ClientList[ClientLoader]]
     Environment.empty(exec).withLoaders(loaders)

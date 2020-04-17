@@ -15,7 +15,7 @@ import org.yaml.model._
 
 import scala.collection.mutable
 
-trait GraphParserHelpers {
+trait GraphParserHelpers extends GraphContextHelper {
 
   private def parseSourceNode(map: YMap)(implicit ctx: GraphParserContext): SourceMap = {
     val result = SourceMap()
@@ -116,21 +116,47 @@ trait GraphParserHelpers {
 
     result
   }
+}
+
+abstract class GraphContextHelper {
 
   protected def expandUriFromContext(iri: String)(implicit ctx: GraphParserContext): String = {
-    ctx.compactUris.find{case (key, _) => iri.startsWith(key)} match {
+    ctx.compactUris.find { case (key, _) => iri.startsWith(key) } match {
       case Some((key, value)) => iri.replace(key + ':', value)
-      case None => iri
+      case None               => iri
     }
   }
 
   protected def compactUriFromContext(iri: String)(implicit ctx: GraphParserContext): String = {
-    ctx.compactUris.find{case (_, value) => iri.startsWith(value)} match {
+    ctx.compactUris.find { case (_, value) => iri.startsWith(value) } match {
       case Some((key, value)) => iri.replace(value, key + ':')
-      case None => iri
+      case None               => iri
     }
   }
 
-  protected def transformIdFromContext(id: String)(implicit ctx: GraphParserContext): String = ctx.baseId.getOrElse("") + id
+  protected def transformIdFromContext(id: String)(implicit ctx: GraphParserContext): String =
+    ctx.baseId.getOrElse("") + id
+
+  protected def parseCompactUris(contextNode: YNode)(implicit ctx: GraphParserContext): Unit = {
+    ctx.compactUris ++= buildContextMap(contextNode)
+    ctx.baseId = ctx.compactUris.find { case (key, _) => key == "@base" }.map { case (_, value) => value }
+  }
+
+  protected def parseKeyValue(entry: YMapEntry): Option[(String, String)] = {
+    (entry.key.tagType, entry.value.tagType) match {
+      case (YType.Str, YType.Str) =>
+        Some(entry.key.as[YScalar].text -> entry.value.as[YScalar].text)
+      case _ => None
+    }
+  }
+
+  protected def buildContextMap(contextNode: YNode): Map[String, String] = {
+    contextNode.tagType match {
+      case YType.Map =>
+        val m: YMap = contextNode.as[YMap]
+        m.entries.flatMap(parseKeyValue).toMap
+      case _ => Map.empty
+    }
+  }
 
 }

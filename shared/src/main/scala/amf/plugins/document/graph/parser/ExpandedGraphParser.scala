@@ -29,8 +29,8 @@ import scala.collection.mutable.ListBuffer
   * AMF Graph parser
   */
 class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
-    extends GraphParser
-    with GraphParserHelpers {
+    extends GraphParserHelpers
+    with GraphParser {
 
   override def canParse(document: SyamlParsedDocument): Boolean = ExpandedGraphParser.canParse(document)
 
@@ -59,24 +59,6 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
         case _ =>
           ctx.eh.violation(UnableToParseDocument, location, s"Unable to parse $document", document)
           Document()
-      }
-    }
-
-    private def parseCompactUris(node: YNode): Unit = {
-      node.tagType match {
-        case YType.Map =>
-          val m: YMap = node.as[YMap]
-          ctx.compactUris ++= m.entries.flatMap(parseKeyValue).toMap
-          ctx.baseId = ctx.compactUris.find { case (key, value) => key == "@base" }.map { case (_, value) => value }
-        case _ =>
-      }
-    }
-
-    private def parseKeyValue(entry: YMapEntry): Option[(String, String)] = {
-      (entry.key.tagType, entry.value.tagType) match {
-        case (YType.Str, YType.Str) =>
-          Some(entry.key.as[YScalar].text -> entry.value.as[YScalar].text)
-        case _ => None
       }
     }
 

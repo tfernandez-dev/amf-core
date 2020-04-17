@@ -1,10 +1,23 @@
 package amf.plugins.document.graph.parser
-import amf.client.parse.DefaultParserErrorHandler
+import amf.client.parse.{DefaultParserErrorHandler, IgnoringErrorHandler}
 import amf.core.annotations.DomainExtensionAnnotation
-import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
+import amf.core.metamodel.Type.{
+  Array,
+  Bool,
+  Iri,
+  LiteralUri,
+  RegExp,
+  SortedArray,
+  Str
+}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel}
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.domain.{DomainElementModel, ExternalSourceElementModel, LinkableElementModel, ShapeModel}
+import amf.core.metamodel.domain.{
+  DomainElementModel,
+  ExternalSourceElementModel,
+  LinkableElementModel,
+  ShapeModel
+}
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj, Type}
 import amf.core.model.DataType
 import amf.core.model.document._
@@ -15,7 +28,12 @@ import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.unsafe.TrunkPlatform
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.CoreValidations.{NodeNotFound, NotLinkable, UnableToParseDocument, UnableToParseNode}
+import amf.plugins.features.validation.CoreValidations.{
+  NodeNotFound,
+  NotLinkable,
+  UnableToParseDocument,
+  UnableToParseNode
+}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.model._
 
@@ -24,8 +42,8 @@ import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
 class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
-    extends GraphParser
-    with GraphParserHelpers {
+    extends GraphParserHelpers
+    with GraphParser {
 
   override def canParse(document: SyamlParsedDocument): Boolean = FlattenedGraphParser.canParse(document)
 
@@ -59,16 +77,6 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
         case _ =>
           ctx.eh.violation(UnableToParseDocument, "", "Error parsing root JSON-LD node")
           Document()
-      }
-    }
-
-    private def parseCompactUris(node: YNode): Unit = {
-      node.tagType match {
-        case YType.Map =>
-          val m: YMap = node.as[YMap]
-          ctx.compactUris ++= m.entries.flatMap(parseKeyValue).toMap
-          ctx.baseId = ctx.compactUris.find { case (key, value) => key == "@base" }.map { case (_, value) => value }
-        case _ =>
       }
     }
 
@@ -107,20 +115,12 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
     }
 
     private def getRootNodeFromGraphMap: Option[YMap] = {
-      graphMap.values.find {
-        node =>
-          node.entries.find {
-            entry =>
-              expandUriFromContext(entry.key.as[String]) == BaseUnitModel.Root.toString()
-          }.exists(entry => entry.value.as[Boolean])
-      }
-    }
-
-    private def parseKeyValue(entry: YMapEntry): Option[(String, String)] = {
-      (entry.key.tagType, entry.value.tagType) match {
-        case (YType.Str, YType.Str) =>
-          Some(entry.key.as[YScalar].text -> entry.value.as[YScalar].text)
-        case _ => None
+      graphMap.values.find { node =>
+        node.entries
+          .find { entry =>
+            expandUriFromContext(entry.key.as[String]) == BaseUnitModel.Root.value.iri()
+          }
+          .exists(entry => entry.value.as[Boolean])
       }
     }
 
@@ -546,16 +546,58 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
   }
 }
 
-object FlattenedGraphParser {
+object FlattenedGraphParser extends GraphContextHelper {
   def apply: FlattenedGraphParser = FlattenedGraphParser(TrunkPlatform(""))
   def apply(platform: Platform): FlattenedGraphParser =
-    new FlattenedGraphParser(platform)(new GraphParserContext(eh = DefaultParserErrorHandler.withRun()))
+    new FlattenedGraphParser(platform)(
+      new GraphParserContext(eh = DefaultParserErrorHandler.withRun())
+    )
 
+  /**
+    * Returns true if `document` contains a @graph node which in turn must contain a Root node.
+    * Root nodes are nodes with @type http://a.ml/vocabularies/document#Unit (BaseUnits) with the property
+    * http://a.ml/vocabularies/document#root set to true.
+    * @param document document to perform the canParse test on
+    * @return
+    */
   def canParse(document: SyamlParsedDocument): Boolean = {
     document.document.node.value match {
       case m: YMap =>
-        m.key("@graph").isDefined
+        implicit val ctx: GraphParserContext = new GraphParserContext(
+          eh = IgnoringErrorHandler()
+        )
+        m.key("@context").foreach(entry => parseCompactUris(entry.value))
+        m.key("@graph") match {
+          case Some(graphEntry) =>
+            val graphYSeq = graphEntry.value.as[YSequence]
+            graphYSeq.nodes.exists { node =>
+              isRootNode(node)
+            }
+          case None => false
+        }
       case _ => false
     }
+  }
+
+  private def isRootNode(node: YNode)(implicit ctx: GraphParserContext): Boolean = {
+    node.value match {
+      case map: YMap =>
+        val isBaseUnit = map.key("@type").exists { entry =>
+          val typesYSeq = entry.value.as[YSequence]
+          typesYSeq.nodes
+            .flatMap(_.asScalar)
+            .exists(t => {
+              BaseUnitModel.`type`
+                .exists(_.iri() == expandUriFromContext(t.text))
+            })
+        }
+        val isRoot = map.entries.exists(entry => {
+          val key = expandUriFromContext(entry.key.as[String])
+          BaseUnitModel.Root.value.iri() == key && entry.value.as[Boolean]
+        })
+        isBaseUnit && isRoot
+      case _ => false
+    }
+
   }
 }

@@ -40,6 +40,11 @@ trait BaseUnit extends AmfObjectWrapper with PlatformSecrets {
     this
   }
 
+  def withId(id: String): this.type = {
+    _internal.withId(id)
+    this
+  }
+
   def withRaw(raw: String): this.type = {
     _internal.withRaw(raw)
     this

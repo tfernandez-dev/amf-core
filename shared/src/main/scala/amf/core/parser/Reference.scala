@@ -24,14 +24,18 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       implicit executionContext: ExecutionContext): Future[ReferenceResolutionResult] = {
 
     // If there is any ReferenceResolver attached to the environment, then first try to get the cached reference if it exists. If not, load and parse as usual.
-    compilerContext.environment.resolver match {
-      case Some(resolver) =>
-        resolver.fetch(compilerContext.resolvePath(url)) flatMap { cachedReference =>
-          Future(ReferenceResolutionResult(None, Some(cachedReference.content)))
-        } recoverWith {
-          case _ => resolveReference(compilerContext, nodes, allowRecursiveRefs)
-        }
-      case None => resolveReference(compilerContext, nodes, allowRecursiveRefs)
+    try {
+      compilerContext.environment.resolver match {
+        case Some(resolver) =>
+          resolver.fetch(compilerContext.resolvePath(url)) flatMap { cachedReference =>
+            Future(ReferenceResolutionResult(None, Some(cachedReference.content)))
+          } recoverWith {
+            case _ => resolveReference(compilerContext, nodes, allowRecursiveRefs)
+          }
+        case None => resolveReference(compilerContext, nodes, allowRecursiveRefs)
+      }
+    } catch {
+      case _: Throwable => resolveReference(compilerContext, nodes, allowRecursiveRefs)
     }
   }
 
@@ -79,8 +83,8 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       case _: Module => // if is a library, kind should be LibraryReference
         if (allKinds.contains(LibraryReference) && allKinds.contains(LinkReference))
           nodes.foreach(
-              ctx.eh
-                .violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
+            ctx.eh
+              .violation(ExpectedModule, unit.id, "The !include tag must be avoided when referencing a library", _))
         else if (!LibraryReference.eq(definedKind))
           nodes.foreach(ctx.eh.violation(ExpectedModule, unit.id, "Libraries must be applied by using 'uses'", _))
       // ToDo find a better way to skip vocabulary/dialect elements of this validation

@@ -176,16 +176,11 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   private def traverseElement(element: AmfObject,
                               transformationData: TransformationData,
-                              traversalData: TraversalData) = {
+                              traversalData: TraversalData): AmfObject = {
     // not visited yet
     if (transformationData.predicate(element)) { // matches predicate, we transform
       transformationData.transformation(element, false) match {
-        case Some(transformed: AmfObject) =>
-          if (traversalData.cycles.contains(transformed.id)) {
-            transformationData.cycleRecoverer(element, transformed).orNull
-          } else {
-            transformed
-          }
+        case Some(transformed: AmfObject) => transformed
         case other => other.orNull
       }
     } else {

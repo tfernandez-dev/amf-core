@@ -40,8 +40,7 @@ trait BaseUnitModel extends Obj with ModelDefaultBuilder {
     ValueType(Namespace.Meta, "describedBy"),
     ModelDoc(ModelVocabularies.AmlDoc,
              "described by",
-             "Link to the AML dialect describing a particular subgraph of information"),
-    true
+             "Link to the AML dialect describing a particular subgraph of information")
   )
 
   // TODO: This is specific to web api, we should remove this from here

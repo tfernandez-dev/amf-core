@@ -82,6 +82,15 @@ package object utils {
     def asAsyncExtension = s"x-amf-$str"
 
     def option: Option[String] = if (str.isEmpty) None else Option(str)
+
+    def toCamelCase: String = {
+      val words = str.split("\\s+")
+      if (words.size == 1) {
+        words.head
+      } else {
+        (Seq(words.head) ++ words.tail.map(_.capitalize)).mkString
+      }
+    }
   }
 
   case class QName(qualification: String, name: String) {
@@ -179,7 +188,7 @@ package object utils {
     val defaultThreshold = 10000
     def apply(maxThreshold: Option[Long]): AliasCounter = maxThreshold match {
       case Some(value) => apply(maxThreshold = value)
-      case None => apply()
+      case None        => apply()
     }
   }
 

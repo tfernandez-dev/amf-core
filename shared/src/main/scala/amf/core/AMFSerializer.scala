@@ -30,7 +30,8 @@ class AMFSerializer(unit: BaseUnit,
   def renderAsYDocument(): SyamlParsedDocument = {
     val domainPlugin = getDomainPlugin
     val builder      = new YDocumentBuilder
-    if (domainPlugin.emit(unit, builder, options, shapeOptions)) SyamlParsedDocument(builder.result.asInstanceOf[YDocument])
+    if (domainPlugin.emit(unit, builder, options, shapeOptions))
+      SyamlParsedDocument(builder.result.asInstanceOf[YDocument])
     else throw new Exception(s"Error unparsing syntax $mediaType with domain plugin ${domainPlugin.ID}")
   }
 
@@ -38,7 +39,7 @@ class AMFSerializer(unit: BaseUnit,
   def renderToBuilder[T](builder: DocBuilder[T])(implicit executor: ExecutionContext): Future[Unit] = Future {
     if (vendor == Vendor.AMF.name) {
       if (options.isFlattenedJsonLd) {
-        FlattenedJsonLdEmitter.emit(unit,builder, options)
+        FlattenedJsonLdEmitter.emit(unit, builder, options)
       } else {
         JsonLdEmitter.emit(unit, builder, options)
       }
@@ -61,7 +62,7 @@ class AMFSerializer(unit: BaseUnit,
       if (!options.isAmfJsonLdSerilization) parseRdf(writer)
       else {
         val b = JsonOutputBuilder[W](writer, options.isPrettyPrint)
-        if (options.isFlattenedJsonLd){
+        if (options.isFlattenedJsonLd) {
           FlattenedJsonLdEmitter.emit(unit, b, options)
         } else {
           JsonLdEmitter.emit(unit, b, options)
@@ -110,25 +111,23 @@ class AMFSerializer(unit: BaseUnit,
 
 object AMFSerializer {
   def init()(implicit executionContext: ExecutionContext): Unit = {
-    if (RuntimeSerializer.serializer.isEmpty) {
-      RuntimeSerializer.register(new RuntimeSerializer {
-        override def dump(unit: BaseUnit,
-                          mediaType: String,
-                          vendor: String,
-                          options: RenderOptions,
-                          shapeOptions: ShapeRenderOptions): String =
-          new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).render()
+    RuntimeSerializer.register(new RuntimeSerializer {
+      override def dump(unit: BaseUnit,
+                        mediaType: String,
+                        vendor: String,
+                        options: RenderOptions,
+                        shapeOptions: ShapeRenderOptions): String =
+        new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).render()
 
-        override def dumpToFile(platform: Platform,
-                                file: String,
-                                unit: BaseUnit,
-                                mediaType: String,
-                                vendor: String,
-                                options: RenderOptions,
-                                shapeOptions: ShapeRenderOptions): Future[Unit] = {
-          new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).renderToFile(platform, file)
-        }
-      })
-    }
+      override def dumpToFile(platform: Platform,
+                              file: String,
+                              unit: BaseUnit,
+                              mediaType: String,
+                              vendor: String,
+                              options: RenderOptions,
+                              shapeOptions: ShapeRenderOptions): Future[Unit] = {
+        new AMFSerializer(unit, mediaType, vendor, options, shapeOptions).renderToFile(platform, file)
+      }
+    })
   }
 }

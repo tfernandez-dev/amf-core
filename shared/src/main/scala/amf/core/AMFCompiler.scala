@@ -66,9 +66,11 @@ class CompilerContext(url: String,
 
   def resolvePath(url: String): String = fileContext.resolve(fileContext.platform.normalizePath(url))
 
-  def resolveContent()(implicit executionContext: ExecutionContext): Future[Content] = platform.resolve(location, environment)
+  def resolveContent()(implicit executionContext: ExecutionContext): Future[Content] =
+    platform.resolve(location, environment)
 
-  def forReference(url: String, withNormalizedUri: Boolean = true)(implicit executionContext: ExecutionContext): CompilerContext = {
+  def forReference(url: String, withNormalizedUri: Boolean = true)(
+      implicit executionContext: ExecutionContext): CompilerContext = {
     new CompilerContextBuilder(url, fileContext.platform, parserContext.eh)
       .withCache(cache)
       .withEnvironment(environment)
@@ -95,7 +97,7 @@ class CompilerContextBuilder(url: String,
   private var givenContent: Option[ParserContext] = None
   private var cache                               = Cache()
   private var environment                         = Environment()
-  private var normalizeUri: Boolean = true
+  private var normalizeUri: Boolean               = true
 
   def withBaseParserContext(parserContext: ParserContext): this.type = {
     givenContent = Some(parserContext)
@@ -176,8 +178,7 @@ class AMFCompiler(compilerContext: CompilerContext,
     if (stream.length() > 2 && stream.charAt(0) == '#' && stream.charAt(1) == '%') {
       ExecutionLog.log(s"AMFCompiler#autodetectSyntax: auto detected application/yaml media type")
       Some("application/yaml")
-    }
-    else {
+    } else {
       compilerContext.platform.findCharInCharSequence(stream) { c =>
         c != '\n' && c != '\t' && c != '\r' && c != ' '
       } match {
@@ -259,7 +260,8 @@ class AMFCompiler(compilerContext: CompilerContext,
       .withRunNumber(compilerContext.parserRun)
   }
 
-  private def parseDomain(parsed: Either[Content, Root])(implicit executionContext: ExecutionContext): Future[BaseUnit] = {
+  private def parseDomain(parsed: Either[Content, Root])(
+      implicit executionContext: ExecutionContext): Future[BaseUnit] = {
     parsed match {
       case Left(content) =>
         mediaType match {
@@ -298,9 +300,9 @@ class AMFCompiler(compilerContext: CompilerContext,
                 .withId(document.location)
                 .withLocation(document.location)
                 .withEncodes(
-                    ExternalDomainElement()
-                      .withRaw(document.raw)
-                      .withMediaType(document.mediatype))
+                  ExternalDomainElement()
+                    .withRaw(document.raw)
+                    .withMediaType(document.mediatype))
           }
         }
       case None if vendor.isDefined => throw new UnsupportedVendorException(vendor.get)
@@ -327,7 +329,8 @@ class AMFCompiler(compilerContext: CompilerContext,
     }
   }
 
-  private def parseReferences(root: Root, domainPlugin: AMFDocumentPlugin)(implicit executionContext: ExecutionContext): Future[Root] = {
+  private def parseReferences(root: Root, domainPlugin: AMFDocumentPlugin)(
+      implicit executionContext: ExecutionContext): Future[Root] = {
     val handler = domainPlugin.referenceHandler(compilerContext.parserContext.eh)
     val refs    = handler.collect(root.parsed, compilerContext.parserContext)
     compilerContext.logForFile(s"AMFCompiler#parseReferences: ${refs.toReferences.size} references found")
@@ -370,9 +373,9 @@ class AMFCompiler(compilerContext: CompilerContext,
   def verifyValidFragment(refVendor: Option[Vendor], refs: Seq[RefContainer]): Unit = refVendor match {
     case Some(v) if v.isRaml =>
       refs.foreach(
-          r =>
-            if (r.fragment.isDefined)
-              compilerContext.violation(InvalidFragmentRef, "Cannot use reference with # in a RAML fragment", r.node))
+        r =>
+          if (r.fragment.isDefined)
+            compilerContext.violation(InvalidFragmentRef, "Cannot use reference with # in a RAML fragment", r.node))
     case _ => // Nothing to do
   }
 
@@ -395,8 +398,8 @@ class AMFCompiler(compilerContext: CompilerContext,
       root.references.foreach { reference =>
         reference.origin.refs.foreach { origins =>
           bu.add(
-              ReferenceTargets(reference.unit.location().getOrElse(reference.unit.id),
-                               Range(origins.node.location.inputRange)))
+            ReferenceTargets(reference.unit.location().getOrElse(reference.unit.id),
+                             Range(origins.node.location.inputRange)))
         }
       }
       bu
@@ -408,16 +411,14 @@ class AMFCompiler(compilerContext: CompilerContext,
 object AMFCompiler {
   def init()(implicit executionContext: ExecutionContext) {
     // We register ourselves as the Runtime compiler
-    if (RuntimeCompiler.compiler.isEmpty) {
-      RuntimeCompiler.register(
-          (compilerContext: CompilerContext,
-           mediaType: Option[String],
-           vendor: Option[String],
-           referenceKind: ReferenceKind,
-           parsingOptions: ParsingOptions) => {
-            new AMFCompiler(compilerContext, mediaType, vendor, referenceKind, parsingOptions).build()
-          })
-    }
+    RuntimeCompiler.register(
+      (compilerContext: CompilerContext,
+       mediaType: Option[String],
+       vendor: Option[String],
+       referenceKind: ReferenceKind,
+       parsingOptions: ParsingOptions) => {
+        new AMFCompiler(compilerContext, mediaType, vendor, referenceKind, parsingOptions).build()
+      })
   }
 }
 

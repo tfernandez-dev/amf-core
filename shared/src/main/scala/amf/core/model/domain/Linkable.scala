@@ -36,13 +36,26 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
 
   def link[T](label: String, annotations: Annotations = Annotations()): T = {
     val copied = linkCopy()
-    val hash = s"${copied.id}$label".hashCode
+    val hash   = buildLinkHash(label, copied.id, annotations)
     copied
       .withId(s"${copied.id}/link-$hash")
       .withLinkTarget(this)
       .withLinkLabel(label)
       .add(annotations)
       .asInstanceOf[T]
+  }
+
+  private def buildLinkHash(label: String, targetId: String, annotations: Annotations): Int = {
+    val sb = new StringBuilder
+    sb.append(targetId)
+    sb.append(label)
+    annotations.foreach {
+      case s: SerializableAnnotation =>
+        sb.append(s.name)
+        sb.append(s.value)
+      case _ => // Ignore
+    }
+    sb.toString().hashCode
   }
 
   /**
@@ -93,15 +106,9 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
             resolve,
             () =>
               if (unresolvedSeverity == "warning") {
-                ctx.eh.warning(UnresolvedReference,
-                            id,
-                            s"Unresolved reference '$refName'",
-                            refAst.get)
+                ctx.eh.warning(UnresolvedReference, id, s"Unresolved reference '$refName'", refAst.get)
               } else {
-                ctx.eh.violation(UnresolvedReference,
-                              id,
-                              s"Unresolved reference '$refName'",
-                              refAst.get)
+                ctx.eh.violation(UnresolvedReference, id, s"Unresolved reference '$refName'", refAst.get)
             }
           )
         )

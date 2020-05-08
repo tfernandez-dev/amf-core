@@ -8,9 +8,13 @@ import amf.core.rdf.{Literal, PropertyObject, Uri}
 import amf.plugins.features.validation.CoreValidations.UnableToConvertToScalar
 import org.mulesoft.common.time.SimpleDateTime
 
+case class StringIriUriRegexParser(){
+  def parse(property: PropertyObject): AmfScalar = AmfScalar(s"${property.value}")
+}
+
 case class ScalarTypeConverter(`type`: Type, property: PropertyObject)(implicit errorHandler: ErrorHandler) {
   def tryConvert(): Option[AmfScalar] = `type` match {
-    case Iri | Str | RegExp | LiteralUri => Some(strCoercion(property))
+    case Iri | Str | RegExp | LiteralUri => Some(StringIriUriRegexParser().parse(property))
     case Bool                            => bool(property)
     case Type.Int                        => int(property)
     case Type.Float                      => float(property)
@@ -18,8 +22,6 @@ case class ScalarTypeConverter(`type`: Type, property: PropertyObject)(implicit 
     case Type.DateTime | Type.Date       => date(property)
     case _                               => None
   }
-
-  def strCoercion(property: PropertyObject): AmfScalar = AmfScalar(s"${property.value}")
 
   def bool(property: PropertyObject): Option[AmfScalar] = {
     property match {

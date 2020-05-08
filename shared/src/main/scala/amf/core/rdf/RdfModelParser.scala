@@ -11,7 +11,7 @@ import amf.core.model.domain
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
 import amf.core.parser.{Annotations, FieldEntry, ParserContext}
-import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter}
+import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
 import amf.core.rdf.parsers.{DynamicLiteralParser, SourceNodeParser}
 import amf.core.vocabulary.Namespace
@@ -91,7 +91,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       // parsing custom extensions
       instance match {
         case l: DomainElement with Linkable => parseLinkableProperties(node, l)
-        case ex: ExternalDomainElement if unresolvedExtReferencesMap.get(ex.id).isDefined =>
+        case ex: ExternalDomainElement if unresolvedExtReferencesMap.contains(ex.id) =>
           unresolvedExtReferencesMap.get(ex.id).foreach { element =>
             ex.raw.option().foreach(element.set(ExternalSourceElementModel.Raw, _))
           }
@@ -315,7 +315,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
                 case Some(o) => parse(o, shouldParseUnit)
                 case _       => None
             })
-          case Str | Iri => items.map(n => strCoercion(n))
+          case Str | Iri => items.map(StringIriUriRegexParser().parse)
         }
         instance.setArrayWithoutId(f, values, annots(sources, key))
       case _: Scalar => parseScalar(instance, f, property, annots(sources, key))

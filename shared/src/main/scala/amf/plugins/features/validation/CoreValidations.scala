@@ -67,7 +67,7 @@ object CoreValidations extends Validations {
     "JsonLD @types failed to parse in node"
   )
 
-  val UnableToConvertScalar = validation(
+  val UnableToConvertToScalar = validation(
     "unable-to-convert-scalar",
     "Unable to convert scalar"
   )

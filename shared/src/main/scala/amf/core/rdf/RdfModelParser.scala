@@ -1,25 +1,27 @@
 package amf.core.rdf
 
 import amf.core.annotations.DomainExtensionAnnotation
-import amf.core.metamodel.Type.{Any, Array, Bool, Iri, LiteralUri, RegExp, Scalar, SortedArray, Str}
+import amf.core.metamodel.Type.{Any, Array, Iri, Scalar, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel, SourceMapModel}
 import amf.core.metamodel.domain._
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
 import amf.core.metamodel.{Field, Obj, Type}
 import amf.core.model.document._
+import amf.core.model.domain
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
-import amf.core.model.{DataType, domain}
 import amf.core.parser.{Annotations, FieldEntry, ParserContext}
+import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter}
+import amf.core.rdf.graph.NodeFinder
+import amf.core.rdf.parsers.{DynamicLiteralParser, SourceNodeParser}
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
-import amf.plugins.features.validation.CoreValidations.{UnableToConvertScalar, UnableToParseRdfDocument, UnableToParseNode}
-import org.mulesoft.common.time.SimpleDateTime
+import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpers {
+class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpers{
 
   private val unresolvedReferences       = mutable.Map[String, Seq[DomainElement]]()
   private val unresolvedExtReferencesMap = mutable.Map[String, ExternalSourceElement]()
@@ -142,12 +144,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
     }
   }
 
-  def parseDynamicLiteral(l: Literal): ScalarNode = {
-    val result = ScalarNode()
-    l.literalType.foreach(t => result.withDataType(t))
-    result.withValue(l.value)
-    result
-  }
+  def parseDynamicLiteral(literal: Literal): ScalarNode = new DynamicLiteralParser().parse(literal)
 
   def parseDynamicType(id: PropertyObject): Option[DataNode] = {
     findLink(id).map { node =>
@@ -301,8 +298,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
               s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
         }
 
-      case l: SortedArray if properties.length == 1 =>
-        instance.setArray(f, parseList(instance.id, l.element, findLink(properties.head)), annots(sources, key))
+      case array: SortedArray if properties.length == 1 => parseList(instance, array, f, properties, annots(sources, key))
       case _: SortedArray =>
         ctx.eh.violation(
           UnableToParseRdfDocument,
@@ -323,26 +319,21 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
         }
         instance.setArrayWithoutId(f, values, annots(sources, key))
       case _: Scalar => parseScalar(instance, f, property, annots(sources, key))
-      case Any       => instance.set(f, any(property), annots(sources, key))
+      case Any => parseAny(instance, f, property, annots(sources, key))
     }
 
   }
 
+  private def parseList(instance: AmfObject, l: SortedArray, field: Field, properties: Seq[PropertyObject], annotations: Annotations): Unit =
+    instance.setArray(field, parseList(l.element, findLink(properties.head)), annotations)
+
   private def parseScalar(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
-    tryConvertToSpecificScalar(field.`type`, property).foreach(instance.set(field, _, annotations))
+    ScalarTypeConverter(field.`type`, property)(ctx.eh).tryConvert().foreach(instance.set(field, _, annotations))
 
+  private def parseAny(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
+    AnyTypeConverter(property)(ctx.eh).tryConvert().foreach(instance.set(field, _, annotations))
 
-  private def tryConvertToSpecificScalar(`type`: Type, property: PropertyObject): Option[AmfScalar] = `type` match {
-    case Iri | Str | RegExp | LiteralUri => Some(strCoercion(property))
-    case Bool                            => bool(property)
-    case Type.Int                        => int(property)
-    case Type.Float                      => float(property)
-    case Type.Double                     => double(property)
-    case Type.DateTime | Type.Date       => date(property)
-    case _                               => None
-  }
-
-  private def parseList(id: String, listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
+  private def parseList(listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
     val buffer = ListBuffer[PropertyObject]()
     maybeCollection.foreach { collection =>
       collection.getKeys().foreach { entry =>
@@ -354,27 +345,21 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
 
     val res = buffer.map { property =>
       listElement match {
-        case DataNodeModel => // dynamic nodes parsed here
-          parseDynamicType(property)
+        case DataNodeModel => parseDynamicType(property)
         case _: Obj =>
           findLink(property) match {
             case Some(node) => parse(node)
             case _          => None
           }
-        case _: Scalar => tryConvertToSpecificScalar(listElement, property)
-        case Any       => try { Some(any(property)) } catch { case _: Exception => None }
+        case _: Scalar => converter.ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
+        case Any       => AnyTypeConverter(property)(ctx.eh).tryConvert()
         case _         => throw new Exception(s"Unknown list element type: $listElement")
       }
     }
     res collect { case Some(x) => x }
   }
 
-  private def findLink(property: PropertyObject) = {
-    property match {
-      case Uri(v) => graph.flatMap(_.findNode(v))
-      case _      => None
-    }
-  }
+  private def findLink(property: PropertyObject) = new NodeFinder(graph.get).findLink(property)
 
   private def checkLinkables(instance: AmfObject): Unit = {
     instance match {
@@ -438,78 +423,6 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
   private def findType(`type`: String): Option[Obj] = ctx.plugins.findType(`type`)
 
   private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
-
-  private def strCoercion(property: PropertyObject) = AmfScalar(s"${property.value}")
-
-  private val xsdString: String   = DataType.String
-  private val xsdInteger: String  = DataType.Integer
-  private val xsdFloat: String    = DataType.Float
-  private val amlNumber: String   = DataType.Number
-  private val xsdDouble: String   = DataType.Double
-  private val xsdBoolean: String  = DataType.Boolean
-  private val xsdDateTime: String = DataType.DateTime
-  private val xsdDate: String     = DataType.Date
-
-  private def any(property: PropertyObject) = {
-    property match {
-      case Literal(v, typed) =>
-        typed match {
-          case Some(s: String) if s == xsdBoolean  => AmfScalar(v.toBoolean)
-          case Some(s: String) if s == xsdInteger  => AmfScalar(v.toInt)
-          case Some(s: String) if s == xsdFloat    => AmfScalar(v.toFloat)
-          case Some(s: String) if s == xsdDouble   => AmfScalar(v.toDouble)
-          case Some(s: String) if s == xsdDateTime => AmfScalar(SimpleDateTime.parse(v).right.get)
-          case Some(s: String) if s == xsdDate     => AmfScalar(SimpleDateTime.parse(v).right.get)
-          case _                                   => AmfScalar(v)
-        }
-      case Uri(v) => throw new Exception(s"Expecting String literal found URI $v")
-    }
-  }
-
-  private def bool(property: PropertyObject): Option[AmfScalar] = {
-    property match {
-      case Literal(v, _) => Some(AmfScalar(v.toBoolean))
-      case Uri(v)        => conversionValidation(s"Expecting Boolean literal found URI $v")
-    }
-  }
-
-  private def conversionValidation(message: String) = {
-    ctx.eh.violation(UnableToConvertScalar, "", message, "")
-    None
-  }
-
-  private def int(property: PropertyObject) = {
-    property match {
-      case Literal(v, _) => Some(AmfScalar(v.toInt))
-      case Uri(v)        => conversionValidation(s"Expecting Int literal found URI $v")
-    }
-  }
-
-  private def double(property: PropertyObject) = {
-    property match {
-      case Literal(v, _) => Some(AmfScalar(v.toDouble))
-      case Uri(v)        => conversionValidation(s"Expecting Double literal found URI $v")
-    }
-  }
-
-  private def date(property: PropertyObject) = {
-    property match {
-      case Literal(v, _) =>
-        SimpleDateTime.parse(v) match {
-          case Right(value) => Some(AmfScalar(value))
-          case Left(error)  => conversionValidation(error.message)
-        }
-      case Uri(v) => conversionValidation(s"Expecting Date literal found URI $v")
-    }
-  }
-
-  private def float(property: PropertyObject) = {
-    property match {
-      case Literal(v, _) => Some(AmfScalar(v.toFloat))
-      case Uri(v)        => conversionValidation(s"Expecting Float literal found URI $v")
-    }
-  }
-
   private val dynamicBuilders: mutable.Map[String, Annotations => AmfObject] = mutable.Map(
     LinkNode.builderType.iri()        -> domain.LinkNode.apply,
     ArrayNode.builderType.iri()       -> domain.ArrayNode.apply,
@@ -523,7 +436,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       .flatMap { properties =>
         if (properties.nonEmpty) {
           findLink(properties.head) match {
-            case Some(sourceNode) => Some(parseSourceNode(sourceNode))
+            case Some(sourceNode) => Some(new SourceNodeParser(new NodeFinder(graph.get)).parse(sourceNode))
             case _                => None
           }
         } else {
@@ -531,30 +444,6 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
         }
       }
       .getOrElse(SourceMap.empty)
-  }
-
-  private def parseSourceNode(node: Node): SourceMap = {
-    val result = SourceMap()
-    node.getKeys().foreach {
-      case key @ AnnotationName(annotation) =>
-        val consumer = result.annotation(annotation)
-        node.getProperties(key) match {
-          case Some(properties) =>
-            properties.foreach { property =>
-              findLink(property) match {
-                case Some(linkedNode) =>
-                  val k: PropertyObject = linkedNode.getProperties(SourceMapModel.Element.value.iri()).get.head
-                  val v: PropertyObject = linkedNode.getProperties(SourceMapModel.Value.value.iri()).get.head
-                  consumer(k.value, v.value)
-                case _ => //
-              }
-            }
-
-          case _ => // ignore
-        }
-      case _ => // Unknown annotation identifier
-    }
-    result
   }
 
   def parseCustomProperties(node: Node, instance: DomainElement): Unit = {

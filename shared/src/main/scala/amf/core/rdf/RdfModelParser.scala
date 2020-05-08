@@ -21,7 +21,7 @@ import org.mulesoft.common.time.SimpleDateTime
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extends GraphParserHelpers {
+class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpers {
 
   private val unresolvedReferences       = mutable.Map[String, Seq[DomainElement]]()
   private val unresolvedExtReferencesMap = mutable.Map[String, ExternalSourceElement]()

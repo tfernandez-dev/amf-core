@@ -66,7 +66,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
       case parsed: SyamlParsedDocument if ExpandedGraphParser.canParse(parsed) =>
         Some(ExpandedGraphParser(platform).parse(parsed.document, effectiveUnitUrl(root.location, options)))
       case parsed: RdfModelDocument =>
-        Some(new RdfModelParser(platform)(ctx).parse(parsed.model, effectiveUnitUrl(root.location, options)))
+        Some(new RdfModelParser()(ctx).parse(parsed.model, effectiveUnitUrl(root.location, options)))
       case _ =>
         None
     }

@@ -30,6 +30,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
 
   private var nodes: Map[String, AmfElement] = Map()
   private var graph: Option[RdfModel]        = None
+  private val sorter = new DefaultNodeClassSorter()
 
   def parse(model: RdfModel, location: String): BaseUnit = {
     graph = Some(model)
@@ -398,7 +399,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       .isInstanceOf[DeclaresModel] || typeModel.isInstanceOf[BaseUnitModel]
 
   private def retrieveType(id: String, node: Node, findBaseUnit: Boolean = false): Option[Obj] = {
-    val types = ts(node, ctx, id)
+    val types = sorter.sortedClassesOf(node)
 
     val foundType = types.find { t =>
       val maybeFoundType = findType(t)
@@ -426,7 +427,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
   }
 
   def retrieveDynamicType(id: String, node: Node): Option[Annotations => AmfObject] = {
-    ts(node, ctx, id).find({ t =>
+    sorter.sortedClassesOf(node).find({ t =>
       dynamicBuilders.contains(t)
     }) match {
       case Some(t) => Some(dynamicBuilders(t))
@@ -437,21 +438,6 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
   private def findType(`type`: String): Option[Obj] = ctx.plugins.findType(`type`)
 
   private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
-
-  private val deferredTypesSet = Set(
-    (Namespace.Document + "Document").iri(),
-    (Namespace.Document + "Fragment").iri(),
-    (Namespace.Document + "Module").iri(),
-    (Namespace.Document + "Unit").iri(),
-    (Namespace.Shacl + "Shape").iri(),
-    (Namespace.Shapes + "Shape").iri()
-  )
-
-  private def ts(node: Node, ctx: ParserContext, id: String): Seq[String] = {
-    node.classes.partition(deferredTypesSet.contains) match {
-      case (deferred, others) => others ++ deferred.sorted // we just use the fact that lexical order is correct
-    }
-  }
 
   private def strCoercion(property: PropertyObject) = AmfScalar(s"${property.value}")
 
@@ -641,4 +627,22 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
 
   private def annots(sources: SourceMap, key: String) =
     annotations(nodes, sources, key).into(collected, _.isInstanceOf[ResolvableAnnotation])
+}
+
+class DefaultNodeClassSorter(){
+
+  private val deferredTypesSet = Set(
+    (Namespace.Document + "Document").iri(),
+    (Namespace.Document + "Fragment").iri(),
+    (Namespace.Document + "Module").iri(),
+    (Namespace.Document + "Unit").iri(),
+    (Namespace.Shacl + "Shape").iri(),
+    (Namespace.Shapes + "Shape").iri()
+  )
+
+  def sortedClassesOf(node: Node): Seq[String] = {
+    node.classes.partition(deferredTypesSet.contains) match {
+      case (deferred, others) => others ++ deferred.sorted // we just use the fact that lexical order is correct
+    }
+  }
 }

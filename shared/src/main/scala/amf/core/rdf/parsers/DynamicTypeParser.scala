@@ -2,10 +2,10 @@ package amf.core.rdf.parsers
 
 import amf.core.metamodel.domain.{ArrayNodeModel, DomainElementModel, LinkNodeModel, ScalarNodeModel}
 import amf.core.model.domain
-import amf.core.model.domain.{AmfObject, AmfScalar, Annotation, ArrayNode, DataNode, DomainElement, LinkNode, ObjectNode, ScalarNode}
+import amf.core.model.domain._
 import amf.core.parser.Annotations
-import amf.core.rdf.{DefaultNodeClassSorter, Literal, Node, PropertyObject, RdfParserCommon, RdfParserContext, Uri}
 import amf.core.rdf.graph.NodeFinder
+import amf.core.rdf._
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable

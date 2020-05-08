@@ -15,7 +15,7 @@ import amf.core.parser.{Annotations, FieldEntry, ParserContext}
 import amf.core.plugin.PluginContext
 import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.parsers.{DynamicArrayParser, DynamicLiteralParser, DynamicTypeParser, SourceNodeParser, SourcesRetriever}
+import amf.core.rdf.parsers.{CustomPropertiesParser, DynamicArrayParser, DynamicLiteralParser, DynamicTypeParser, SourceNodeParser, SourcesRetriever}
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
 import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
@@ -64,7 +64,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
   def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfObject] = {
     val id = node.subject
     retrieveType(id, node, findBaseUnit) map { model =>
-      val sources  = retrieveSources(id, node)
+      val sources  = retrieveSources(node)
       val instance = buildType(model)(annots(sources, id))
       instance.withId(id)
 
@@ -90,7 +90,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
         case _ => // ignore
       }
       instance match {
-        case elm: DomainElement => parseCustomProperties(node, elm)
+        case elm: DomainElement => new CustomPropertiesParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(node, elm)
         case _                  => // ignore
       }
 
@@ -291,94 +291,9 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
     }
   }
 
-  def retrieveDynamicType(id: String, node: Node): Option[Annotations => AmfObject] = {
-    sorter.sortedClassesOf(node).find({ t =>
-      dynamicBuilders.contains(t)
-    }) match {
-      case Some(t) => Some(dynamicBuilders(t))
-      case _       => None
-    }
-  }
-
   private def findType(`type`: String): Option[Obj] = ctx.plugins.findType(`type`)
-
   private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
-  private val dynamicBuilders: mutable.Map[String, Annotations => AmfObject] = mutable.Map(
-    LinkNode.builderType.iri()        -> domain.LinkNode.apply,
-    ArrayNode.builderType.iri()       -> domain.ArrayNode.apply,
-    ScalarNodeModel.`type`.head.iri() -> domain.ScalarNode.apply,
-    ObjectNode.builderType.iri()      -> domain.ObjectNode.apply
-  )
-
-  protected def retrieveSources(id: String, node: Node): SourceMap = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
-
-  def parseCustomProperties(node: Node, instance: DomainElement): Unit = {
-    val properties: Seq[String] = node
-      .getProperties(DomainElementModel.CustomDomainProperties.value.iri())
-      .getOrElse(Nil)
-      .filter(_.isInstanceOf[Uri])
-      .map(_.asInstanceOf[Uri].value)
-
-    val extensions: Seq[DomainExtension] = properties.flatMap { uri =>
-      node
-        .getProperties(uri)
-        .map(entries => {
-          val extension = DomainExtension()
-          if (entries.nonEmpty) {
-            findLink(entries.head) match {
-              case Some(obj) =>
-                obj.getProperties(DomainExtensionModel.Name.value.iri()) match {
-                  case Some(es) if es.nonEmpty && es.head.isInstanceOf[Literal] =>
-                    extension.withName(value(DomainExtensionModel.Name.`type`, es.head.asInstanceOf[Literal].value))
-                  case _ => // ignore
-                }
-
-                obj.getProperties(DomainExtensionModel.Element.value.iri()) match {
-                  case Some(es) if es.nonEmpty && es.head.isInstanceOf[Literal] =>
-                    extension.withName(value(DomainExtensionModel.Element.`type`, es.head.asInstanceOf[Literal].value))
-                  case _ => // ignore
-                }
-
-                val definition = CustomDomainProperty()
-                definition.id = uri
-                extension.withDefinedBy(definition)
-
-                parseDynamicType(entries.head).foreach { pn =>
-                  extension.withId(pn.id)
-                  extension.withExtension(pn)
-                }
-
-                val sources = retrieveSources(extension.id, node)
-                extension.annotations ++= annots(sources, extension.id)
-
-              case _ => // ignore
-            }
-          }
-          extension
-        })
-    }
-
-    if (extensions.nonEmpty) {
-      extensions.partition(_.isScalarExtension) match {
-        case (scalars, objects) =>
-          instance.withCustomDomainProperties(objects)
-          applyScalarDomainProperties(instance, scalars)
-      }
-    }
-  }
-
-  private def applyScalarDomainProperties(instance: DomainElement, scalars: Seq[DomainExtension]): Unit = {
-    scalars.foreach { e =>
-      instance.fields
-        .fieldsMeta()
-        .find(f => e.element.is(f.value.iri()))
-        .foreach(f => {
-          instance.fields.entry(f).foreach {
-            case FieldEntry(_, value) => value.value.annotations += DomainExtensionAnnotation(e)
-          }
-        })
-    }
-  }
+  protected def retrieveSources(node: Node): SourceMap = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
 }
 
 class DefaultNodeClassSorter(){

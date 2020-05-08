@@ -332,12 +332,7 @@ class RdfModelParser(platform: Platform)(implicit val ctx: ParserContext) extend
                 })
             case Str | Iri => items.map(n => strCoercion(n))
           }
-          a.element match {
-            case _: DomainElementModel if f == DocumentModel.Declares =>
-              instance.setArrayWithoutId(f, values, annots(sources, key))
-            case _: BaseUnitModel => instance.setArrayWithoutId(f, values, annots(sources, key))
-            case _                => instance.setArrayWithoutId(f, values, annots(sources, key))
-          }
+          instance.setArrayWithoutId(f, values, annots(sources, key))
       }
     } else {
       // ignore

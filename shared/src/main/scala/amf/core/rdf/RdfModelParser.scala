@@ -1,21 +1,19 @@
 package amf.core.rdf
 
 import amf.core.annotations.DomainExtensionAnnotation
-import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
+import amf.core.metamodel.Type.{Any, Array, Bool, Iri, LiteralUri, RegExp, Scalar, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel, SourceMapModel}
 import amf.core.metamodel.domain._
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj, Type}
+import amf.core.metamodel.{Field, Obj, Type}
 import amf.core.model.document._
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
 import amf.core.model.{DataType, domain}
 import amf.core.parser.{Annotations, FieldEntry, ParserContext}
-import amf.core.registries.AMFDomainRegistry
-import amf.core.remote.Platform
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
-import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
+import amf.plugins.features.validation.CoreValidations.{UnableToConvertScalar, UnableToParseRdfDocument, UnableToParseNode}
 import org.mulesoft.common.time.SimpleDateTime
 
 import scala.collection.mutable
@@ -45,14 +43,14 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
             unit
           case _ =>
             ctx.eh.violation(UnableToParseRdfDocument,
-              location,
-              s"Unable to parse RDF model for location root node: $location")
+                             location,
+                             s"Unable to parse RDF model for location root node: $location")
             Document()
         }
       case _ =>
         ctx.eh.violation(UnableToParseRdfDocument,
-          location,
-          s"Unable to parse RDF model for location root node: $location")
+                         location,
+                         s"Unable to parse RDF model for location root node: $location")
         Document()
     }
 
@@ -184,7 +182,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
               val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
 
               parsedScalar.value.option().foreach { v =>
-                scalar.set(ScalarNodeModel.Value, AmfScalar(v,parsedScalar.value.annotations()))
+                scalar.set(ScalarNodeModel.Value, AmfScalar(v, parsedScalar.value.annotations()))
               }
             }
           }
@@ -278,65 +276,69 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
                        f: Field,
                        properties: Seq[PropertyObject],
                        sources: SourceMap,
-                       key: String) = {
-    if (properties.nonEmpty) {
-      val property = properties.head
-      f.`type` match {
-        case DataNodeModel => // dynamic nodes parsed here
-          parseDynamicType(property) match {
-            case Some(parsed) => instance.set(f, parsed, annots(sources, key))
-            case _            =>
-          }
-        case _: Obj =>
-          findLink(property) match {
-            case Some(node) =>
-              parse(node) match {
-                case Some(parsed) =>
-                  instance.set(f, parsed, annots(sources, key))
-                  instance
-                case _ => // ignore
-              }
-            case _ =>
-              ctx.eh.violation(
-                UnableToParseRdfDocument,
-                instance.id,
-                s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
-          }
+                       key: String): Unit = {
+    if (properties.isEmpty) return
+    val property = properties.head
+    f.`type` match {
+      case DataNodeModel => // dynamic nodes parsed here
+        parseDynamicType(property) match {
+          case Some(parsed) => instance.set(f, parsed, annots(sources, key))
+          case _            =>
+        }
+      case _: Obj =>
+        findLink(property) match {
+          case Some(node) =>
+            parse(node) match {
+              case Some(parsed) =>
+                instance.set(f, parsed, annots(sources, key))
+              case _ => // ignore
+            }
+          case _ =>
+            ctx.eh.violation(
+              UnableToParseRdfDocument,
+              instance.id,
+              s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
+        }
 
-        case Iri                       => instance.set(f, strCoercion(property), annots(sources, key))
-        case Str | RegExp | LiteralUri => instance.set(f, str(property), annots(sources, key))
-        case Bool                      => instance.set(f, bool(property), annots(sources, key))
-        case Type.Int                  => instance.set(f, int(property), annots(sources, key))
-        case Type.Float                => instance.set(f, float(property), annots(sources, key))
-        case Type.Double               => instance.set(f, double(property), annots(sources, key))
-        case Type.DateTime             => instance.set(f, date(property), annots(sources, key))
-        case Type.Date                 => instance.set(f, date(property), annots(sources, key))
-        case Type.Any                  => instance.set(f, any(property), annots(sources, key))
-        case l: SortedArray if properties.length == 1 =>
-          instance.setArray(f, parseList(instance.id, l.element, findLink(properties.head)), annots(sources, key))
-        case _: SortedArray =>
-          ctx.eh.violation(
-            UnableToParseRdfDocument,
-            instance.id,
-            s"Error, more than one sorted array values found in node for property $key in node ${instance.id}")
-        case a: Array =>
-          val items = properties
-          val values: Seq[AmfElement] = a.element match {
-            case _: Obj =>
-              val shouldParseUnit = f.value.iri() == (Namespace.Document + "references")
-                .iri() // this is for self-encoded documents
-              items.flatMap(n =>
-                findLink(n) match {
-                  case Some(o) => parse(o, shouldParseUnit)
-                  case _       => None
-                })
-            case Str | Iri => items.map(n => strCoercion(n))
-          }
-          instance.setArrayWithoutId(f, values, annots(sources, key))
-      }
-    } else {
-      // ignore
+      case l: SortedArray if properties.length == 1 =>
+        instance.setArray(f, parseList(instance.id, l.element, findLink(properties.head)), annots(sources, key))
+      case _: SortedArray =>
+        ctx.eh.violation(
+          UnableToParseRdfDocument,
+          instance.id,
+          s"Error, more than one sorted array values found in node for property $key in node ${instance.id}")
+      case a: Array =>
+        val items = properties
+        val values: Seq[AmfElement] = a.element match {
+          case _: Obj =>
+            val shouldParseUnit = f.value.iri() == (Namespace.Document + "references")
+              .iri() // this is for self-encoded documents
+            items.flatMap(n =>
+              findLink(n) match {
+                case Some(o) => parse(o, shouldParseUnit)
+                case _       => None
+            })
+          case Str | Iri => items.map(n => strCoercion(n))
+        }
+        instance.setArrayWithoutId(f, values, annots(sources, key))
+      case _: Scalar => parseScalar(instance, f, property, annots(sources, key))
+      case Any       => instance.set(f, any(property), annots(sources, key))
     }
+
+  }
+
+  private def parseScalar(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
+    tryConvertToSpecificScalar(field.`type`, property).foreach(instance.set(field, _, annotations))
+
+
+  private def tryConvertToSpecificScalar(`type`: Type, property: PropertyObject): Option[AmfScalar] = `type` match {
+    case Iri | Str | RegExp | LiteralUri => Some(strCoercion(property))
+    case Bool                            => bool(property)
+    case Type.Int                        => int(property)
+    case Type.Float                      => float(property)
+    case Type.Double                     => double(property)
+    case Type.DateTime | Type.Date       => date(property)
+    case _                               => None
   }
 
   private def parseList(id: String, listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
@@ -349,23 +351,18 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       }
     }
 
-    val res = buffer.map { n =>
+    val res = buffer.map { property =>
       listElement match {
         case DataNodeModel => // dynamic nodes parsed here
-          parseDynamicType(n)
+          parseDynamicType(property)
         case _: Obj =>
-          findLink(n) match {
+          findLink(property) match {
             case Some(node) => parse(node)
             case _          => None
           }
-        case Str | RegExp | Iri => try { Some(strCoercion(n)) } catch { case _: Exception => None }
-        case Bool               => try { Some(bool(n)) } catch { case _: Exception => None }
-        case Type.Int           => try { Some(int(n)) } catch { case _: Exception => None }
-        case Type.Float         => try { Some(float(n)) } catch { case _: Exception => None }
-        case Type.Double        => try { Some(double(n)) } catch { case _: Exception => None }
-        case Type.Date          => try { Some(date(n)) } catch { case _: Exception => None }
-        case Type.Any           => try { Some(any(n)) } catch { case _: Exception => None }
-        case _                  => throw new Exception(s"Unknown list element type: $listElement")
+        case _: Scalar => tryConvertToSpecificScalar(listElement, property)
+        case Any       => try { Some(any(property)) } catch { case _: Exception => None }
+        case _         => throw new Exception(s"Unknown list element type: $listElement")
       }
     }
     res collect { case Some(x) => x }
@@ -421,16 +418,16 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       case Some(t) => findType(t)
       case None =>
         ctx.eh.violation(UnableToParseNode,
-          id,
-          s"Error parsing JSON-LD node, unknown @types $types",
-          ctx.rootContextDocument)
+                         id,
+                         s"Error parsing JSON-LD node, unknown @types $types",
+                         ctx.rootContextDocument)
         None
     }
   }
 
   def retrieveDynamicType(id: String, node: Node): Option[Annotations => AmfObject] = {
     ts(node, ctx, id).find({ t =>
-      dynamicBuilders.get(t).isDefined
+      dynamicBuilders.contains(t)
     }) match {
       case Some(t) => Some(dynamicBuilders(t))
       case _       => None
@@ -483,32 +480,29 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
     }
   }
 
-  private def str(property: PropertyObject) = {
+  private def bool(property: PropertyObject): Option[AmfScalar] = {
     property match {
-      case Literal(v, _) => AmfScalar(v)
-      case Uri(v) =>
-        throw new Exception(s"Expecting String literal found URI $v")
+      case Literal(v, _) => Some(AmfScalar(v.toBoolean))
+      case Uri(v)        => conversionValidation(s"Expecting Boolean literal found URI $v")
     }
   }
 
-  private def bool(property: PropertyObject) = {
-    property match {
-      case Literal(v, _) => AmfScalar(v.toBoolean)
-      case Uri(v)        => throw new Exception(s"Expecting Boolean literal found URI $v")
-    }
+  private def conversionValidation(message: String) = {
+    ctx.eh.violation(UnableToConvertScalar, "", message, "")
+    None
   }
 
   private def int(property: PropertyObject) = {
     property match {
-      case Literal(v, _) => AmfScalar(v.toInt)
-      case Uri(v)        => throw new Exception(s"Expecting Int literal found URI $v")
+      case Literal(v, _) => Some(AmfScalar(v.toInt))
+      case Uri(v)        => conversionValidation(s"Expecting Int literal found URI $v")
     }
   }
 
   private def double(property: PropertyObject) = {
     property match {
-      case Literal(v, _) => AmfScalar(v.toDouble)
-      case Uri(v)        => throw new Exception(s"Expecting Double literal found URI $v")
+      case Literal(v, _) => Some(AmfScalar(v.toDouble))
+      case Uri(v)        => conversionValidation(s"Expecting Double literal found URI $v")
     }
   }
 
@@ -516,17 +510,17 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
     property match {
       case Literal(v, _) =>
         SimpleDateTime.parse(v) match {
-          case Right(value) => AmfScalar(value)
-          case Left(error)  => throw new Exception(error.message)
+          case Right(value) => Some(AmfScalar(value))
+          case Left(error)  => conversionValidation(error.message)
         }
-      case Uri(v) => throw new Exception(s"Expecting Date literal found URI $v")
+      case Uri(v) => conversionValidation(s"Expecting Date literal found URI $v")
     }
   }
 
   private def float(property: PropertyObject) = {
     property match {
-      case Literal(v, _) => AmfScalar(v.toFloat)
-      case Uri(v)        => throw new Exception(s"Expecting Float literal found URI $v")
+      case Literal(v, _) => Some(AmfScalar(v.toFloat))
+      case Uri(v)        => conversionValidation(s"Expecting Float literal found URI $v")
     }
   }
 

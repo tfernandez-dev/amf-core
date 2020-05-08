@@ -10,10 +10,12 @@ import amf.core.model.document._
 import amf.core.model.domain
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
+import amf.core.parser.errorhandler.ParserErrorHandler
 import amf.core.parser.{Annotations, FieldEntry, ParserContext}
+import amf.core.plugin.PluginContext
 import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.parsers.{DynamicLiteralParser, SourceNodeParser}
+import amf.core.rdf.parsers.{DynamicArrayParser, DynamicLiteralParser, DynamicTypeParser, SourceNodeParser, SourcesRetriever}
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
 import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
@@ -21,16 +23,12 @@ import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, Unabl
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpers{
+object RdfModelParser {
+  def apply(errorHandler: ParserErrorHandler, plugins: PluginContext = PluginContext()): RdfModelParser = new RdfModelParser()(new RdfParserContext(eh = errorHandler, plugins = plugins))
+}
 
-  private val unresolvedReferences       = mutable.Map[String, Seq[DomainElement]]()
-  private val unresolvedExtReferencesMap = mutable.Map[String, ExternalSourceElement]()
+class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHelpers with RdfParserCommon {
 
-  private val referencesMap = mutable.Map[String, DomainElement]()
-
-  private val collected: ListBuffer[Annotation] = ListBuffer()
-
-  private var nodes: Map[String, AmfElement] = Map()
   private var graph: Option[RdfModel]        = None
   private val sorter = new DefaultNodeClassSorter()
 
@@ -58,7 +56,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
     }
 
     // Resolve annotations after parsing entire graph
-    collected.collect({ case r: ResolvableAnnotation => r }) foreach (_.resolve(nodes))
+    ctx.collected.collect({ case r: ResolvableAnnotation => r }) foreach (_.resolve(ctx.nodes))
 
     unit
   }
@@ -73,14 +71,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       checkLinkables(instance)
 
       // workaround for lazy values in shape
-      val modelFields = model match {
-        case shapeModel: ShapeModel =>
-          shapeModel.fields ++ Seq(
-            ShapeModel.CustomShapePropertyDefinitions,
-            ShapeModel.CustomShapeProperties
-          )
-        case _ => model.fields
-      }
+      val modelFields = extractModelFields(model)
 
       modelFields.foreach(f => {
         val k          = f.value.iri()
@@ -91,11 +82,11 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
       // parsing custom extensions
       instance match {
         case l: DomainElement with Linkable => parseLinkableProperties(node, l)
-        case ex: ExternalDomainElement if unresolvedExtReferencesMap.contains(ex.id) =>
-          unresolvedExtReferencesMap.get(ex.id).foreach { element =>
+        case ex: ExternalDomainElement if ctx.unresolvedExtReferencesMap.contains(ex.id) =>
+          ctx.unresolvedExtReferencesMap.get(ex.id).foreach { element =>
             ex.raw.option().foreach(element.set(ExternalSourceElementModel.Raw, _))
           }
-          unresolvedExtReferencesMap.remove(ex.id)
+          ctx.unresolvedExtReferencesMap.remove(ex.id)
         case _ => // ignore
       }
       instance match {
@@ -103,8 +94,19 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
         case _                  => // ignore
       }
 
-      nodes = nodes + (id -> instance)
+      ctx.nodes = ctx.nodes + (id -> instance)
       instance
+    }
+  }
+
+  private def extractModelFields(model: Obj) = {
+    model match {
+      case shapeModel: ShapeModel =>
+        shapeModel.fields ++ Seq(
+          ShapeModel.CustomShapePropertyDefinitions,
+          ShapeModel.CustomShapeProperties
+        )
+      case _ => model.fields
     }
   }
 
@@ -136,139 +138,19 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
   }
 
   private def setLinkTarget(instance: DomainElement with Linkable, targetId: String) = {
-    referencesMap.get(targetId) match {
+    ctx.referencesMap.get(targetId) match {
       case Some(target) => instance.withLinkTarget(target)
       case None =>
-        val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(targetId, Nil)
-        unresolvedReferences += (targetId -> (unresolved ++ Seq(instance)))
+        val unresolved: Seq[DomainElement] = ctx.unresolvedReferences.getOrElse(targetId, Nil)
+        ctx.unresolvedReferences += (targetId -> (unresolved ++ Seq(instance)))
     }
   }
 
   def parseDynamicLiteral(literal: Literal): ScalarNode = new DynamicLiteralParser().parse(literal)
 
-  def parseDynamicType(id: PropertyObject): Option[DataNode] = {
-    findLink(id).map { node =>
-      val sources = retrieveSources(id.value, node)
-      val builder = retrieveDynamicType(node.subject, node).get
+  def parseDynamicType(id: PropertyObject): Option[DataNode] = new DynamicTypeParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(id)
 
-      builder(annots(sources, id.value)) match {
-        case obj: ObjectNode =>
-          obj.withId(node.subject)
-          node.getKeys().foreach { uri =>
-            if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
-                uri != (Namespace.Core + "name").iri()) { // we do this to prevent parsing name of annotations
-
-              val dataNode = node.getProperties(uri).get.head match {
-                case l @ Literal(_, _) =>
-                  parseDynamicLiteral(l)
-                case entry if isRDFArray(entry) =>
-                  parseDynamicArray(entry)
-                case nestedNode @ Uri(_) =>
-                  parseDynamicType(nestedNode).getOrElse(ObjectNode())
-                case _ => ObjectNode()
-              }
-              obj.addProperty(uri, dataNode)
-            }
-          }
-          obj
-
-        case scalar: ScalarNode =>
-          scalar.withId(node.subject)
-          node.getKeys().foreach { k =>
-            val entries = node.getProperties(k).get
-            if (k == ScalarNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-
-              parsedScalar.value.option().foreach { v =>
-                scalar.set(ScalarNodeModel.Value, AmfScalar(v, parsedScalar.value.annotations()))
-              }
-            }
-          }
-          scalar
-
-        case link: LinkNode =>
-          link.withId(node.subject)
-          node.getKeys().foreach { k =>
-            val entries = node.getProperties(k).get
-            if (k == LinkNodeModel.Alias.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-              parsedScalar.value.option().foreach(link.withAlias)
-            } else if (k == LinkNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = parseDynamicLiteral(entries.head.asInstanceOf[Literal])
-              parsedScalar.value.option().foreach(link.withLink)
-            }
-          }
-          referencesMap.get(link.alias.value()) match {
-            case Some(target) => link.withLinkedDomainElement(target)
-            case _ =>
-              val unresolved: Seq[DomainElement] = unresolvedReferences.getOrElse(link.alias.value(), Nil)
-              unresolvedReferences += (link.alias.value() -> (unresolved ++ Seq(link)))
-          }
-          link
-
-        case array: ArrayNode =>
-          array.withId(node.subject)
-          node.getKeys().foreach { k =>
-            if (k == ArrayNodeModel.Member.value.iri()) {
-              array.withMembers(node.getProperties(k).getOrElse(Nil).flatMap(parseDynamicType))
-            }
-          }
-          array
-
-        case other =>
-          throw new Exception(s"Cannot parse object data node from non object JSON structure $other")
-      }
-    }
-  }
-
-  def isRDFArray(entry: PropertyObject): Boolean = {
-    entry match {
-      case id @ Uri(_) =>
-        findLink(id) match {
-          case Some(node) =>
-            node.getProperties((Namespace.Rdf + "first").iri()).isDefined ||
-              node.getProperties((Namespace.Rdf + "rest").iri()).isDefined
-          case _ => false
-        }
-      case _ => false
-    }
-  }
-
-  def parseDynamicArray(propertyObject: PropertyObject): ArrayNode = {
-    val nodeAnnotations = findLink(propertyObject) match {
-      case Some(node) =>
-        val sources = retrieveSources(node.subject, node)
-        annots(sources, node.subject)
-      case None => Annotations()
-    }
-    val nodes = parseDynamicArrayInner(propertyObject)
-    val array = ArrayNode(nodeAnnotations)
-    nodes.foreach { array.addMember }
-    array
-  }
-
-  def parseDynamicArrayInner(entry: PropertyObject, acc: Seq[DataNode] = Nil): Seq[DataNode] = {
-    findLink(entry) match {
-      case Some(n) =>
-        val nextNode  = n.getProperties((Namespace.Rdf + "next").iri()).getOrElse(Nil).headOption
-        val firstNode = n.getProperties((Namespace.Rdf + "first").iri()).getOrElse(Nil).headOption
-        val updatedAcc = firstNode match {
-          case Some(id @ Uri(_)) =>
-            parseDynamicType(id) match {
-              case Some(member) => acc ++ Seq(member)
-              case _            => acc
-            }
-          case _ => acc
-        }
-        nextNode match {
-          case Some(nextNodeProp @ Uri(id)) if id != (Namespace.Rdf + "nil").iri() =>
-            parseDynamicArrayInner(nextNodeProp, updatedAcc)
-          case _ =>
-            updatedAcc
-        }
-      case None => acc
-    }
-  }
+  def parseDynamicArray(propertyObject: PropertyObject): ArrayNode = new DynamicArrayParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(propertyObject)
 
   private def traverse(instance: AmfObject,
                        f: Field,
@@ -351,7 +233,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
             case Some(node) => parse(node)
             case _          => None
           }
-        case _: Scalar => converter.ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
+        case _: Scalar => ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
         case Any       => AnyTypeConverter(property)(ctx.eh).tryConvert()
         case _         => throw new Exception(s"Unknown list element type: $listElement")
       }
@@ -364,17 +246,15 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
   private def checkLinkables(instance: AmfObject): Unit = {
     instance match {
       case link: DomainElement with Linkable =>
-        referencesMap += (link.id -> link)
-        unresolvedReferences.getOrElse(link.id, Nil).foreach {
-          case unresolved: Linkable =>
-            unresolved.withLinkTarget(link)
-          case unresolved: LinkNode =>
-            unresolved.withLinkedDomainElement(link)
+        ctx.referencesMap += (link.id -> link)
+        ctx.unresolvedReferences.getOrElse(link.id, Nil).foreach {
+          case unresolved: Linkable => unresolved.withLinkTarget(link)
+          case unresolved: LinkNode => unresolved.withLinkedDomainElement(link)
           case _ => throw new Exception("Only linkable elements can be linked")
         }
-        unresolvedReferences.update(link.id, Nil)
+        ctx.unresolvedReferences.update(link.id, Nil)
       case ref: ExternalSourceElement =>
-        unresolvedExtReferencesMap += (ref.referenceId.value -> ref) // process when parse the references node
+        ctx.unresolvedExtReferencesMap += (ref.referenceId.value -> ref) // process when parse the references node
       case _ => // ignore
     }
   }
@@ -430,21 +310,7 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
     ObjectNode.builderType.iri()      -> domain.ObjectNode.apply
   )
 
-  protected def retrieveSources(id: String, node: Node): SourceMap = {
-    node
-      .getProperties(DomainElementModel.Sources.value.iri())
-      .flatMap { properties =>
-        if (properties.nonEmpty) {
-          findLink(properties.head) match {
-            case Some(sourceNode) => Some(new SourceNodeParser(new NodeFinder(graph.get)).parse(sourceNode))
-            case _                => None
-          }
-        } else {
-          None
-        }
-      }
-      .getOrElse(SourceMap.empty)
-  }
+  protected def retrieveSources(id: String, node: Node): SourceMap = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
 
   def parseCustomProperties(node: Node, instance: DomainElement): Unit = {
     val properties: Seq[String] = node
@@ -513,9 +379,6 @@ class RdfModelParser()(implicit val ctx: ParserContext) extends GraphParserHelpe
         })
     }
   }
-
-  private def annots(sources: SourceMap, key: String) =
-    annotations(nodes, sources, key).into(collected, _.isInstanceOf[ResolvableAnnotation])
 }
 
 class DefaultNodeClassSorter(){

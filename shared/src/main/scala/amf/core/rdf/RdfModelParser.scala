@@ -14,7 +14,6 @@ import amf.core.rdf.graph.NodeFinder
 import amf.core.rdf.helper.DefaultNodeClassSorter
 import amf.core.rdf.parsers._
 import amf.core.vocabulary.Namespace
-import amf.plugins.document.graph.parser.GraphParserHelpers
 import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
 
 import scala.collection.mutable.ListBuffer
@@ -28,13 +27,16 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
 
   private var graph: Option[RdfModel] = None
   private val sorter                  = new DefaultNodeClassSorter()
+  private val recursionControl = new RecursionControl()
+  private var rootId: Option[String] = None
 
   def parse(model: RdfModel, location: String): BaseUnit = {
     graph = Some(model)
+    rootId = Some(location)
 
     val unit = model.findNode(location) match {
       case Some(rootNode) =>
-        parse(rootNode, findBaseUnit = true) match {
+        parsePossibleRecursion(rootNode, findBaseUnit = true) match {
           case Some(unit: BaseUnit) =>
             unit.set(BaseUnitModel.Location, location.split("#").head)
             unit.withRunNumber(ctx.parserRun)
@@ -58,15 +60,26 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     unit
   }
 
-  def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfObject] = {
+  def parsePossibleRecursion(node: Node, findBaseUnit: Boolean = false): Option[AmfElement] = {
+    if (recursionControl.hasVisited(node) && !isSelfEncoded(node)) ctx.nodes.get(node.subject)
+    else {
+      recursionControl.visited(node)
+      parse(node, findBaseUnit)
+    }
+  }
+
+  private def isSelfEncoded(node: Node) = node.subject == rootId.getOrElse("")
+
+  private def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfObject] = {
     val id = node.subject
     retrieveType(id, node, findBaseUnit) map { model =>
       val sources  = retrieveSources(node)
       val instance = buildType(model)(annots(sources, id))
       instance.withId(id)
 
-      checkLinkables(instance)
+      ctx.nodes = ctx.nodes + (id -> instance)
 
+      checkLinkables(instance)
       // workaround for lazy values in shape
       val modelFields = extractModelFields(model)
 
@@ -92,8 +105,6 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
             .parse(node, elm)
         case _ => // ignore
       }
-
-      ctx.nodes = ctx.nodes + (id -> instance)
       instance
     }
   }
@@ -161,7 +172,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
       case _: Obj =>
         findLink(property) match {
           case Some(node) =>
-            parse(node) match {
+            parsePossibleRecursion(node) match {
               case Some(parsed) =>
                 instance.set(f, parsed, annots(sources, key))
               case _ => // ignore
@@ -188,7 +199,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
               .iri() // this is for self-encoded documents
             items.flatMap(n =>
               findLink(n) match {
-                case Some(o) => parse(o, shouldParseUnit)
+                case Some(o) => parsePossibleRecursion(o, shouldParseUnit)
                 case _       => None
             })
           case Str | Iri => items.map(StringIriUriRegexParser().parse)
@@ -224,7 +235,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
         case DataNodeModel => parseDynamicType(property)
         case _: Obj =>
           findLink(property) match {
-            case Some(node) => parse(node)
+            case Some(node) => parsePossibleRecursion(node)
             case _          => None
           }
         case _: Scalar => ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
@@ -300,4 +311,12 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
   private def findType(`type`: String): Option[Obj]            = ctx.plugins.findType(`type`)
   private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
   protected def retrieveSources(node: Node): SourceMap         = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
+}
+
+private class RecursionControl(private var visited: Set[String] = Set()) {
+  def visited(node: Node): Unit = {
+    this.visited = visited + node.subject
+  }
+  def hasVisited(node: Node): Boolean = visited.contains(node.subject)
+  def hasVisited(property: PropertyObject): Boolean = visited.contains(property.value)
 }

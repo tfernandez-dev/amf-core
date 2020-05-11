@@ -16,7 +16,7 @@ trait RdfParserCommon {
 
   implicit val ctx: RdfParserContext
 
-  def annots(sources: SourceMap, key: String) = annotations(ctx.nodes, sources, key).into(ctx.collected, _.isInstanceOf[ResolvableAnnotation])
+  def annots(sources: SourceMap, key: String): Annotations = annotations(ctx.nodes, sources, key).into(ctx.collected, _.isInstanceOf[ResolvableAnnotation])
 
   private def annotations(nodes: Map[String, AmfElement], sources: SourceMap, key: String): Annotations = {
     val result = Annotations()
@@ -35,7 +35,8 @@ trait RdfParserCommon {
     result
   }
 
-  protected def value(t: Type, node: YNode): YNode = {
+  @scala.annotation.tailrec
+  final def value(t: Type, node: YNode): YNode = {
     node.tagType match {
       case YType.Seq =>
         t match {

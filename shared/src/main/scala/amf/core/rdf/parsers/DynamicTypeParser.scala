@@ -6,6 +6,7 @@ import amf.core.model.domain._
 import amf.core.parser.Annotations
 import amf.core.rdf.graph.NodeFinder
 import amf.core.rdf._
+import amf.core.rdf.helper.DefaultNodeClassSorter
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable

@@ -1,36 +1,33 @@
 package amf.core.rdf
 
-import amf.core.annotations.DomainExtensionAnnotation
 import amf.core.metamodel.Type.{Any, Array, Iri, Scalar, SortedArray, Str}
-import amf.core.metamodel.document.{BaseUnitModel, DocumentModel, SourceMapModel}
+import amf.core.metamodel.document.{BaseUnitModel, DocumentModel}
 import amf.core.metamodel.domain._
-import amf.core.metamodel.domain.extensions.DomainExtensionModel
 import amf.core.metamodel.{Field, Obj, Type}
 import amf.core.model.document._
-import amf.core.model.domain
 import amf.core.model.domain._
-import amf.core.model.domain.extensions.{CustomDomainProperty, DomainExtension}
+import amf.core.parser.Annotations
 import amf.core.parser.errorhandler.ParserErrorHandler
-import amf.core.parser.{Annotations, FieldEntry, ParserContext}
 import amf.core.plugin.PluginContext
 import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.parsers.{CustomPropertiesParser, DynamicArrayParser, DynamicLiteralParser, DynamicTypeParser, SourceNodeParser, SourcesRetriever}
+import amf.core.rdf.helper.DefaultNodeClassSorter
+import amf.core.rdf.parsers._
 import amf.core.vocabulary.Namespace
 import amf.plugins.document.graph.parser.GraphParserHelpers
 import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object RdfModelParser {
-  def apply(errorHandler: ParserErrorHandler, plugins: PluginContext = PluginContext()): RdfModelParser = new RdfModelParser()(new RdfParserContext(eh = errorHandler, plugins = plugins))
+  def apply(errorHandler: ParserErrorHandler, plugins: PluginContext = PluginContext()): RdfModelParser =
+    new RdfModelParser()(new RdfParserContext(eh = errorHandler, plugins = plugins))
 }
 
-class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHelpers with RdfParserCommon {
+class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserCommon {
 
-  private var graph: Option[RdfModel]        = None
-  private val sorter = new DefaultNodeClassSorter()
+  private var graph: Option[RdfModel] = None
+  private val sorter                  = new DefaultNodeClassSorter()
 
   def parse(model: RdfModel, location: String): BaseUnit = {
     graph = Some(model)
@@ -90,8 +87,10 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
         case _ => // ignore
       }
       instance match {
-        case elm: DomainElement => new CustomPropertiesParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(node, elm)
-        case _                  => // ignore
+        case elm: DomainElement =>
+          new CustomPropertiesParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get)))
+            .parse(node, elm)
+        case _ => // ignore
       }
 
       ctx.nodes = ctx.nodes + (id -> instance)
@@ -146,12 +145,6 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
     }
   }
 
-  def parseDynamicLiteral(literal: Literal): ScalarNode = new DynamicLiteralParser().parse(literal)
-
-  def parseDynamicType(id: PropertyObject): Option[DataNode] = new DynamicTypeParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(id)
-
-  def parseDynamicArray(propertyObject: PropertyObject): ArrayNode = new DynamicArrayParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(propertyObject)
-
   private def traverse(instance: AmfObject,
                        f: Field,
                        properties: Seq[PropertyObject],
@@ -180,7 +173,8 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
               s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
         }
 
-      case array: SortedArray if properties.length == 1 => parseList(instance, array, f, properties, annots(sources, key))
+      case array: SortedArray if properties.length == 1 =>
+        parseList(instance, array, f, properties, annots(sources, key))
       case _: SortedArray =>
         ctx.eh.violation(
           UnableToParseRdfDocument,
@@ -201,12 +195,19 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
         }
         instance.setArrayWithoutId(f, values, annots(sources, key))
       case _: Scalar => parseScalar(instance, f, property, annots(sources, key))
-      case Any => parseAny(instance, f, property, annots(sources, key))
+      case Any       => parseAny(instance, f, property, annots(sources, key))
     }
 
   }
 
-  private def parseList(instance: AmfObject, l: SortedArray, field: Field, properties: Seq[PropertyObject], annotations: Annotations): Unit =
+  def parseDynamicType(id: PropertyObject): Option[DataNode] =
+    new DynamicTypeParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(id)
+
+  private def parseList(instance: AmfObject,
+                        l: SortedArray,
+                        field: Field,
+                        properties: Seq[PropertyObject],
+                        annotations: Annotations): Unit =
     instance.setArray(field, parseList(l.element, findLink(properties.head)), annotations)
 
   private def parseScalar(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
@@ -216,16 +217,9 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
     AnyTypeConverter(property)(ctx.eh).tryConvert().foreach(instance.set(field, _, annotations))
 
   private def parseList(listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
-    val buffer = ListBuffer[PropertyObject]()
-    maybeCollection.foreach { collection =>
-      collection.getKeys().foreach { entry =>
-        if (entry.startsWith((Namespace.Rdfs + "_").iri())) {
-          buffer ++= collection.getProperties(entry).get
-        }
-      }
-    }
+    val properties = getRdfProperties(maybeCollection)
 
-    val res = buffer.map { property =>
+    val res = properties.map { property =>
       listElement match {
         case DataNodeModel => parseDynamicType(property)
         case _: Obj =>
@@ -241,6 +235,18 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
     res collect { case Some(x) => x }
   }
 
+  private def getRdfProperties(maybeCollection: Option[Node]) = {
+    val properties = ListBuffer[PropertyObject]()
+    maybeCollection.foreach { collection =>
+      collection.getKeys().foreach { entry =>
+        if (entry.startsWith((Namespace.Rdfs + "_").iri())) {
+          properties ++= collection.getProperties(entry).get
+        }
+      }
+    }
+    properties
+  }
+
   private def findLink(property: PropertyObject) = new NodeFinder(graph.get).findLink(property)
 
   private def checkLinkables(instance: AmfObject): Unit = {
@@ -250,7 +256,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
         ctx.unresolvedReferences.getOrElse(link.id, Nil).foreach {
           case unresolved: Linkable => unresolved.withLinkTarget(link)
           case unresolved: LinkNode => unresolved.withLinkedDomainElement(link)
-          case _ => throw new Exception("Only linkable elements can be linked")
+          case _                    => throw new Exception("Only linkable elements can be linked")
         }
         ctx.unresolvedReferences.update(link.id, Nil)
       case ref: ExternalSourceElement =>
@@ -291,25 +297,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends GraphParserHe
     }
   }
 
-  private def findType(`type`: String): Option[Obj] = ctx.plugins.findType(`type`)
+  private def findType(`type`: String): Option[Obj]            = ctx.plugins.findType(`type`)
   private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
-  protected def retrieveSources(node: Node): SourceMap = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
-}
-
-class DefaultNodeClassSorter(){
-
-  private val deferredTypesSet = Set(
-    (Namespace.Document + "Document").iri(),
-    (Namespace.Document + "Fragment").iri(),
-    (Namespace.Document + "Module").iri(),
-    (Namespace.Document + "Unit").iri(),
-    (Namespace.Shacl + "Shape").iri(),
-    (Namespace.Shapes + "Shape").iri()
-  )
-
-  def sortedClassesOf(node: Node): Seq[String] = {
-    node.classes.partition(deferredTypesSet.contains) match {
-      case (deferred, others) => others ++ deferred.sorted // we just use the fact that lexical order is correct
-    }
-  }
+  protected def retrieveSources(node: Node): SourceMap         = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
 }

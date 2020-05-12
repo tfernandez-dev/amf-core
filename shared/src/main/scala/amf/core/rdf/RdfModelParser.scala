@@ -6,12 +6,12 @@ import amf.core.metamodel.domain._
 import amf.core.metamodel.{Field, Obj, Type}
 import amf.core.model.document._
 import amf.core.model.domain._
-import amf.core.parser.Annotations
+import amf.core.parser.{Annotations, ParserContext}
 import amf.core.parser.errorhandler.ParserErrorHandler
 import amf.core.plugin.PluginContext
 import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.helper.DefaultNodeClassSorter
+import amf.core.rdf.helper.{DefaultNodeClassSorter, PluginEntitiesFacade}
 import amf.core.rdf.parsers._
 import amf.core.vocabulary.Namespace
 import amf.plugins.features.validation.CoreValidations.{UnableToParseNode, UnableToParseRdfDocument}
@@ -26,9 +26,9 @@ object RdfModelParser {
 class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserCommon {
 
   private var graph: Option[RdfModel] = None
-  private val sorter                  = new DefaultNodeClassSorter()
   private val recursionControl = new RecursionControl()
   private var rootId: Option[String] = None
+  private val pluginTypeFacade = new PluginEntitiesFacade(ctx)
 
   def parse(model: RdfModel, location: String): BaseUnit = {
     graph = Some(model)
@@ -60,7 +60,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     unit
   }
 
-  def parsePossibleRecursion(node: Node, findBaseUnit: Boolean = false): Option[AmfElement] = {
+  private def parsePossibleRecursion(node: Node, findBaseUnit: Boolean = false): Option[AmfElement] = {
     if (recursionControl.hasVisited(node) && !isSelfEncoded(node)) ctx.nodes.get(node.subject)
     else {
       recursionControl.visited(node)
@@ -72,9 +72,9 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
 
   private def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfObject] = {
     val id = node.subject
-    retrieveType(id, node, findBaseUnit) map { model =>
+    pluginTypeFacade.retrieveType(id, node, findBaseUnit) map { model =>
       val sources  = retrieveSources(node)
-      val instance = buildType(model)(annots(sources, id))
+      val instance = pluginTypeFacade.buildType(model)(annots(sources, id))
       instance.withId(id)
 
       ctx.nodes = ctx.nodes + (id -> instance)
@@ -276,42 +276,10 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     }
   }
 
-  private def isUnitModel(typeModel: Obj): Boolean =
-    typeModel.isInstanceOf[DocumentModel] || typeModel.isInstanceOf[EncodesModel] || typeModel
-      .isInstanceOf[DeclaresModel] || typeModel.isInstanceOf[BaseUnitModel]
-
-  private def retrieveType(id: String, node: Node, findBaseUnit: Boolean = false): Option[Obj] = {
-    val types = sorter.sortedClassesOf(node)
-
-    val foundType = types.find { t =>
-      val maybeFoundType = findType(t)
-      // this is just for self-encoding documents
-      maybeFoundType match {
-        case Some(typeModel) if !findBaseUnit && !isUnitModel(typeModel) => true
-        case Some(typeModel) if findBaseUnit && isUnitModel(typeModel)   => true
-        case _                                                           => false
-      }
-    } orElse {
-      // if I cannot find it, I will return the matching one directly, this is used
-      // in situations where the references a reified, for example, in the canonical web api spec
-      types.find(findType(_).isDefined)
-    }
-
-    foundType match {
-      case Some(t) => findType(t)
-      case None =>
-        ctx.eh.violation(UnableToParseNode,
-                         id,
-                         s"Error parsing JSON-LD node, unknown @types $types",
-                         ctx.rootContextDocument)
-        None
-    }
-  }
-
-  private def findType(`type`: String): Option[Obj]            = ctx.plugins.findType(`type`)
-  private def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
   protected def retrieveSources(node: Node): SourceMap         = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
 }
+
+
 
 private class RecursionControl(private var visited: Set[String] = Set()) {
   def visited(node: Node): Unit = {

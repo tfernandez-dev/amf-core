@@ -25,18 +25,20 @@ object RdfModelParser {
 
 class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserCommon {
 
-  private var graph: Option[RdfModel] = None
+  private var nodeFinder: Option[NodeFinder] = None
+  private var sourcesRetriever: Option[SourcesRetriever] = None
   private val recursionControl = new RecursionControl()
   private var rootId: Option[String] = None
-  private val pluginTypeFacade = new PluginEntitiesFacade(ctx)
+  private val plugins = new PluginEntitiesFacade(ctx)
 
   def parse(model: RdfModel, location: String): BaseUnit = {
-    graph = Some(model)
+    nodeFinder = Some(new NodeFinder(model))
+    sourcesRetriever = Some(new SourcesRetriever(nodeFinder.get))
     rootId = Some(location)
 
     val unit = model.findNode(location) match {
       case Some(rootNode) =>
-        parsePossibleRecursion(rootNode, findBaseUnit = true) match {
+        parse(rootNode, findBaseUnit = true) match {
           case Some(unit: BaseUnit) =>
             unit.set(BaseUnitModel.Location, location.split("#").head)
             unit.withRunNumber(ctx.parserRun)
@@ -60,52 +62,48 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     unit
   }
 
-  private def parsePossibleRecursion(node: Node, findBaseUnit: Boolean = false): Option[AmfElement] = {
+  private def isSelfEncoded(node: Node) = node.subject == rootId.getOrElse("")
+
+  private def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfElement] = {
     if (recursionControl.hasVisited(node) && !isSelfEncoded(node)) ctx.nodes.get(node.subject)
     else {
       recursionControl.visited(node)
-      parse(node, findBaseUnit)
-    }
-  }
+      val id = node.subject
+      plugins.retrieveType(id, node, findBaseUnit) map { model =>
+        val sources  = retrieveSources(node)
+        val instance = plugins.buildType(model)(annots(sources, id))
+        instance.withId(id)
 
-  private def isSelfEncoded(node: Node) = node.subject == rootId.getOrElse("")
+        ctx.nodes = ctx.nodes + (id -> instance)
 
-  private def parse(node: Node, findBaseUnit: Boolean = false): Option[AmfObject] = {
-    val id = node.subject
-    pluginTypeFacade.retrieveType(id, node, findBaseUnit) map { model =>
-      val sources  = retrieveSources(node)
-      val instance = pluginTypeFacade.buildType(model)(annots(sources, id))
-      instance.withId(id)
+        checkLinkables(instance)
+        // workaround for lazy values in shape
+        val modelFields = extractModelFields(model)
 
-      ctx.nodes = ctx.nodes + (id -> instance)
+        modelFields.foreach(f => {
+          val k          = f.value.iri()
+          val properties = key(node, k)
+          traverse(instance, f, properties, sources, k)
+        })
 
-      checkLinkables(instance)
-      // workaround for lazy values in shape
-      val modelFields = extractModelFields(model)
-
-      modelFields.foreach(f => {
-        val k          = f.value.iri()
-        val properties = key(node, k)
-        traverse(instance, f, properties, sources, k)
-      })
-
-      // parsing custom extensions
-      instance match {
-        case l: DomainElement with Linkable => parseLinkableProperties(node, l)
-        case ex: ExternalDomainElement if ctx.unresolvedExtReferencesMap.contains(ex.id) =>
-          ctx.unresolvedExtReferencesMap.get(ex.id).foreach { element =>
-            ex.raw.option().foreach(element.set(ExternalSourceElementModel.Raw, _))
-          }
-          ctx.unresolvedExtReferencesMap.remove(ex.id)
-        case _ => // ignore
+        // parsing custom extensions
+        instance match {
+          case l: DomainElement with Linkable => parseLinkableProperties(node, l)
+          case ex: ExternalDomainElement if ctx.unresolvedExtReferencesMap.contains(ex.id) =>
+            ctx.unresolvedExtReferencesMap.get(ex.id).foreach { element =>
+              ex.raw.option().foreach(element.set(ExternalSourceElementModel.Raw, _))
+            }
+            ctx.unresolvedExtReferencesMap.remove(ex.id)
+          case _ => // ignore
+        }
+        instance match {
+          case elm: DomainElement =>
+            new CustomPropertiesParser(nodeFinder.get, sourcesRetriever.get)
+              .parse(node, elm)
+          case _ => // ignore
+        }
+        instance
       }
-      instance match {
-        case elm: DomainElement =>
-          new CustomPropertiesParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get)))
-            .parse(node, elm)
-        case _ => // ignore
-      }
-      instance
     }
   }
 
@@ -172,7 +170,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
       case _: Obj =>
         findLink(property) match {
           case Some(node) =>
-            parsePossibleRecursion(node) match {
+            parse(node) match {
               case Some(parsed) =>
                 instance.set(f, parsed, annots(sources, key))
               case _ => // ignore
@@ -199,7 +197,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
               .iri() // this is for self-encoded documents
             items.flatMap(n =>
               findLink(n) match {
-                case Some(o) => parsePossibleRecursion(o, shouldParseUnit)
+                case Some(o) => parse(o, shouldParseUnit)
                 case _       => None
             })
           case Str | Iri => items.map(StringIriUriRegexParser().parse)
@@ -212,7 +210,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
   }
 
   def parseDynamicType(id: PropertyObject): Option[DataNode] =
-    new DynamicTypeParser(new NodeFinder(graph.get), new SourcesRetriever(new NodeFinder(graph.get))).parse(id)
+    new DynamicTypeParser(nodeFinder.get, sourcesRetriever.get).parse(id)
 
   private def parseList(instance: AmfObject,
                         l: SortedArray,
@@ -235,7 +233,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
         case DataNodeModel => parseDynamicType(property)
         case _: Obj =>
           findLink(property) match {
-            case Some(node) => parsePossibleRecursion(node)
+            case Some(node) => parse(node)
             case _          => None
           }
         case _: Scalar => ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
@@ -258,8 +256,6 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     properties
   }
 
-  private def findLink(property: PropertyObject) = new NodeFinder(graph.get).findLink(property)
-
   private def checkLinkables(instance: AmfObject): Unit = {
     instance match {
       case link: DomainElement with Linkable =>
@@ -276,7 +272,9 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
     }
   }
 
-  protected def retrieveSources(node: Node): SourceMap         = new SourcesRetriever(new NodeFinder(graph.get)).retrieve(node)
+  private def findLink(property: PropertyObject) = nodeFinder.get.findLink(property)
+
+  protected def retrieveSources(node: Node): SourceMap         = sourcesRetriever.get.retrieve(node)
 }
 
 

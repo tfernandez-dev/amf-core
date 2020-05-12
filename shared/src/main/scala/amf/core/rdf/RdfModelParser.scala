@@ -55,9 +55,7 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
   }
 }
 
-
-
-private class RecursionControl(private var visited: Set[String] = Set()) {
+class RecursionControl(private var visited: Set[String] = Set()) {
   def visited(node: Node): Unit = {
     this.visited = visited + node.subject
   }

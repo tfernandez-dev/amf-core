@@ -12,20 +12,7 @@ class TransformationTraversal(val transformation: TransformationData) {
 
   def traverse(element: AmfObject, traversalData: TraversalData = TraversalData()): AmfObject = {
     if (!traversalData.hasVisited(element)) traverseElement(element, traversalData)
-    else {
-      element match {
-        // target of the link has been traversed, we still visit the link in case a transformer wants to
-        // transform links/references, but we will not traverse to avoid loops
-        case linkable: Linkable if linkable.isLink =>
-          if (transformation.predicate(element)) {
-            transformation.transformation(element, true).orNull // passing the cycle boolean flat!
-          } else {
-            element
-          }
-        // traversed and not visited
-        case _ => element
-      }
-    }
+    else element
   }
 
   private def traverseElement(element: AmfObject, traversalData: TraversalData): AmfObject = {
@@ -40,8 +27,7 @@ class TransformationTraversal(val transformation: TransformationData) {
       // we first process declarations, then the encoding
       traversalData.traversed(element)
       val effectiveFields: Iterable[FieldEntry] = getSortedFieldsOf(element)
-      effectiveFields
-        .foreach {
+      effectiveFields.foreach {
           case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfObject] =>
             traverseObjectEntry(element, traversalData, fieldEntry)
           case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfArray] =>

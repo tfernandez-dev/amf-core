@@ -14,7 +14,7 @@ import amf.core.model.{BoolField, StrField}
 import amf.core.parser.{FieldEntry, ParserContext, Value}
 import amf.core.rdf.{RdfModel, RdfModelParser}
 import amf.core.remote.Vendor
-import amf.core.traversal.{TransformationData, TransformationTraversal, TraversalData}
+import amf.core.traversal.{DomainElementSelectorAdapter, DomainElementTransformationAdapter, TransformationData, TransformationTraversal, TraversalData}
 import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
 import amf.core.unsafe.PlatformSecrets
 import amf.plugins.features.validation.CoreValidations.RecursiveShapeSpecification
@@ -108,18 +108,8 @@ trait BaseUnit extends AmfObject with MetaModelTypeMapping with PlatformSecrets 
 
   def transform(selector: DomainElement => Boolean, transformation: (DomainElement, Boolean) => Option[DomainElement])(
       implicit errorHandler: ErrorHandler): BaseUnit = {
-    val domainElementAdapter = (o: AmfObject) => {
-      o match {
-        case e: DomainElement => selector(e)
-        case _                => false
-      }
-    }
-    val transformationAdapter = (o: AmfObject, isCycle: Boolean) => {
-      o match {
-        case e: DomainElement => transformation(e, isCycle)
-        case _                => Some(o)
-      }
-    }
+    val domainElementAdapter = new DomainElementSelectorAdapter(selector)
+    val transformationAdapter = new DomainElementTransformationAdapter(transformation)
     new TransformationTraversal(TransformationData(domainElementAdapter, transformationAdapter)).traverse(this)
     this
   }

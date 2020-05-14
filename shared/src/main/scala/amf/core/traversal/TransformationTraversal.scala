@@ -28,13 +28,13 @@ class TransformationTraversal(val transformation: TransformationData) {
       traversalData.traversed(element)
       val effectiveFields: Iterable[FieldEntry] = getSortedFieldsOf(element)
       effectiveFields.foreach {
-          case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfObject] =>
-            traverseObjectEntry(element, traversalData, fieldEntry)
-          case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfArray] =>
-            traverseArrayEntry(element, traversalData, fieldEntry)
+        case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfObject] =>
+          traverseObjectEntry(element, traversalData, fieldEntry)
+        case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfArray] =>
+          traverseArrayEntry(element, traversalData, fieldEntry)
 
-          case _ => // ignore
-        }
+        case _ => // ignore
+      }
       element
     }
   }
@@ -42,8 +42,8 @@ class TransformationTraversal(val transformation: TransformationData) {
   private def getSortedFieldsOf(element: AmfObject) = {
     element match {
       case doc: DeclaresModel => doc.fields.fields().toSeq.sorted(new DeclaresModelFieldOrdering)
-      case bu: BaseUnit => bu.fields.fields().toSeq.sorted(new BaseUnitFieldOrdering)
-      case _ => element.fields.fields()
+      case bu: BaseUnit       => bu.fields.fields().toSeq.sorted(new BaseUnitFieldOrdering)
+      case _                  => element.fields.fields()
     }
   }
 
@@ -58,8 +58,9 @@ class TransformationTraversal(val transformation: TransformationData) {
     }
   }
 
-  private def lexicalAnnotationsOf(value: Value) = value.annotations.copyFiltering(a =>
-    a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode])
+  private def lexicalAnnotationsOf(value: Value) =
+    value.annotations.copyFiltering(a =>
+      a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode])
 
   private def traverseArrayEntry(element: AmfObject, traversalData: TraversalData, fieldEntry: FieldEntry) = {
     val FieldEntry(field, value) = fieldEntry
@@ -121,5 +122,20 @@ class BaseUnitFieldOrdering extends Ordering[FieldEntry] {
     case (DocumentModel.References, _) => -1
     case (_, DocumentModel.References) => 1
     case (_, _)                        => 0
+  }
+}
+
+class DomainElementSelectorAdapter(selector: DomainElement => Boolean) extends (AmfObject => Boolean) {
+  override def apply(obj: AmfObject): Boolean = obj match {
+    case e: DomainElement => selector(e)
+    case _                => false
+  }
+}
+
+class DomainElementTransformationAdapter(transformation: (DomainElement, Boolean) => Option[AmfObject])
+    extends ((AmfObject, Boolean) => Option[AmfObject]) {
+  override def apply(obj: AmfObject, isCycle: Boolean): Option[AmfObject] = obj match {
+    case e: DomainElement => transformation(e, isCycle)
+    case _                => Some(obj)
   }
 }

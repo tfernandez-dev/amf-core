@@ -3,7 +3,7 @@ package amf.core.resolution
 import amf.core.annotations.{ErrorRegistered, SourceAST}
 import amf.core.model.domain.templates.Variable
 import amf.core.model.domain.{DataNode, ObjectNode, ScalarNode}
-import amf.core.resolution.stages.ResolvedLinkNode
+import amf.core.resolution.stages.helpers.ResolvedLinkNode
 import amf.core.utils.InflectorBase.Inflector
 import org.yaml.model.{QuotedMark, YScalar}
 import org.yaml.render.YamlRender

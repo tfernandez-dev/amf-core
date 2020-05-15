@@ -7,7 +7,8 @@ import amf.core.rdf.{Literal, PropertyObject, Uri}
 import amf.plugins.features.validation.CoreValidations.UnableToConvertToScalar
 import org.mulesoft.common.time.SimpleDateTime
 
-case class AnyTypeConverter(property: PropertyObject)(implicit errorHandler: ErrorHandler) {
+// Left as object to avoid creating instances of it due to AMF Service request.
+object AnyTypeConverter extends Converter {
   private val xsdString: String   = DataType.String
   private val xsdInteger: String  = DataType.Integer
   private val xsdFloat: String    = DataType.Float
@@ -17,7 +18,7 @@ case class AnyTypeConverter(property: PropertyObject)(implicit errorHandler: Err
   private val xsdDateTime: String = DataType.DateTime
   private val xsdDate: String     = DataType.Date
 
-  def tryConvert(): Option[AmfScalar] = {
+  def tryConvert(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, typed) =>
         typed match {
@@ -31,10 +32,5 @@ case class AnyTypeConverter(property: PropertyObject)(implicit errorHandler: Err
         }
       case Uri(v) => conversionValidation(s"Expecting String literal found URI $v")
     }
-  }
-
-  private def conversionValidation(message: String) = {
-    errorHandler.violation(UnableToConvertToScalar, "", message, "")
-    None
   }
 }

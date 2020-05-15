@@ -8,7 +8,8 @@ import amf.core.rdf.{Literal, PropertyObject, Uri}
 import amf.plugins.features.validation.CoreValidations.UnableToConvertToScalar
 import org.mulesoft.common.time.SimpleDateTime
 
-case class StringIriUriRegexParser() {
+// Left as object to avoid creating instances of it due to AMF Service request.
+object StringIriUriRegexParser {
   def parse(property: PropertyObject): AmfScalar = AmfScalar(s"${property.value}")
 }
 
@@ -18,44 +19,42 @@ case class StringIriUriRegexParser() {
   * make one dependent on the other. Furthermore check why are we including the extra cases for Iri, Str, RegExp and
   * LiteralUri here and not in AnyTypeConverter.
   */
-case class ScalarTypeConverter(`type`: Type, property: PropertyObject)(implicit errorHandler: ErrorHandler) {
-  def tryConvert(): Option[AmfScalar] = `type` match {
-    case Iri | Str | RegExp | LiteralUri => Some(StringIriUriRegexParser().parse(property))
-    case Bool                            => bool(property)
-    case Type.Int                        => int(property)
-    case Type.Float                      => float(property)
-    case Type.Double                     => double(property)
-    case Type.DateTime | Type.Date       => date(property)
-    case _                               => None
+// Left as object to avoid creating instances of it due to AMF Service request.
+object ScalarTypeConverter extends Converter {
+  def tryConvert(`type`: Type, property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
+    `type` match {
+      case Iri | Str | RegExp | LiteralUri => Some(StringIriUriRegexParser.parse(property))
+      case Bool                            => bool(property)
+      case Type.Int                        => int(property)
+      case Type.Float                      => float(property)
+      case Type.Double                     => double(property)
+      case Type.DateTime | Type.Date       => date(property)
+      case _                               => None
+    }
   }
 
-  def bool(property: PropertyObject): Option[AmfScalar] = {
+  def bool(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, _) => Some(AmfScalar(v.toBoolean))
       case Uri(v)        => conversionValidation(s"Expecting Boolean literal found URI $v")
     }
   }
 
-  private def conversionValidation(message: String) = {
-    errorHandler.violation(UnableToConvertToScalar, "", message, "")
-    None
-  }
-
-  def int(property: PropertyObject): Option[AmfScalar] = {
+  def int(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, _) => Some(AmfScalar(v.toInt))
       case Uri(v)        => conversionValidation(s"Expecting Int literal found URI $v")
     }
   }
 
-  def double(property: PropertyObject): Option[AmfScalar] = {
+  def double(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, _) => Some(AmfScalar(v.toDouble))
       case Uri(v)        => conversionValidation(s"Expecting Double literal found URI $v")
     }
   }
 
-  def date(property: PropertyObject): Option[AmfScalar] = {
+  def date(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, _) =>
         SimpleDateTime.parse(v) match {
@@ -66,7 +65,7 @@ case class ScalarTypeConverter(`type`: Type, property: PropertyObject)(implicit 
     }
   }
 
-  def float(property: PropertyObject): Option[AmfScalar] = {
+  def float(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, _) => Some(AmfScalar(v.toFloat))
       case Uri(v)        => conversionValidation(s"Expecting Float literal found URI $v")

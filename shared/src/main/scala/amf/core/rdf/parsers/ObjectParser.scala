@@ -169,7 +169,7 @@ class ObjectParser(val rootId: String,
                 case Some(o) => parse(o, shouldParseUnit)
                 case _       => None
             })
-          case Str | Iri => items.map(StringIriUriRegexParser().parse)
+          case Str | Iri => items.map(StringIriUriRegexParser.parse)
         }
         instance.setArrayWithoutId(f, values, annots(sources, key))
       case _: Scalar => parseScalar(instance, f, property, annots(sources, key))
@@ -188,10 +188,10 @@ class ObjectParser(val rootId: String,
     instance.setArray(field, parseList(l.element, findLink(properties.head)), annotations)
 
   private def parseScalar(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
-    ScalarTypeConverter(field.`type`, property)(ctx.eh).tryConvert().foreach(instance.set(field, _, annotations))
+    ScalarTypeConverter.tryConvert(field.`type`, property)(ctx.eh).foreach(instance.set(field, _, annotations))
 
   private def parseAny(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
-    AnyTypeConverter(property)(ctx.eh).tryConvert().foreach(instance.set(field, _, annotations))
+    AnyTypeConverter.tryConvert(property)(ctx.eh).foreach(instance.set(field, _, annotations))
 
   private def parseList(listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
     val properties = getRdfProperties(maybeCollection)
@@ -204,8 +204,8 @@ class ObjectParser(val rootId: String,
             case Some(node) => parse(node)
             case _          => None
           }
-        case _: Scalar => ScalarTypeConverter(listElement, property)(ctx.eh).tryConvert()
-        case Any       => AnyTypeConverter(property)(ctx.eh).tryConvert()
+        case _: Scalar => ScalarTypeConverter.tryConvert(listElement, property)(ctx.eh)
+        case Any       => AnyTypeConverter.tryConvert(property)(ctx.eh)
         case _         => throw new Exception(s"Unknown list element type: $listElement")
       }
     }

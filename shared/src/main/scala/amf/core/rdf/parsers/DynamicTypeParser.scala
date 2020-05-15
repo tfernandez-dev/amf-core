@@ -11,7 +11,11 @@ import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable
 
-class DynamicTypeParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetriever, sorter: DefaultNodeClassSorter = new DefaultNodeClassSorter())(implicit val ctx: RdfParserContext) extends RdfParserCommon{
+class DynamicTypeParser(
+    linkFinder: NodeFinder,
+    sourcesRetriever: SourcesRetriever,
+    sorter: DefaultNodeClassSorter = new DefaultNodeClassSorter())(implicit val ctx: RdfParserContext)
+    extends RdfParserCommon {
 
   def parse(property: PropertyObject): Option[DataNode] = {
     linkFinder.findLink(property).map { node =>
@@ -23,13 +27,13 @@ class DynamicTypeParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetriev
           obj.withId(node.subject)
           node.getKeys().foreach { uri =>
             if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() &&
-              uri != (Namespace.Core + "name").iri()) { // we do this to prevent parsing name of annotations
+                uri != (Namespace.Core + "name").iri()) { // we do this to prevent parsing name of annotations
 
               val dataNode = node.getProperties(uri).get.head match {
-                case literal @ Literal(_, _) => new DynamicLiteralParser().parse(literal)
+                case literal @ Literal(_, _)    => new DynamicLiteralParser().parse(literal)
                 case entry if isRDFArray(entry) => new DynamicArrayParser(linkFinder, sourcesRetriever).parse(entry)
-                case nestedNode @ Uri(_) => parse(nestedNode).getOrElse(ObjectNode())
-                case _ => ObjectNode()
+                case nestedNode @ Uri(_)        => parse(nestedNode).getOrElse(ObjectNode())
+                case _                          => ObjectNode()
               }
               obj.addProperty(uri, dataNode)
             }
@@ -98,11 +102,12 @@ class DynamicTypeParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetriev
     }
   }
 
-
   def retrieveDynamicType(node: Node): Option[Annotations => AmfObject] = {
-    sorter.sortedClassesOf(node).find({ t =>
-      dynamicBuilders.contains(t)
-    }) match {
+    sorter
+      .sortedClassesOf(node)
+      .find({ t =>
+        dynamicBuilders.contains(t)
+      }) match {
       case Some(t) => Some(dynamicBuilders(t))
       case _       => None
     }

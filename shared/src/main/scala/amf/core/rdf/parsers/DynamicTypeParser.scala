@@ -30,7 +30,7 @@ class DynamicTypeParser(
                 uri != (Namespace.Core + "name").iri()) { // we do this to prevent parsing name of annotations
 
               val dataNode = node.getProperties(uri).get.head match {
-                case literal @ Literal(_, _)    => new DynamicLiteralParser().parse(literal)
+                case literal @ Literal(_, _)    => DynamicLiteralParser.parse(literal)
                 case entry if isRDFArray(entry) => new DynamicArrayParser(linkFinder, sourcesRetriever).parse(entry)
                 case nestedNode @ Uri(_)        => parse(nestedNode).getOrElse(ObjectNode())
                 case _                          => ObjectNode()
@@ -45,7 +45,7 @@ class DynamicTypeParser(
           node.getKeys().foreach { k =>
             val entries = node.getProperties(k).get
             if (k == ScalarNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = new DynamicLiteralParser().parse(entries.head.asInstanceOf[Literal])
+              val parsedScalar = DynamicLiteralParser.parse(entries.head.asInstanceOf[Literal])
 
               parsedScalar.value.option().foreach { v =>
                 scalar.set(ScalarNodeModel.Value, AmfScalar(v, parsedScalar.value.annotations()))
@@ -59,10 +59,10 @@ class DynamicTypeParser(
           node.getKeys().foreach { k =>
             val entries = node.getProperties(k).get
             if (k == LinkNodeModel.Alias.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = new DynamicLiteralParser().parse(entries.head.asInstanceOf[Literal])
+              val parsedScalar = DynamicLiteralParser.parse(entries.head.asInstanceOf[Literal])
               parsedScalar.value.option().foreach(link.withAlias)
             } else if (k == LinkNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
-              val parsedScalar = new DynamicLiteralParser().parse(entries.head.asInstanceOf[Literal])
+              val parsedScalar = DynamicLiteralParser.parse(entries.head.asInstanceOf[Literal])
               parsedScalar.value.option().foreach(link.withLink)
             }
           }

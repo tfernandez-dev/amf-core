@@ -307,7 +307,7 @@ object BaseUnit extends PlatformSecrets {
   def fromNativeRdfModel(id: String,
                          rdfModel: RdfModel,
                          ctx: ParserContext = ParserContext(eh = DefaultParserErrorHandler.withRun())): BaseUnit =
-    new RdfModelParser(platform)(ctx).parse(rdfModel, id)
+    RdfModelParser(ctx.eh, ctx.plugins).parse(rdfModel, id)
 }
 
 /**

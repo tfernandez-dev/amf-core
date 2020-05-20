@@ -36,7 +36,8 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
       traverse(unit)
     }
 
-    protected def selfEncoded(element: AmfObject): Boolean = element.id == rootId.getOrElse("") && !element.isInstanceOf[BaseUnit]
+    protected def selfEncoded(element: AmfObject): Boolean =
+      element.id == rootId.getOrElse("") && !element.isInstanceOf[BaseUnit]
 
     def traverse(element: AmfObject): Unit = {
       if (!traversal.isInCurrentPath(element.id) || selfEncoded(element)) {

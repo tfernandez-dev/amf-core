@@ -145,8 +145,8 @@ class CompilerContextBuilder(url: String,
 
   private def buildParserContext(fc: Context) = givenContent match {
     case Some(given) if given.rootContextDocument.equals(fc.current) => given
-    case Some(given)                                                 => given.forLocation(platform.resolvePath(fc.current))
-    case None                                                        => ParserContext(platform.resolvePath(fc.current), eh = eh)
+    case Some(given)                                                 => given.forLocation(fc.current)
+    case None                                                        => ParserContext(fc.current, eh = eh)
   }
 
   def build()(implicit executionContext: ExecutionContext): CompilerContext = {
@@ -243,7 +243,7 @@ class AMFCompiler(compilerContext: CompilerContext,
           case (d, p) =>
             p.onSyntaxParsed(compilerContext.path, d)
         }
-        Right(Root(doc, compilerContext.parserContext.rootContextDocument, effective, Seq(), referenceKind, content.stream.toString))
+        Right(Root(doc, content.url, effective, Seq(), referenceKind, content.stream.toString))
       case None =>
         Left(content)
     }

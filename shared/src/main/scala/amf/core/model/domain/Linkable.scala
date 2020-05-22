@@ -36,7 +36,7 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
 
   def link[T](label: String, annotations: Annotations = Annotations()): T = {
     val copied = linkCopy()
-    val hash   = buildLinkHash(label, copied.id, annotations)
+    val hash   = buildLinkHash(label, annotations)
     copied
       .withId(s"${copied.id}/link-$hash")
       .withLinkTarget(this)
@@ -45,9 +45,8 @@ trait Linkable extends AmfObject { this: DomainElement with Linkable =>
       .asInstanceOf[T]
   }
 
-  private def buildLinkHash(label: String, targetId: String, annotations: Annotations): Int = {
+  private def buildLinkHash(label: String, annotations: Annotations): Int = {
     val sb = new StringBuilder
-    sb.append(targetId)
     sb.append(label)
     annotations.foreach {
       case s: SerializableAnnotation =>

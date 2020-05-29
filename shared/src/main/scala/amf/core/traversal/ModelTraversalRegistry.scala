@@ -1,5 +1,6 @@
 package amf.core.traversal
 
+import amf.core.annotations.TypeAlias
 import amf.core.model.domain.{RecursiveShape, Shape}
 
 import scala.collection.mutable
@@ -42,7 +43,13 @@ case class ModelTraversalRegistry() {
     this
   }
 
-  def shouldFailIfRecursive(shape: Shape): Boolean = isInCurrentPath(shape.id) && !isAllowedToCycle(shape)
+  def shouldFailIfRecursive(root: Shape, shape: Shape): Boolean = root.annotations.find(classOf[TypeAlias]) match {
+    case Some(alias) =>
+      val a = (alias.aliasId.equals(shape.id) && currentPath.nonEmpty || isInCurrentPath(shape.id))
+      val b = !isAllowedToCycle(shape)
+      a && b
+    case None =>isInCurrentPath(shape.id) && !isAllowedToCycle(shape)
+  }
 
   def avoidError(id: String): Boolean = whiteList.contains(id)
 

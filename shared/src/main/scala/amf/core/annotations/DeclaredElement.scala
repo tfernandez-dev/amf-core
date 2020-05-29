@@ -5,6 +5,8 @@ import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.model.domain._
 import amf.core.vocabulary.ValueType
 
+case class TypeAlias(aliasId: String) extends Annotation
+
 case class DeclaredElement() extends SerializableAnnotation with PerpetualAnnotation {
   override val name: String = "declared-element"
 

@@ -5,23 +5,14 @@ import java.net.URISyntaxException
 import amf.client.parse.DefaultParserErrorHandler
 import amf.client.plugins.AMFDocumentPlugin
 import amf.client.remote.Content
-import amf.core.annotations.ReferenceTargets
+import amf.core.TaggedReferences._
 import amf.core.benchmark.ExecutionLog
 import amf.core.client.ParsingOptions
 import amf.core.exception.{CyclicReferenceException, UnsupportedMediaTypeException, UnsupportedVendorException}
 import amf.core.model.document.{BaseUnit, ExternalFragment}
 import amf.core.model.domain.ExternalDomainElement
 import amf.core.parser.errorhandler.ParserErrorHandler
-import amf.core.parser.{
-  ParsedDocument,
-  ParsedReference,
-  ParserContext,
-  Range,
-  RefContainer,
-  ReferenceKind,
-  ReferenceResolutionResult,
-  UnspecifiedReference
-}
+import amf.core.parser.{ParsedDocument, ParsedReference, ParserContext, RefContainer, ReferenceKind, ReferenceResolutionResult, UnspecifiedReference}
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote._
 import amf.core.services.RuntimeCompiler
@@ -31,8 +22,8 @@ import amf.internal.environment.Environment
 import amf.plugins.features.validation.CoreValidations._
 import org.yaml.model.{YNode, YPart}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.Future.failed
+import scala.concurrent.{ExecutionContext, Future}
 
 object AMFCompilerRunCount {
   val NONE: Int = -1
@@ -391,19 +382,6 @@ class AMFCompiler(compilerContext: CompilerContext,
       }
     case Left(content) =>
       throw new Exception(s"Cannot parse document with mime type ${content.mime.getOrElse("none")}")
-  }
-
-  implicit private class TaggedReferences[B <: BaseUnit](bu: B) {
-    def tagReferences(root: Root): B = {
-      root.references.foreach { reference =>
-        reference.origin.refs.foreach { origins =>
-          bu.add(
-            ReferenceTargets(reference.unit.location().getOrElse(reference.unit.id),
-                             Range(origins.node.location.inputRange)))
-        }
-      }
-      bu
-    }
   }
 
 }

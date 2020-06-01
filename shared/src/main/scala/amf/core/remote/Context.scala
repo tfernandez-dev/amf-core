@@ -16,14 +16,24 @@ class Context protected (val platform: Platform,
 
   def resolve(url: String): String =
     try {
-      applyMapping(platform.resolvePath(url match {
-        case Absolute(s)               => s
-        case RelativeToRoot(s)         => Context.stripFile(root, platform.operativeSystem()) + s
-        case RelativeToIncludedFile(s) => Context.stripFile(current, platform.operativeSystem()) + s
-      }))
+      applyMapping(platform.resolvePath(resolvePathAccordingToRelativeness(url)))
     } catch {
       case e: Exception => throw new PathResolutionError(s"url: $url - ${e.getMessage}")
     }
+
+  private def resolvePathAccordingToRelativeness(url: String) = {
+    val prefix = url match {
+      case Absolute(_)               => ""
+      case RelativeToRoot(_)         => Context.stripFile(root, platform.operativeSystem())
+      case RelativeToIncludedFile(_) => Context.stripFile(current, platform.operativeSystem())
+    }
+    concatWithoutDuplicateSlash(prefix, url)
+  }
+
+  private def concatWithoutDuplicateSlash(prefix: String, url: String) = {
+    if (prefix.nonEmpty && prefix.last == '/' && url.nonEmpty && url.head == '/') prefix + url.drop(1)
+    else prefix + url
+  }
 
   private def applyMapping(path: String): String =
     mappings.find(m => path.startsWith(m._1)).fold(path)(m => path.replace(m._1, m._2))

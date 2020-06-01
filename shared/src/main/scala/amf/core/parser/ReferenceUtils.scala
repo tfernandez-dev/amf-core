@@ -15,12 +15,12 @@ case class RefContainer(linkType: ReferenceKind, node: YNode, fragment: Option[S
   def reduceToLocation(): Range = {
     node.asOption[YScalar] match {
       case Some(s)  =>
-        reduceStringLenght(s, fragment.map(l => l.length + 1).getOrElse(0), if(s.mark.plain) 0  else 1)
+        reduceStringLength(s, fragment.map(l => l.length + 1).getOrElse(0), if(s.mark.plain) 0  else 1)
       case _ => Range(node.location.inputRange)
     }
   }
 
-  private def reduceStringLenght(s:YScalar, fragmentLenght:Int, markSize:Int = 0): Range = {
+  private def reduceStringLength(s:YScalar, fragmentLenght:Int, markSize:Int = 0): Range = {
     val inputRange = if(node.location.inputRange.columnTo < fragmentLenght && node.location.inputRange.lineFrom< node.location.inputRange.lineTo) {
       val lines = s.text.split('\n')
       lines.find(_.contains('#')) match {

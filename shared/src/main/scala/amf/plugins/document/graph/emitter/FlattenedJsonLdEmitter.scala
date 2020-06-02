@@ -145,15 +145,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       traverseMetaModel(id, unit, sources, obj, b)
       createCustomExtensions(unit, b)
 
-      val sourceMapId = if (id.endsWith("/")) {
-        id + "source-map"
-      }
-      else if (id.contains("#") || id.startsWith("null")) {
-        id + "/source-map"
-      }
-      else {
-        id + "#/source-map"
-      }
+      val sourceMapId: String = sourceMapIdFor(id)
       createSourcesNode(sourceMapId, sources, b)
 
     }
@@ -185,34 +177,14 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
     createCustomExtensions(amfObject, b)
 
-    val sourceMapId = if (id.endsWith("/")) {
-      id + "source-map"
-    }
-    else if (id.contains("#") || id.startsWith("null")) {
-      id + "/source-map"
-    }
-    else {
-      id + "#/source-map"
-    }
+    val sourceMapId: String = sourceMapIdFor(id)
     createSourcesNode(sourceMapId, sources, b)
   }
 
   def traverseMetaModel(id: String, element: AmfObject, sources: SourceMap, obj: Obj, b: Entry[T]): Unit = {
-    createTypeNode(b, obj, Some(element))
+    createTypeNode(b, obj)
 
-    val objFields = element match {
-      case e: ExternalSourceElement if e.isLinkToSource => obj.fields.filter(f => f != ExternalSourceElementModel.Raw)
-      case _                                            => obj.fields
-    }
-    // workaround for lazy values in shape
-    val modelFields = objFields ++ (obj match {
-      case _: ShapeModel =>
-        Seq(
-            ShapeModel.CustomShapePropertyDefinitions,
-            ShapeModel.CustomShapeProperties
-        )
-      case _ => Nil
-    })
+    val modelFields: Seq[Field] = getMetaModelFields(element, obj)
 
     // no longer necessary?
     element match {
@@ -625,19 +597,6 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       raw(_, ctx.emitId(id))
   )
 
-  private def createTypeNode(b: Entry[T], obj: Obj, maybeElement: Option[AmfObject] = None): Unit = {
-    b.entry(
-        "@type",
-        _.list { b =>
-          val allTypes = obj.`type`.map(_.iri())
-          allTypes.distinct.foreach(t => raw(b, ctx.emitIri(t)))
-        }
-    )
-  }
-
-  private def raw(b: Part[T], content: String): Unit =
-    b += content
-
   private def createSourcesNode(id: String, sources: SourceMap, b: Entry[T]): Unit = {
     if (options.isWithSourceMaps && sources.nonEmpty) {
       if (options.isWithRawSourceMaps) {
@@ -660,7 +619,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                   val e = new Emission((part: Part[T]) => {
                     part.obj { rb =>
                       createIdNode(rb, id)
-                      createTypeNode(rb, SourceMapModel, None)
+                      createTypeNode(rb, SourceMapModel)
                       createAnnotationNodes(id, rb, sources.annotations)
                       createAnnotationNodes(id, rb, sources.eternals)
                     }
@@ -701,7 +660,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                 val e = new Emission((part: Part[T]) => {
                   part.obj { rb =>
                     createIdNode(rb, id)
-                    createTypeNode(rb, SourceMapModel, None)
+                    createTypeNode(rb, SourceMapModel)
                     createAnnotationNodes(id, rb, sources.eternals)
                   }
                 }) with Metadata

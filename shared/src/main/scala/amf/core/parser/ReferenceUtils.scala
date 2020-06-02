@@ -4,13 +4,35 @@ import amf.core.model.document._
 import amf.core.remote.File.FILE_PROTOCOL
 import amf.core.remote.HttpParts.{HTTPS_PROTOCOL, HTTP_PROTOCOL}
 import amf.core.utils.AmfStrings
-import org.yaml.model.YNode
+import org.yaml.model.{YNode, YScalar}
 
 import scala.collection.mutable
 
 case class ReferenceResolutionResult(exception: Option[Throwable], unit: Option[BaseUnit])
 
-case class RefContainer(linkType: ReferenceKind, node: YNode, fragment: Option[String])
+case class RefContainer(linkType: ReferenceKind, node: YNode, fragment: Option[String]){
+
+  def reduceToLocation(): Range = {
+    node.asOption[YScalar] match {
+      case Some(s)  =>
+        reduceStringLength(s, fragment.map(l => l.length + 1).getOrElse(0), if(s.mark.plain) 0  else 1)
+      case _ => Range(node.location.inputRange)
+    }
+  }
+
+  private def reduceStringLength(s:YScalar, fragmentLenght:Int, markSize:Int = 0): Range = {
+    val inputRange = if(node.location.inputRange.columnTo < fragmentLenght && node.location.inputRange.lineFrom< node.location.inputRange.lineTo) {
+      val lines = s.text.split('\n')
+      lines.find(_.contains('#')) match {
+        case Some(line)  => node.location.inputRange.copy(lineTo = node.location.inputRange.lineFrom + lines.indexOf(line), columnTo = line.indexOf('#') -1 )
+        case _ => node.location.inputRange
+      }
+    }else {
+      node.location.inputRange.copy(columnTo = node.location.inputRange.columnTo - fragmentLenght)
+    }
+    Range((inputRange.lineFrom, inputRange.columnFrom + markSize), (inputRange.lineTo, inputRange.columnTo-markSize))
+  }
+}
 
 case class ReferenceCollector() {
   private val refs = mutable.Map[String, Reference]()

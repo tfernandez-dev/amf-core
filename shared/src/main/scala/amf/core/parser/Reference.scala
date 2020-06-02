@@ -8,7 +8,7 @@ import amf.core.vocabulary.Namespace
 import amf.core.{CompilerContext, parser}
 import amf.internal.environment.Environment
 import amf.plugins.features.validation.CoreValidations.{ExpectedModule, InvalidInclude}
-import org.yaml.model.YNode
+import org.yaml.model.{YNode, YScalar}
 
 import scala.concurrent.{ExecutionContext, Future}
 

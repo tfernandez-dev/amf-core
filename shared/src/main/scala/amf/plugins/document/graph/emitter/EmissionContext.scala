@@ -93,25 +93,33 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def emitIri(uri: String): String = if (shouldCompact) compactAndCollect(uri) else uri
 
-  def emitId(uri: String): String = if (shouldCompact && uri.contains(base)) uri.replace(base, "") else uri
+  def emitId(uri: String): String = {
+    if (shouldCompact) {
+      if (uri.startsWith(base)) uri.replace(base, "")
+      else if (uri.startsWith(baseParent)) uri.replace(s"$baseParent/", "./")
+      else uri
+    } else uri
+  }
+
+  private def baseParent: String = {
+    val idx = base.lastIndexOf("/")
+    base.substring(0, idx)
+  }
 
   def setupContextBase(location: String): Unit = {
     if (Option(location).isDefined) {
       base = if (location.replace("://", "").contains("/")) {
         val basePre = if (location.contains("#")) {
           location.split("#").head
-        }
-        else {
+        } else {
           location
         }
         val parts = basePre.split("/").dropRight(1)
         parts.mkString("/")
-      }
-      else {
+      } else {
         location.split("#").head
       }
-    }
-    else {
+    } else {
       base = ""
     }
   }
@@ -151,5 +159,6 @@ class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
     extends EmissionContext(prefixes, base, options, emittingDeclarations)
 
 object FlattenedEmissionContext {
-  def apply(unit: BaseUnit, options: RenderOptions) = new FlattenedEmissionContext(mutable.Map(), unit.id, options)
+  def apply(unit: BaseUnit, options: RenderOptions) =
+    new FlattenedEmissionContext(mutable.Map(), unit.id, options)
 }

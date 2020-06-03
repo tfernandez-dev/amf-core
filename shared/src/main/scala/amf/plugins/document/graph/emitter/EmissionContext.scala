@@ -148,18 +148,7 @@ class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
                                base: String,
                                options: RenderOptions,
                                emittingDeclarations: Boolean = false)
-    extends EmissionContext(prefixes, base, options, emittingDeclarations) {
-
-  override def emitId(uri: String): String = {
-    if (shouldCompact) {
-      if (uri == base) "./"
-      else uri.replace(base, "")
-    }
-    else {
-      uri
-    }
-  }
-}
+    extends EmissionContext(prefixes, base, options, emittingDeclarations)
 
 object FlattenedEmissionContext {
   def apply(unit: BaseUnit, options: RenderOptions) = new FlattenedEmissionContext(mutable.Map(), unit.id, options)

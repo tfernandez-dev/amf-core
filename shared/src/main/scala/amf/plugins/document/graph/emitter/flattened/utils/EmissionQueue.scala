@@ -9,9 +9,9 @@ import scala.util.{Failure, Success, Try}
 class Emission[T](val fn: Part[T] => Unit)
 
 trait Metadata {
-  var id: Option[String] = None
+  var id: Option[String]     = None
   var isDeclaration: Boolean = false
-  var isReference: Boolean = false
+  var isReference: Boolean   = false
 }
 
 /**
@@ -32,7 +32,8 @@ case class EmissionQueue[T]() {
         knownIds += id
       }
       Success((): Unit)
-    } else {
+    }
+    else {
       Failure(new IllegalArgumentException("Element already emitted"))
     }
   }
@@ -50,6 +51,8 @@ case class EmissionQueue[T]() {
     * @param e emission
     * @return
     */
-  def accepts(e: Emission[T] with Metadata): Boolean = !e.id.exists { id => knownIds.contains(id) }
+  def accepts(e: Emission[T] with Metadata): Boolean = !e.id.exists { id =>
+    knownIds.contains(id)
+  }
 
 }

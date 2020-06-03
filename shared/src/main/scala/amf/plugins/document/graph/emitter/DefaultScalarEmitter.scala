@@ -24,7 +24,8 @@ object DefaultScalarEmitter {
       case YType.Bool =>
         if (content != "true" && content != "false") {
           YType.Str
-        } else {
+        }
+        else {
           tag
         }
       case YType.Int =>

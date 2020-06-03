@@ -33,53 +33,54 @@ object FlattenedJsonLdEmitter {
   }
 }
 
-
 class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(implicit ctx: EmissionContext)
-    extends CommonEmitter with MetaModelTypeMapping {
+    extends CommonEmitter
+    with MetaModelTypeMapping {
 
-  val pending: EmissionQueue[T]        = EmissionQueue()
-  var root: Part[T]                    = _
+  val pending: EmissionQueue[T] = EmissionQueue()
+  var root: Part[T]             = _
 
   def root(unit: BaseUnit): Unit = {
     builder.obj { ob =>
       // Initialize root object
       ob.entry(
-        "@graph",
-        _.list { rootBuilder =>
-          root = rootBuilder
-          /**
-            * First queue non declaration elements. We do this because these elements can generate new declarations that we
-            * need to know before emiting the Base Unit.
-            */
-          val declarationsEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.Declares)
-          val referencesEntry: Option[FieldEntry]      = unit.fields.entry(ModuleModel.References)
+          "@graph",
+          _.list { rootBuilder =>
+            root = rootBuilder
 
-          extractDeclarationsAndReferencesToContext(declarationsEntry, referencesEntry, unit.annotations)
+            /**
+              * First queue non declaration elements. We do this because these elements can generate new declarations that we
+              * need to know before emiting the Base Unit.
+              */
+            val declarationsEntry: Option[FieldEntry] = unit.fields.entry(ModuleModel.Declares)
+            val referencesEntry: Option[FieldEntry]   = unit.fields.entry(ModuleModel.References)
 
-          unit.fields.removeField(ModuleModel.Declares)
-          unit.fields.removeField(ModuleModel.References)
+            extractDeclarationsAndReferencesToContext(declarationsEntry, referencesEntry, unit.annotations)
 
-          queueBaseUnitElements(unit)
+            unit.fields.removeField(ModuleModel.Declares)
+            unit.fields.removeField(ModuleModel.References)
 
-          while (pending.hasPendingEmissions) {
-            val emission = pending.nextEmission()
-            emission.fn(root)
+            queueBaseUnitElements(unit)
+
+            while (pending.hasPendingEmissions) {
+              val emission = pending.nextEmission()
+              emission.fn(root)
+            }
+
+            /**
+              * Emit Base Unit. This will emit declarations also. We don't render the already rendered elements because
+              * the queue avoids duplicate ids
+              */
+            emitBaseUnit(unit)
+
+            // Check added declarations
+            while (pending.hasPendingEmissions) {
+              val emission = pending.nextEmission()
+              ctx.emittingDeclarations = emission.isDeclaration
+              ctx.emittingReferences = emission.isReference
+              emission.fn(root)
+            }
           }
-
-          /**
-            * Emit Base Unit. This will emit declarations also. We don't render the already rendered elements because
-            * the queue avoids duplicate ids
-            */
-          emitBaseUnit(unit)
-
-          // Check added declarations
-          while (pending.hasPendingEmissions) {
-            val emission = pending.nextEmission()
-            ctx.emittingDeclarations  = emission.isDeclaration
-            ctx.emittingReferences    = emission.isReference
-            emission.fn(root)
-          }
-        }
       )
       ctx.emitContext(ob)
     }
@@ -92,8 +93,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       val url = ctx.emitIri(f.value.iri())
       ctx.emittingDeclarations(true)
       b.entry(
-        url,
-        value(f.`type`, v, id, sources.property(url), _)
+          url,
+          value(f.`type`, v, id, sources.property(url), _)
       )
     }
     ctx.emittingDeclarations(false)
@@ -106,8 +107,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       val url = ctx.emitIri(f.value.iri())
       ctx.emittingReferences(true)
       b.entry(
-        url,
-        value(f.`type`, v, id, sources.property(url), _)
+          url,
+          value(f.`type`, v, id, sources.property(url), _)
       )
     }
     ctx.emittingReferences(false)
@@ -117,14 +118,14 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     unit.fields.foreach {
       case (field, value) =>
         field.`type` match {
-          case _ : Obj =>
+          case _: Obj =>
             val amfObject = value.value.asInstanceOf[AmfObject]
             pending.tryEnqueue(amfObject)
           case _: ArrayLike =>
             val amfArray = value.value.asInstanceOf[AmfArray]
             amfArray.values.foreach {
               case amfObject: AmfObject => pending.tryEnqueue(amfObject)
-              case _ => //Ignore
+              case _                    => //Ignore
             }
           case _ => // Ignore
         }
@@ -146,9 +147,11 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
       val sourceMapId = if (id.endsWith("/")) {
         id + "source-map"
-      } else if (id.contains("#") || id.startsWith("null")) {
+      }
+      else if (id.contains("#") || id.startsWith("null")) {
         id + "/source-map"
-      } else {
+      }
+      else {
         id + "#/source-map"
       }
       createSourcesNode(sourceMapId, sources, b)
@@ -184,9 +187,11 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
     val sourceMapId = if (id.endsWith("/")) {
       id + "source-map"
-    } else if (id.contains("#") || id.startsWith("null")) {
+    }
+    else if (id.contains("#") || id.startsWith("null")) {
       id + "/source-map"
-    } else {
+    }
+    else {
       id + "#/source-map"
     }
     createSourcesNode(sourceMapId, sources, b)
@@ -203,8 +208,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     val modelFields = objFields ++ (obj match {
       case _: ShapeModel =>
         Seq(
-          ShapeModel.CustomShapePropertyDefinitions,
-          ShapeModel.CustomShapeProperties
+            ShapeModel.CustomShapePropertyDefinitions,
+            ShapeModel.CustomShapeProperties
         )
       case _ => Nil
     })
@@ -214,8 +219,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       case e: ObjectNode if options.isValidation =>
         val url = Namespace.AmfValidation.base + "/properties"
         b.entry(
-          url,
-          value(Type.Int, Value(AmfScalar(e.propertyFields().size), Annotations()), id, _ => {}, _)
+            url,
+            value(Type.Int, Value(AmfScalar(e.propertyFields().size), Annotations()), id, _ => {}, _)
         )
       case _ => // Nothing to do
     }
@@ -231,8 +236,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       case Some(FieldEntry(f, v)) =>
         val url = ctx.emitIri(f.value.iri())
         b.entry(
-          url,
-          value(f.`type`, v, id, sources.property(url), _)
+            url,
+            value(f.`type`, v, id, sources.property(url), _)
         )
       case None => // Missing field
     }
@@ -277,10 +282,10 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
     if (customProperties.nonEmpty)
       b.entry(
-        ctx.emitIri(DomainElementModel.CustomDomainProperties.value.iri()),
-        _.list { b =>
-          customProperties.foreach(iri(b, _, inArray = true))
-        }
+          ctx.emitIri(DomainElementModel.CustomDomainProperties.value.iri()),
+          _.list { b =>
+            customProperties.foreach(iri(b, _, inArray = true))
+          }
       )
   }
 
@@ -289,29 +294,29 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                                     extension: DomainExtension,
                                     field: Option[Field] = None): Unit = {
     b.entry(
-      uri,
-      _.obj { b =>
-        createIdNode(b, extension.extension.id)
-        val e = new Emission((part: Part[T]) => {
-          part.obj { rb =>
-            rb.entry(
-              ctx.emitIri(DomainExtensionModel.Name.value.iri()),
-              emitScalar(_, extension.name.value())
-            )
-            field.foreach(
-              f =>
-                rb.entry(
-                  ctx.emitIri(DomainExtensionModel.Element.value.iri()),
-                  emitScalar(_, f.value.iri())
-                ))
-            emitObject(extension.extension, rb)
-          }
-        }) with Metadata
-        e.id = Some(extension.extension.id)
-        e.isDeclaration = ctx.emittingDeclarations
-        e.isReference = ctx.emittingReferences
-        pending.tryEnqueue(e)
-      }
+        uri,
+        _.obj { b =>
+          createIdNode(b, extension.extension.id)
+          val e = new Emission((part: Part[T]) => {
+            part.obj { rb =>
+              rb.entry(
+                  ctx.emitIri(DomainExtensionModel.Name.value.iri()),
+                  emitScalar(_, extension.name.value())
+              )
+              field.foreach(
+                  f =>
+                    rb.entry(
+                        ctx.emitIri(DomainExtensionModel.Element.value.iri()),
+                        emitScalar(_, f.value.iri())
+                  ))
+              emitObject(extension.extension, rb)
+            }
+          }) with Metadata
+          e.id = Some(extension.extension.id)
+          e.isDeclaration = ctx.emittingDeclarations
+          e.isReference = ctx.emittingReferences
+          pending.tryEnqueue(e)
+        }
     )
   }
 
@@ -322,60 +327,62 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                         sources: Value => Unit,
                         v: Option[Value] = None): Unit = {
     b.obj { b =>
-        val id = s"$parent/list"
-        createIdNode(b, id)
-        val e = new Emission((part: Part[T]) => {
-          part.obj { rb =>
+      val id = s"$parent/list"
+      createIdNode(b, id)
+      val e = new Emission((part: Part[T]) => {
+        part.obj {
+          rb =>
             createIdNode(rb, id)
             rb.entry("@type", ctx.emitIri((Namespace.Rdfs + "Seq").iri()))
             seq.zipWithIndex.foreach {
               case (e, i) =>
                 rb.entry(
-                  ctx.emitIri((Namespace.Rdfs + s"_${i + 1}").iri()), { b =>
-                    element match {
-                      case _: Obj =>
-                        e match {
-                          case elementInArray: DomainElement with Linkable if elementInArray.isLink =>
-                            link(b, elementInArray, inArray = true)
-                          case elementInArray: AmfObject =>
-                            obj(b, elementInArray, inArray = true)
-                        }
-                      case Str =>
-                        scalar(b, e, SType.Str)
+                    ctx.emitIri((Namespace.Rdfs + s"_${i + 1}").iri()), {
+                      b =>
+                        element match {
+                          case _: Obj =>
+                            e match {
+                              case elementInArray: DomainElement with Linkable if elementInArray.isLink =>
+                                link(b, elementInArray, inArray = true)
+                              case elementInArray: AmfObject =>
+                                obj(b, elementInArray, inArray = true)
+                            }
+                          case Str =>
+                            scalar(b, e, SType.Str)
 
-                      case EncodedIri =>
-                        safeIri(b, e.asInstanceOf[AmfScalar].toString, inArray = true)
+                          case EncodedIri =>
+                            safeIri(b, e.asInstanceOf[AmfScalar].toString, inArray = true)
 
-                      case Iri =>
-                        iri(b, e.asInstanceOf[AmfScalar].toString, inArray = true)
+                          case Iri =>
+                            iri(b, e.asInstanceOf[AmfScalar].toString, inArray = true)
 
-                      case Any =>
-                        val scalarElement = e.asInstanceOf[AmfScalar]
-                        scalarElement.value match {
-                          case bool: Boolean =>
-                            typedScalar(b, bool.toString, DataType.Boolean, inArray = true)
-                          case str: String =>
-                            typedScalar(b, str.toString, DataType.String, inArray = true)
-                          case i: Int =>
-                            typedScalar(b, i.toString, DataType.Integer, inArray = true)
-                          case f: Float =>
-                            typedScalar(b, f.toString, DataType.Float, inArray = true)
-                          case d: Double =>
-                            typedScalar(b, d.toString, DataType.Double, inArray = true)
-                          case other => scalar(b, other.toString)
+                          case Any =>
+                            val scalarElement = e.asInstanceOf[AmfScalar]
+                            scalarElement.value match {
+                              case bool: Boolean =>
+                                typedScalar(b, bool.toString, DataType.Boolean, inArray = true)
+                              case str: String =>
+                                typedScalar(b, str.toString, DataType.String, inArray = true)
+                              case i: Int =>
+                                typedScalar(b, i.toString, DataType.Integer, inArray = true)
+                              case f: Float =>
+                                typedScalar(b, f.toString, DataType.Float, inArray = true)
+                              case d: Double =>
+                                typedScalar(b, d.toString, DataType.Double, inArray = true)
+                              case other => scalar(b, other.toString)
+                            }
                         }
                     }
-                  }
                 )
             }
             v.foreach(sources)
-          }
-        }) with Metadata
-        e.id = Some(id)
-        e.isDeclaration = ctx.emittingDeclarations
-        e.isReference = ctx.emittingReferences
-        pending.tryEnqueue(e)
-      }
+        }
+      }) with Metadata
+      e.id = Some(id)
+      e.isDeclaration = ctx.emittingDeclarations
+      e.isReference = ctx.emittingReferences
+      pending.tryEnqueue(e)
+    }
   }
 
   private def value(t: Type, v: Value, parent: String, sources: Value => Unit, b: Part[T]): Unit = {
@@ -426,7 +433,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
           case Some(dateTime) =>
             if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
               typedScalar(b, emitDateFormat(dateTime), DataType.DateTime)
-            } else {
+            }
+            else {
               typedScalar(b, f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d", DataType.Date)
 
             }
@@ -517,7 +525,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   private def emitSimpleDateTime(b: Part[T], dateTime: SimpleDateTime, inArray: Boolean = true): Unit = {
     if (dateTime.timeOfDay.isDefined || dateTime.zoneOffset.isDefined) {
       typedScalar(b, emitDateFormat(dateTime), DataType.DateTime, inArray)
-    } else {
+    }
+    else {
       typedScalar(b, f"${dateTime.year}%04d-${dateTime.month}%02d-${dateTime.day}%02d", DataType.Date)
     }
   }
@@ -612,17 +621,17 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   }
 
   private def createIdNode(b: Entry[T], id: String): Unit = b.entry(
-    "@id",
-    raw(_, ctx.emitId(id))
+      "@id",
+      raw(_, ctx.emitId(id))
   )
 
   private def createTypeNode(b: Entry[T], obj: Obj, maybeElement: Option[AmfObject] = None): Unit = {
     b.entry(
-      "@type",
-      _.list { b =>
-        val allTypes = obj.`type`.map(_.iri())
-        allTypes.distinct.foreach(t => raw(b, ctx.emitIri(t)))
-      }
+        "@type",
+        _.list { b =>
+          val allTypes = obj.`type`.map(_.iri())
+          allTypes.distinct.foreach(t => raw(b, ctx.emitIri(t)))
+        }
     )
   }
 
@@ -633,36 +642,39 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     if (options.isWithSourceMaps && sources.nonEmpty) {
       if (options.isWithRawSourceMaps) {
         b.entry(
-          "smaps",
-          _.obj { b =>
-            createAnnotationNodes(id, b, sources.annotations)
-            createAnnotationNodes(id, b, sources.eternals)
-          }
-        )
-      } else {
-        b.entry(
-          ctx.emitIri(DomainElementModel.Sources.value.iri()),
-          _.list {
+            "smaps",
             _.obj { b =>
-              // TODO: Maybe this should be emitted in root
-              createIdNode(b, id)
-              val e = new Emission((part: Part[T]) => {
-                part.obj { rb =>
-                  createIdNode(rb, id)
-                  createTypeNode(rb, SourceMapModel, None)
-                  createAnnotationNodes(id, rb, sources.annotations)
-                  createAnnotationNodes(id, rb, sources.eternals)
-                }
-              }) with Metadata
-              e.id = Some(id)
-              e.isDeclaration = ctx.emittingDeclarations
-              e.isReference = ctx.emittingReferences
-              pending.tryEnqueue(e)
+              createAnnotationNodes(id, b, sources.annotations)
+              createAnnotationNodes(id, b, sources.eternals)
             }
-          }
         )
       }
-    } else {
+      else {
+        b.entry(
+            ctx.emitIri(DomainElementModel.Sources.value.iri()),
+            _.list {
+              _.obj {
+                b =>
+                  // TODO: Maybe this should be emitted in root
+                  createIdNode(b, id)
+                  val e = new Emission((part: Part[T]) => {
+                    part.obj { rb =>
+                      createIdNode(rb, id)
+                      createTypeNode(rb, SourceMapModel, None)
+                      createAnnotationNodes(id, rb, sources.annotations)
+                      createAnnotationNodes(id, rb, sources.eternals)
+                    }
+                  }) with Metadata
+                  e.id = Some(id)
+                  e.isDeclaration = ctx.emittingDeclarations
+                  e.isReference = ctx.emittingReferences
+                  pending.tryEnqueue(e)
+              }
+            }
+        )
+      }
+    }
+    else {
       createEternalsAnnotationsNodes(id, options, b, sources)
     }
   }
@@ -674,60 +686,63 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     if (sources.eternals.nonEmpty)
       if (options.isWithRawSourceMaps) {
         b.entry(
-          "smaps",
-          _.obj { b =>
-            createAnnotationNodes(id, b, sources.eternals)
-          }
-        )
-      } else {
-        b.entry(
-          ctx.emitIri(DomainElementModel.Sources.value.iri()),
-          _.list {
+            "smaps",
             _.obj { b =>
-              createIdNode(b, id)
-              val e = new Emission((part: Part[T]) => {
-                part.obj { rb =>
-                  createIdNode(rb, id)
-                  createTypeNode(rb, SourceMapModel, None)
-                  createAnnotationNodes(id, rb, sources.eternals)
-                }
-              }) with Metadata
-
-              e.id = Some(id)
-              e.isDeclaration = ctx.emittingDeclarations
-              e.isReference = ctx.emittingReferences
-              pending.tryEnqueue(e)
+              createAnnotationNodes(id, b, sources.eternals)
             }
-          }
+        )
+      }
+      else {
+        b.entry(
+            ctx.emitIri(DomainElementModel.Sources.value.iri()),
+            _.list {
+              _.obj { b =>
+                createIdNode(b, id)
+                val e = new Emission((part: Part[T]) => {
+                  part.obj { rb =>
+                    createIdNode(rb, id)
+                    createTypeNode(rb, SourceMapModel, None)
+                    createAnnotationNodes(id, rb, sources.eternals)
+                  }
+                }) with Metadata
+
+                e.id = Some(id)
+                e.isDeclaration = ctx.emittingDeclarations
+                e.isReference = ctx.emittingReferences
+                pending.tryEnqueue(e)
+              }
+            }
         )
       }
   }
 
   private def createAnnotationNodes(id: String,
-                                     b: Entry[T],
+                                    b: Entry[T],
                                     annotations: mutable.ListMap[String, mutable.ListMap[String, String]]): Unit = {
     annotations.foreach({
       case (a, values) =>
         if (ctx.options.isWithRawSourceMaps) {
           b.entry(
-            a,
-            _.obj { o =>
-              values.foreach {
-                case (iri, v) =>
-                  o.entry(
-                    ctx.emitId(ctx.emitIri(iri)),
-                    raw(_, v)
-                  )
+              a,
+              _.obj { o =>
+                values.foreach {
+                  case (iri, v) =>
+                    o.entry(
+                        ctx.emitId(ctx.emitIri(iri)),
+                        raw(_, v)
+                    )
+                }
               }
-            }
           )
-        } else {
+        }
+        else {
           b.entry(
-            ctx.emitIri(ValueType(Namespace.SourceMaps, a).iri()),
-            _.list(b => values.zipWithIndex.foreach {
-              case (tuple, index) =>
-                createAnnotationValueNode(s"$id/$a/element_$index", b, tuple)
-            })
+              ctx.emitIri(ValueType(Namespace.SourceMaps, a).iri()),
+              _.list(b =>
+                values.zipWithIndex.foreach {
+                  case (tuple, index) =>
+                    createAnnotationValueNode(s"$id/$a/element_$index", b, tuple)
+              })
           )
         }
     })

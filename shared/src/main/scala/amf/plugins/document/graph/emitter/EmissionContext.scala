@@ -19,7 +19,7 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   private val declarations: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
 
-  private val references: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
+  private val references: mutable.LinkedHashSet[AmfElement]                   = mutable.LinkedHashSet.empty
   private val normalizedReferenceShapes: mutable.LinkedHashSet[DomainElement] = mutable.LinkedHashSet.empty
 
   private val validToExtract: mutable.LinkedHashSet[String] = mutable.LinkedHashSet.empty
@@ -52,7 +52,7 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
     references ++= elements
     normalizedReferenceShapes ++= references.collect {
       case fragment: Fragment => Seq(fragment.encodes)
-      case lib: Module => lib.declares
+      case lib: Module        => lib.declares
     }.flatten
     this
   }
@@ -70,14 +70,15 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def isInReferencedShapes(e: AmfElement): Boolean = e match {
     case e: DomainElement => normalizedReferenceShapes.contains(e)
-    case _ => false
+    case _                => false
   }
 
-  def canGenerateLink(e: AmfElement): Boolean = emittingEncodes && (isDeclared(e) || isInReferencedShapes(e) || canBeExtractedToDeclares(e))
+  def canGenerateLink(e: AmfElement): Boolean =
+    emittingEncodes && (isDeclared(e) || isInReferencedShapes(e) || canBeExtractedToDeclares(e))
 
   def canBeExtractedToDeclares(e: AmfElement): Boolean = e match {
     case e: DomainElement => validToExtract.contains(e.id)
-    case _ => false
+    case _                => false
   }
 
   def emittingEncodes: Boolean = !emittingDeclarations && !emittingReferences
@@ -99,15 +100,18 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
       base = if (location.replace("://", "").contains("/")) {
         val basePre = if (location.contains("#")) {
           location.split("#").head
-        } else {
+        }
+        else {
           location
         }
         val parts = basePre.split("/").dropRight(1)
         parts.mkString("/")
-      } else {
+      }
+      else {
         location.split("#").head
       }
-    } else {
+    }
+    else {
       base = ""
     }
   }
@@ -150,7 +154,8 @@ class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
     if (shouldCompact) {
       if (uri == base) "./"
       else uri.replace(base, "")
-    } else {
+    }
+    else {
       uri
     }
   }

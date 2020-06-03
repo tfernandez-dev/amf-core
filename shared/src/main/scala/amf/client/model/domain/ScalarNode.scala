@@ -20,6 +20,18 @@ case class ScalarNode(override private[amf] val _internal: InternalScalarNode) e
   def dataType: StrField = _internal.dataType
 
   override def toString = s"${name.value()}:$dataType=$value"
+
+  /** Set name property of this value. */
+  def withValue(value: String): this.type = {
+    _internal.withValue(value)
+    this
+  }
+
+  /** Set name property of this dataType. */
+  def withDataType(dataType: String): this.type = {
+    _internal.withDataType(dataType)
+    this
+  }
 }
 
 @JSExportAll

@@ -19,7 +19,7 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   private val declarations: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
 
-  private val references: mutable.LinkedHashSet[AmfElement] = mutable.LinkedHashSet.empty
+  private val references: mutable.LinkedHashSet[AmfElement]                   = mutable.LinkedHashSet.empty
   private val normalizedReferenceShapes: mutable.LinkedHashSet[DomainElement] = mutable.LinkedHashSet.empty
 
   private val validToExtract: mutable.LinkedHashSet[String] = mutable.LinkedHashSet.empty
@@ -52,7 +52,7 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
     references ++= elements
     normalizedReferenceShapes ++= references.collect {
       case fragment: Fragment => Seq(fragment.encodes)
-      case lib: Module => lib.declares
+      case lib: Module        => lib.declares
     }.flatten
     this
   }
@@ -70,14 +70,15 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def isInReferencedShapes(e: AmfElement): Boolean = e match {
     case e: DomainElement => normalizedReferenceShapes.contains(e)
-    case _ => false
+    case _                => false
   }
 
-  def canGenerateLink(e: AmfElement): Boolean = emittingEncodes && (isDeclared(e) || isInReferencedShapes(e) || canBeExtractedToDeclares(e))
+  def canGenerateLink(e: AmfElement): Boolean =
+    emittingEncodes && (isDeclared(e) || isInReferencedShapes(e) || canBeExtractedToDeclares(e))
 
   def canBeExtractedToDeclares(e: AmfElement): Boolean = e match {
     case e: DomainElement => validToExtract.contains(e.id)
-    case _ => false
+    case _                => false
   }
 
   def emittingEncodes: Boolean = !emittingDeclarations && !emittingReferences
@@ -92,7 +93,18 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
 
   def emitIri(uri: String): String = if (shouldCompact) compactAndCollect(uri) else uri
 
-  def emitId(uri: String): String = if (shouldCompact && uri.contains(base)) uri.replace(base, "") else uri
+  def emitId(uri: String): String = {
+    if (shouldCompact) {
+      if (uri.startsWith(base)) uri.replace(base, "")
+      else if (uri.startsWith(baseParent)) uri.replace(s"$baseParent/", "./")
+      else uri
+    } else uri
+  }
+
+  private def baseParent: String = {
+    val idx = base.lastIndexOf("/")
+    base.substring(0, idx)
+  }
 
   def setupContextBase(location: String): Unit = {
     if (Option(location).isDefined) {
@@ -144,18 +156,9 @@ class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
                                base: String,
                                options: RenderOptions,
                                emittingDeclarations: Boolean = false)
-    extends EmissionContext(prefixes, base, options, emittingDeclarations) {
-
-  override def emitId(uri: String): String = {
-    if (shouldCompact) {
-      if (uri == base) "./"
-      else uri.replace(base, "")
-    } else {
-      uri
-    }
-  }
-}
+    extends EmissionContext(prefixes, base, options, emittingDeclarations)
 
 object FlattenedEmissionContext {
-  def apply(unit: BaseUnit, options: RenderOptions) = new FlattenedEmissionContext(mutable.Map(), unit.id, options)
+  def apply(unit: BaseUnit, options: RenderOptions) =
+    new FlattenedEmissionContext(mutable.Map(), unit.id, options)
 }

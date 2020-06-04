@@ -30,7 +30,7 @@ trait GraphParserHelpers extends GraphContextHelper {
               val k       = element.key(compactUriFromContext(SourceMapModel.Element.value.iri())).get
               val v       = element.key(compactUriFromContext(SourceMapModel.Value.value.iri())).get
               consumer(value(SourceMapModel.Element.`type`, k.value).as[YScalar].text,
-                value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
+                       value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
             })
         case _ => // Unknown annotation identifier
       }
@@ -39,7 +39,8 @@ trait GraphParserHelpers extends GraphContextHelper {
   }
 
   protected def ts(map: YMap, id: String)(implicit ctx: GraphParserContext): Seq[String] = {
-    val namespaces = Seq("Document", "Fragment", "Module", "Unit").map(docElement => (Namespace.Document + docElement).iri())
+    val namespaces =
+      Seq("Document", "Fragment", "Module", "Unit").map(docElement => (Namespace.Document + docElement).iri())
 
     val documentTypesSet: Set[String] = (namespaces ++ namespaces.map(compactUriFromContext(_))).toSet
 
@@ -134,8 +135,20 @@ abstract class GraphContextHelper {
     }
   }
 
-  protected def transformIdFromContext(id: String)(implicit ctx: GraphParserContext): String =
-    ctx.baseId.getOrElse("") + id
+  private def baseParent(base: String): String = {
+    val idx = base.lastIndexOf("/")
+    base.substring(0, idx)
+  }
+
+  protected def transformIdFromContext(id: String)(implicit ctx: GraphParserContext): String = {
+    val prefixOption = ctx.baseId.map { base =>
+      if (id.startsWith("./")) baseParent(base) + "/"
+      else base
+    }
+    val prefix = prefixOption.getOrElse("")
+
+    s"$prefix$id"
+  }
 
   protected def parseCompactUris(contextNode: YNode)(implicit ctx: GraphParserContext): Unit = {
     ctx.compactUris ++= buildContextMap(contextNode)

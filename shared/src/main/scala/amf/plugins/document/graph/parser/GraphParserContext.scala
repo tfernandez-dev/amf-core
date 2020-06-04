@@ -10,7 +10,5 @@ class GraphParserContext(rootContextDocument: String = "",
                          futureDeclarations: FutureDeclarations = EmptyFutureDeclarations(),
                          eh: AmfParserErrorHandler,
                          val compactUris: mutable.Map[String, String] = mutable.Map(),
-                         var baseId: Option[String] = None
-                        ) extends ParserContext(rootContextDocument, refs, futureDeclarations, eh) {
-
-}
+                         var baseId: Option[String] = None)
+    extends ParserContext(rootContextDocument, refs, futureDeclarations, eh) {}

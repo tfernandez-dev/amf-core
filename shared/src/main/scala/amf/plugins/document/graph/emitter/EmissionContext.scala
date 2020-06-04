@@ -98,7 +98,8 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
       if (uri.startsWith(base)) uri.replace(base, "")
       else if (uri.startsWith(baseParent)) uri.replace(s"$baseParent/", "./")
       else uri
-    } else uri
+    }
+    else uri
   }
 
   private def baseParent: String = {
@@ -111,15 +112,18 @@ class EmissionContext(val prefixes: mutable.Map[String, String],
       base = if (location.replace("://", "").contains("/")) {
         val basePre = if (location.contains("#")) {
           location.split("#").head
-        } else {
+        }
+        else {
           location
         }
         val parts = basePre.split("/").dropRight(1)
         parts.mkString("/")
-      } else {
+      }
+      else {
         location.split("#").head
       }
-    } else {
+    }
+    else {
       base = ""
     }
   }

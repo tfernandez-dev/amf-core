@@ -17,7 +17,12 @@ import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.unsafe.TrunkPlatform
 import amf.core.vocabulary.Namespace
-import amf.plugins.features.validation.CoreValidations.{NodeNotFound, NotLinkable, UnableToParseDocument, UnableToParseNode}
+import amf.plugins.features.validation.CoreValidations.{
+  NodeNotFound,
+  NotLinkable,
+  UnableToParseDocument,
+  UnableToParseNode
+}
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.convert.YRead.SeqNodeYRead
 import org.yaml.model._
@@ -109,8 +114,8 @@ class ExpandedGraphParser()(implicit val ctx: GraphParserContext)
                 val modelFields = model match {
                   case shapeModel: ShapeModel =>
                     shapeModel.fields ++ Seq(
-                      ShapeModel.CustomShapePropertyDefinitions,
-                      ShapeModel.CustomShapeProperties
+                        ShapeModel.CustomShapePropertyDefinitions,
+                        ShapeModel.CustomShapeProperties
                     )
                   case _ => model.fields
                 }
@@ -267,7 +272,8 @@ class ExpandedGraphParser()(implicit val ctx: GraphParserContext)
         val uri = expandUriFromContext(entry.key.as[String])
         val v   = entry.value
         if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() && uri != "smaps" &&
-            uri != (Namespace.Core + "extensionName").iri() && !fields.exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
+            uri != (Namespace.Core + "extensionName").iri() && !fields
+              .exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
           v.as[Seq[YMap]]
             .headOption
             .flatMap(parse)

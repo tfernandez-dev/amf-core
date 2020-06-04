@@ -21,7 +21,7 @@ object GraphDependenciesReferenceHandler extends ReferenceHandler {
             }
           case None => EmptyReferenceCollector
         }
-      case _                           =>
+      case _ =>
         EmptyReferenceCollector
     }
   }

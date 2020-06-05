@@ -52,7 +52,9 @@ class ObjectParser(val rootId: String,
         modelFields.foreach(f => {
           val k          = f.value.iri()
           val properties = key(node, k)
-          traverse(instance, f, properties, sources, k)
+          if (properties.nonEmpty) {
+            traverse(instance, f, properties, sources, k)
+          }
         })
 
         // parsing custom extensions
@@ -128,7 +130,6 @@ class ObjectParser(val rootId: String,
                        properties: Seq[PropertyObject],
                        sources: SourceMap,
                        key: String): Unit = {
-    if (properties.isEmpty) return
     val property = properties.head
     f.`type` match {
       case DataNodeModel => // dynamic nodes parsed here

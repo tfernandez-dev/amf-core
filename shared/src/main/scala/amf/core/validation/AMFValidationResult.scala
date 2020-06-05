@@ -5,6 +5,7 @@ import amf.core.model.document.BaseUnit
 import amf.core.model.domain.{AmfArray, DomainElement}
 import amf.core.parser.{Annotations, Position}
 import amf.core.validation.core.ValidationResult
+
 case class AMFValidationResult(message: String,
                                level: String,
                                targetNode: String,
@@ -103,6 +104,17 @@ object AMFValidationResult {
                           level: String,
                           validation: ValidationResult): AMFValidationResult = {
     model.findById(validation.focusNode) match {
+      case None if validation.focusNode == model.id =>
+        AMFValidationResult(
+          message = message,
+          level = level,
+          targetNode = model.id,
+          targetProperty = Option(validation.path),
+          validation.sourceShape,
+          position = Some(LexicalInformation.apply(amf.core.parser.Range.NONE)),
+          location = model.location(),
+          source = validation
+        )
       case None => throw new Exception(s"Cannot find node with validation error ${validation.focusNode}")
       case Some(node) =>
         val (pos, location) = findPositionAndLocation(node, validation)

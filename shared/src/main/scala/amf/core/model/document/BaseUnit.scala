@@ -14,7 +14,7 @@ import amf.core.model.{BoolField, StrField}
 import amf.core.parser.{FieldEntry, ParserContext, Value}
 import amf.core.rdf.{RdfModel, RdfModelParser}
 import amf.core.remote.Vendor
-import amf.core.traversal.{DomainElementSelectorAdapter, DomainElementTransformationAdapter, TransformationData, TransformationTraversal, TraversalData}
+import amf.core.traversal.{DomainElementSelectorAdapter, DomainElementTransformationAdapter, TransformationData, TransformationTraversal}
 import amf.core.traversal.iterator.{AmfIterator, DomainElementStrategy, IteratorStrategy}
 import amf.core.unsafe.PlatformSecrets
 import amf.plugins.features.validation.CoreValidations.RecursiveShapeSpecification

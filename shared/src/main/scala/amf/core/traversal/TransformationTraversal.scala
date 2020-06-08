@@ -6,16 +6,14 @@ import amf.core.model.document.{BaseUnit, DeclaresModel}
 import amf.core.model.domain._
 import amf.core.parser.{FieldEntry, Value}
 
-import scala.collection.mutable
-
 class TransformationTraversal(val transformation: TransformationData) {
 
-  def traverse(element: AmfObject, traversalData: TraversalData = TraversalData()): AmfObject = {
-    if (!traversalData.hasVisited(element)) traverseElement(element, traversalData)
+  def traverse(element: AmfObject, traversalPath: TraversalPath = ObjectIdTraversalPath()): AmfObject = {
+    if (!traversalPath.hasVisited(element)) traverseElement(element, traversalPath)
     else element
   }
 
-  private def traverseElement(element: AmfObject, traversalData: TraversalData): AmfObject = {
+  protected def traverseElement(element: AmfObject, traversalPath: TraversalPath): AmfObject = {
     // not visited yet
     if (transformation.predicate(element)) { // matches predicate, we transform
       transformation.transformation(element, false) match {
@@ -25,13 +23,13 @@ class TransformationTraversal(val transformation: TransformationData) {
     } else {
       // not matches the predicate, we traverse
       // we first process declarations, then the encoding
-      traversalData.traversed(element)
+      traversalPath.traversed(element)
       val effectiveFields: Iterable[FieldEntry] = getSortedFieldsOf(element)
       effectiveFields.foreach {
         case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfObject] =>
-          traverseObjectEntry(element, traversalData, fieldEntry)
+          traverseObjectEntry(element, traversalPath, fieldEntry)
         case fieldEntry @ FieldEntry(_, value) if value.value.isInstanceOf[AmfArray] =>
-          traverseArrayEntry(element, traversalData, fieldEntry)
+          traverseArrayEntry(element, traversalPath, fieldEntry)
 
         case _ => // ignore
       }
@@ -39,7 +37,7 @@ class TransformationTraversal(val transformation: TransformationData) {
     }
   }
 
-  private def getSortedFieldsOf(element: AmfObject) = {
+  protected def getSortedFieldsOf(element: AmfObject) = {
     element match {
       case doc: DeclaresModel => doc.fields.fields().toSeq.sorted(new DeclaresModelFieldOrdering)
       case bu: BaseUnit       => bu.fields.fields().toSeq.sorted(new BaseUnitFieldOrdering)
@@ -47,9 +45,9 @@ class TransformationTraversal(val transformation: TransformationData) {
     }
   }
 
-  private def traverseObjectEntry(element: AmfObject, traversalData: TraversalData, fieldEntry: FieldEntry) = {
+  protected def traverseObjectEntry(element: AmfObject, traversalPath: TraversalPath, fieldEntry: FieldEntry) = {
     val FieldEntry(field, value) = fieldEntry
-    Option(traverse(fieldEntry.obj, traversalData)) match {
+    Option(traverse(fieldEntry.obj, traversalPath)) match {
       case Some(transformedValue: AmfObject) =>
         element.fields.setWithoutId(field, transformedValue, lexicalAnnotationsOf(value))
         addClosuresToRecursion(element, transformedValue)
@@ -62,12 +60,12 @@ class TransformationTraversal(val transformation: TransformationData) {
     value.annotations.copyFiltering(a =>
       a.isInstanceOf[LexicalInformation] || a.isInstanceOf[SourceAST] || a.isInstanceOf[SourceNode])
 
-  private def traverseArrayEntry(element: AmfObject, traversalData: TraversalData, fieldEntry: FieldEntry) = {
+  protected def traverseArrayEntry(element: AmfObject, traversalPath: TraversalPath, fieldEntry: FieldEntry) = {
     val FieldEntry(field, value) = fieldEntry
     val newElements = fieldEntry.array.values
       .map {
         case elem: AmfObject =>
-          val transformedValue = traverse(elem, traversalData)
+          val transformedValue = traverse(elem, traversalPath)
           addClosuresToRecursion(element, transformedValue)
           Some(transformedValue)
         case other =>
@@ -98,14 +96,6 @@ class TransformationTraversal(val transformation: TransformationData) {
 sealed case class TransformationData(predicate: AmfObject => Boolean,
                                      transformation: (AmfObject, Boolean) => Option[AmfObject])
 
-/**
-  * Holder for traversal data in transform by condition
-  * @param traversed all traversed elements
-  */
-sealed case class TraversalData(traversed: mutable.Set[String] = mutable.Set()) {
-  def hasVisited(element: AmfObject): Boolean = traversed.contains(element.id)
-  def traversed(element: AmfObject): Unit     = traversed.add(element.id)
-}
 
 class DeclaresModelFieldOrdering extends Ordering[FieldEntry] {
   override def compare(x: FieldEntry, y: FieldEntry): Int = (x.field, y.field) match {

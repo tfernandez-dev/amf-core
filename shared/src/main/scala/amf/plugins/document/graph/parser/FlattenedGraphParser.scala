@@ -42,8 +42,7 @@ import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
 class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
-    extends GraphParserHelpers
-    with GraphParser {
+    extends GraphParser {
 
   override def canParse(document: SyamlParsedDocument): Boolean = FlattenedGraphParser.canParse(document)
 
@@ -52,7 +51,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
     parser.parse(document, location)
   }
 
-  case class Parser(var nodes: Map[String, AmfElement]) {
+  case class Parser(var nodes: Map[String, AmfElement]) extends GraphParserHelpers {
     private val unresolvedReferences = mutable.Map[String, Seq[DomainElement]]()
     private val unresolvedExtReferencesMap =
       mutable.Map[String, ExternalSourceElement]()
@@ -159,13 +158,7 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
             case Some(parsed) => Some(parsed)
             case None         =>
               // Cache miss
-              graphMap.get(id) match {
-                case Some(raw) => parse(raw)
-                case None =>
-                  ctx.eh.violation(UnableToParseDocument, "", s"Cannot find node with $id")
-                  None
-              }
-
+              nodeFromId(id).flatMap(parse)
           }
         }
 
@@ -231,6 +224,20 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
           }
       }
 
+    }
+
+    override protected def contentOfNode(n: YNode): Option[YMap] = {
+      val id: Option[String] = n.asOption[YMap].flatMap(retrieveId(_,ctx))
+      id.flatMap(nodeFromId)
+    }
+
+    private def nodeFromId(id: String): Option[YMap] = {
+      graphMap.get(id) match {
+        case Some(raw) => Some(raw)
+        case None =>
+          ctx.eh.violation(UnableToParseDocument, "", s"Cannot find node with $id")
+          None
+      }
     }
 
     private def checkLinkables(instance: AmfObject): Unit = {
@@ -399,149 +406,149 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
           }
       }
     }
-  }
 
-  private def parseScalarProperty(definition: YMap, field: Field) =
-    definition
-      .key(compactUriFromContext(field.value.iri()))
-      .map(entry => value(field.`type`, entry.value).as[YScalar].text)
+    private def parseScalarProperty(definition: YMap, field: Field) =
+      definition
+        .key(compactUriFromContext(field.value.iri()))
+        .map(entry => value(field.`type`, entry.value).as[YScalar].text)
 
-  private def str(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) => entry.value.as[YScalar].text
-          case _           => node.as[YScalar].text
-        }
-      case _ => node.as[YScalar].text
-    }
-    AmfScalar(value)
-  }
-
-  private def bool(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) => entry.value.as[YScalar].text.toBoolean
-          case _           => node.as[YScalar].text.toBoolean
-        }
-      case _ => node.as[YScalar].text.toBoolean
-    }
-    AmfScalar(value)
-  }
-
-  private def int(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) => entry.value.as[YScalar].text.toInt
-          case _           => node.as[YScalar].text.toInt
-        }
-      case _ => node.as[YScalar].text.toInt
-    }
-    AmfScalar(value)
-  }
-
-  private def double(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) => entry.value.as[YScalar].text.toDouble
-          case _           => node.as[YScalar].text.toDouble
-        }
-      case _ => node.as[YScalar].text.toDouble
-    }
-    AmfScalar(value)
-  }
-
-  private def date(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) =>
-            SimpleDateTime.parse(entry.value.as[YScalar].text).right.get
-          case _ => SimpleDateTime.parse(node.as[YScalar].text).right.get
-        }
-      case _ => SimpleDateTime.parse(node.as[YScalar].text).right.get
-    }
-    AmfScalar(value)
-  }
-
-  private val xsdString: String   = DataType.String
-  private val xsdInteger: String  = DataType.Integer
-  private val xsdFloat: String    = DataType.Float
-  private val amlNumber: String   = DataType.Number
-  private val xsdDouble: String   = DataType.Double
-  private val xsdBoolean: String  = DataType.Boolean
-  private val xsdDateTime: String = DataType.DateTime
-  private val xsdDate: String     = DataType.Date
-
-  private def any(node: YNode) = {
-    node.tagType match {
-      case YType.Map =>
-        val nodeValue =
+    private def str(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
           node.as[YMap].entries.find(_.key.as[String] == "@value") match {
             case Some(entry) => entry.value.as[YScalar].text
             case _           => node.as[YScalar].text
           }
-        node.as[YMap].entries.find(_.key.as[String] == "@type") match {
-          case Some(typeEntry) =>
-            val typeUri     = typeEntry.value.as[YScalar].text
-            val expandedUri = expandUriFromContext(typeUri)
-            expandedUri match {
-              case s: String if s == xsdBoolean =>
-                AmfScalar(nodeValue.toBoolean)
-              case s: String if s == xsdInteger => AmfScalar(nodeValue.toInt)
-              case s: String if s == xsdFloat   => AmfScalar(nodeValue.toFloat)
-              case s: String if s == xsdDouble  => AmfScalar(nodeValue.toDouble)
-              case s: String if s == xsdDateTime =>
-                AmfScalar(SimpleDateTime.parse(nodeValue).right.get)
-              case s: String if s == xsdDate =>
-                AmfScalar(SimpleDateTime.parse(nodeValue).right.get)
-              case _ => AmfScalar(nodeValue)
+        case _ => node.as[YScalar].text
+      }
+      AmfScalar(value)
+    }
+
+    private def bool(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
+          node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+            case Some(entry) => entry.value.as[YScalar].text.toBoolean
+            case _           => node.as[YScalar].text.toBoolean
+          }
+        case _ => node.as[YScalar].text.toBoolean
+      }
+      AmfScalar(value)
+    }
+
+    private def int(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
+          node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+            case Some(entry) => entry.value.as[YScalar].text.toInt
+            case _           => node.as[YScalar].text.toInt
+          }
+        case _ => node.as[YScalar].text.toInt
+      }
+      AmfScalar(value)
+    }
+
+    private def double(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
+          node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+            case Some(entry) => entry.value.as[YScalar].text.toDouble
+            case _           => node.as[YScalar].text.toDouble
+          }
+        case _ => node.as[YScalar].text.toDouble
+      }
+      AmfScalar(value)
+    }
+
+    private def date(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
+          node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+            case Some(entry) =>
+              SimpleDateTime.parse(entry.value.as[YScalar].text).right.get
+            case _ => SimpleDateTime.parse(node.as[YScalar].text).right.get
+          }
+        case _ => SimpleDateTime.parse(node.as[YScalar].text).right.get
+      }
+      AmfScalar(value)
+    }
+
+    private val xsdString: String   = DataType.String
+    private val xsdInteger: String  = DataType.Integer
+    private val xsdFloat: String    = DataType.Float
+    private val amlNumber: String   = DataType.Number
+    private val xsdDouble: String   = DataType.Double
+    private val xsdBoolean: String  = DataType.Boolean
+    private val xsdDateTime: String = DataType.DateTime
+    private val xsdDate: String     = DataType.Date
+
+    private def any(node: YNode) = {
+      node.tagType match {
+        case YType.Map =>
+          val nodeValue =
+            node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+              case Some(entry) => entry.value.as[YScalar].text
+              case _           => node.as[YScalar].text
             }
-          case _ => AmfScalar(nodeValue)
-        }
-      case _ => AmfScalar(node.as[YScalar].text)
+          node.as[YMap].entries.find(_.key.as[String] == "@type") match {
+            case Some(typeEntry) =>
+              val typeUri     = typeEntry.value.as[YScalar].text
+              val expandedUri = expandUriFromContext(typeUri)
+              expandedUri match {
+                case s: String if s == xsdBoolean =>
+                  AmfScalar(nodeValue.toBoolean)
+                case s: String if s == xsdInteger => AmfScalar(nodeValue.toInt)
+                case s: String if s == xsdFloat   => AmfScalar(nodeValue.toFloat)
+                case s: String if s == xsdDouble  => AmfScalar(nodeValue.toDouble)
+                case s: String if s == xsdDateTime =>
+                  AmfScalar(SimpleDateTime.parse(nodeValue).right.get)
+                case s: String if s == xsdDate =>
+                  AmfScalar(SimpleDateTime.parse(nodeValue).right.get)
+                case _ => AmfScalar(nodeValue)
+              }
+            case _ => AmfScalar(nodeValue)
+          }
+        case _ => AmfScalar(node.as[YScalar].text)
+      }
     }
-  }
 
-  private def float(node: YNode) = {
-    val value = node.tagType match {
-      case YType.Map =>
-        node.as[YMap].entries.find(_.key.as[String] == "@value") match {
-          case Some(entry) =>
-            entry.value.as[YScalar].text.toDouble
-          case _ => node.as[YScalar].text.toDouble
-        }
-      case _ => node.as[YScalar].text.toDouble
+    private def float(node: YNode) = {
+      val value = node.tagType match {
+        case YType.Map =>
+          node.as[YMap].entries.find(_.key.as[String] == "@value") match {
+            case Some(entry) =>
+              entry.value.as[YScalar].text.toDouble
+            case _ => node.as[YScalar].text.toDouble
+          }
+        case _ => node.as[YScalar].text.toDouble
+      }
+      AmfScalar(value)
     }
-    AmfScalar(value)
-  }
 
-  private val types: Map[String, Obj] = Map.empty ++ AMFDomainRegistry.metadataRegistry
+    private val types: Map[String, Obj] = Map.empty ++ AMFDomainRegistry.metadataRegistry
 
-  private def findType(typeString: String): Option[Obj] = {
-    types.get(expandUriFromContext(typeString)).orElse(AMFDomainRegistry.findType(typeString))
-  }
+    private def findType(typeString: String): Option[Obj] = {
+      types.get(expandUriFromContext(typeString)).orElse(AMFDomainRegistry.findType(typeString))
+    }
 
-  private def buildType(id: String, map: YMap, modelType: Obj): Annotations => Option[AmfObject] = {
-    AMFDomainRegistry.metadataRegistry.get(modelType.`type`.head.iri()) match {
-      case Some(modelType: ModelDefaultBuilder) =>
-        (annotations: Annotations) =>
-          val instance = modelType.modelInstance
-          instance.annotations ++= annotations
-          Some(instance)
-      case _ =>
-        AMFDomainRegistry.buildType(modelType) match {
-          case Some(builder) =>
-            (a: Annotations) =>
-              Some(builder(a))
-          case _ =>
-            ctx.eh.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
-            (_: Annotations) =>
-              None
-        }
+    private def buildType(id: String, map: YMap, modelType: Obj): Annotations => Option[AmfObject] = {
+      AMFDomainRegistry.metadataRegistry.get(modelType.`type`.head.iri()) match {
+        case Some(modelType: ModelDefaultBuilder) =>
+          (annotations: Annotations) =>
+            val instance = modelType.modelInstance
+            instance.annotations ++= annotations
+            Some(instance)
+        case _ =>
+          AMFDomainRegistry.buildType(modelType) match {
+            case Some(builder) =>
+              (a: Annotations) =>
+                Some(builder(a))
+            case _ =>
+              ctx.eh.violation(NodeNotFound, id, s"Cannot find builder for node type $modelType", map)
+              (_: Annotations) =>
+                None
+          }
+      }
     }
   }
 }

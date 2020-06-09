@@ -26,11 +26,12 @@ trait GraphParserHelpers extends GraphContextHelper {
           entry.value
             .as[Seq[YNode]]
             .foreach(e => {
-              val element = e.as[YMap]
-              val k       = element.key(compactUriFromContext(SourceMapModel.Element.value.iri())).get
-              val v       = element.key(compactUriFromContext(SourceMapModel.Value.value.iri())).get
-              consumer(value(SourceMapModel.Element.`type`, k.value).as[YScalar].text,
-                       value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
+              contentOfNode(e) foreach { element =>
+                val k       = element.key(compactUriFromContext(SourceMapModel.Element.value.iri())).get
+                val v       = element.key(compactUriFromContext(SourceMapModel.Value.value.iri())).get
+                consumer(value(SourceMapModel.Element.`type`, k.value).as[YScalar].text,
+                  value(SourceMapModel.Value.`type`, v.value).as[YScalar].text)
+              }
             })
         case _ => // Unknown annotation identifier
       }
@@ -66,12 +67,14 @@ trait GraphParserHelpers extends GraphContextHelper {
     }
   }
 
+  protected def contentOfNode(n: YNode): Option[YMap] = n.toOption[YMap]
+
   protected def retrieveSources(id: String, map: YMap)(implicit ctx: GraphParserContext): SourceMap = {
     map
       .key(compactUriFromContext(DomainElementModel.Sources.value.iri()))
       .flatMap { entry =>
-        val optValue = value(SourceMapModel, entry.value)
-        optValue.toOption[YMap].map(parseSourceNode(_))
+        val srcNode = value(SourceMapModel, entry.value)
+        contentOfNode(srcNode).map(parseSourceNode(_))
       }
       .getOrElse(SourceMap.empty)
   }

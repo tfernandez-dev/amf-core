@@ -311,7 +311,7 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
             case _: BaseUnitModel =>
               instance.setArrayWithoutId(f, values, annotations(nodes, sources, key))
             case _ =>
-              instance.setArray(f, values, annotations(nodes, sources, key))
+              instance.setArrayWithoutId(f, values, annotations(nodes, sources, key))
           }
       }
     }

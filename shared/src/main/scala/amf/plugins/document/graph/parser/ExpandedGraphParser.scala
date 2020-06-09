@@ -28,7 +28,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * AMF Graph parser
   */
-class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
+class ExpandedGraphParser()(implicit val ctx: GraphParserContext)
     extends GraphParserHelpers
     with GraphParser {
 
@@ -464,9 +464,8 @@ class ExpandedGraphParser(platform: Platform)(implicit val ctx: GraphParserConte
 }
 
 object ExpandedGraphParser {
-  def apply: ExpandedGraphParser = ExpandedGraphParser(TrunkPlatform(""))
-  def apply(platform: Platform): ExpandedGraphParser =
-    new ExpandedGraphParser(platform)(new GraphParserContext(eh = DefaultParserErrorHandler.withRun()))
+  def apply(): ExpandedGraphParser =
+    new ExpandedGraphParser()(new GraphParserContext(eh = DefaultParserErrorHandler.withRun()))
 
   def canParse(document: SyamlParsedDocument): Boolean = {
     val maybeMaps = document.document.node.toOption[Seq[YMap]]

@@ -41,7 +41,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
-class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserContext)
+class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
     extends GraphParser {
 
   override def canParse(document: SyamlParsedDocument): Boolean = FlattenedGraphParser.canParse(document)
@@ -554,9 +554,8 @@ class FlattenedGraphParser(platform: Platform)(implicit val ctx: GraphParserCont
 }
 
 object FlattenedGraphParser extends GraphContextHelper {
-  def apply: FlattenedGraphParser = FlattenedGraphParser(TrunkPlatform(""))
-  def apply(platform: Platform): FlattenedGraphParser =
-    new FlattenedGraphParser(platform)(
+  def apply(): FlattenedGraphParser =
+    new FlattenedGraphParser()(
       new GraphParserContext(eh = DefaultParserErrorHandler.withRun())
     )
 

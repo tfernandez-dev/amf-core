@@ -8,9 +8,11 @@ import amf.core.parser.{Annotations, ParserContext}
 import amf.core.rdf.Node
 import amf.plugins.features.validation.CoreValidations.UnableToParseNode
 
-class PluginEntitiesFacade(ctx: ParserContext){
+import scala.collection.mutable
 
-  private val sorter                  = new DefaultNodeClassSorter()
+class PluginEntitiesFacade(ctx: ParserContext) {
+  private val cache  = mutable.Map[String, Obj]()
+  private val sorter = new DefaultNodeClassSorter()
 
   private def isUnitModel(typeModel: Obj): Boolean =
     typeModel.isInstanceOf[DocumentModel] || typeModel.isInstanceOf[EncodesModel] || typeModel
@@ -37,13 +39,24 @@ class PluginEntitiesFacade(ctx: ParserContext){
       case Some(t) => findType(t)
       case None =>
         ctx.eh.violation(UnableToParseNode,
-          id,
-          s"Error parsing JSON-LD node, unknown @types $types",
-          ctx.rootContextDocument)
+                         id,
+                         s"Error parsing JSON-LD node, unknown @types $types",
+                         ctx.rootContextDocument)
         None
     }
   }
 
-  private def findType(`type`: String): Option[Obj]            = ctx.plugins.findType(`type`)
+  private def findType(`type`: String): Option[Obj] = {
+    cache.get(`type`).orElse {
+      ctx.plugins.findType(`type`) match {
+        case Some(obj) =>
+          cache(`type`) = obj
+          Some(obj)
+        case None => None
+      }
+    }
+
+  }
+
   def buildType(`type`: Obj): Annotations => AmfObject = ctx.plugins.buildType(`type`)
 }

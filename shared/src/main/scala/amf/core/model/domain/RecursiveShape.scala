@@ -7,6 +7,7 @@ import amf.core.metamodel.domain.RecursiveShapeModel._
 import amf.core.model.StrField
 import amf.core.parser.{Annotations, Fields}
 import amf.core.traversal.ModelTraversalRegistry
+import amf.core.utils.AmfStrings
 
 class RecursiveShape(override val fields: Fields, override val annotations: Annotations) extends Shape {
 
@@ -41,7 +42,7 @@ class RecursiveShape(override val fields: Fields, override val annotations: Anno
   override def meta: Obj = RecursiveShapeModel
 
   /** Value , path + field value that is used to compose the id when the object its adopted */
-  override def componentId: String = "/recursive"
+  override def componentId: String = name.option().map(name => s"/${name.urlComponentEncoded}").getOrElse("") + "/recursive"
 
   /** apply method for create a new instance with fields and annotations. Aux method for copy */
   override protected def classConstructor: (Fields, Annotations) => Linkable with DomainElement = RecursiveShape.apply

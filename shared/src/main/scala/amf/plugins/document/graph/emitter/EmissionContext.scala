@@ -156,7 +156,9 @@ class FlattenedEmissionContext(prefixes: mutable.Map[String, String],
                                base: String,
                                options: RenderOptions,
                                emittingDeclarations: Boolean = false)
-    extends EmissionContext(prefixes, base, options, emittingDeclarations)
+    extends EmissionContext(prefixes, base, options, emittingDeclarations) {
+  override def canGenerateLink(e: AmfElement): Boolean = false
+}
 
 object FlattenedEmissionContext {
   def apply(unit: BaseUnit, options: RenderOptions) =

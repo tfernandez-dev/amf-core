@@ -37,6 +37,10 @@ abstract class DataNode(annotations: Annotations) extends DomainElement {
   def replaceVariables(values: Set[Variable], keys: Seq[ElementTree])(reportError: String => Unit): DataNode
 
   def forceAdopted(parent: String): this.type = {
+
+    def isEnum(id: String) = id.split("/").dropRight(1).last == "enum"
+    // TODO: refactor this. Ids are okay in parsing stage but are lost on trait resolution in domain element merging.
+
     val adoptedId = parent + "/" + name
       .option()
       .map(_.urlComponentEncoded)
@@ -44,6 +48,8 @@ abstract class DataNode(annotations: Annotations) extends DomainElement {
     val newId = Option(id) match {
       case Some(oldId: String) if oldId.endsWith("/included") =>
         adoptedId + "/included"
+      case Some(oldId: String) if isEnum(oldId) =>
+        adoptedId + "/enum"
       case _ => adoptedId
     }
     withId(newId)

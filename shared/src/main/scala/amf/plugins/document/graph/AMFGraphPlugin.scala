@@ -25,25 +25,25 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
 
   override def init()(implicit executionContext: ExecutionContext): Future[AMFPlugin] = Future { this }
 
-  override val ID: String     = Amf.name
+  override val ID: String                   = Amf.name
   override def dependencies(): Seq[Nothing] = Seq()
 
   val vendors: Seq[String] = Seq(Amf.name)
 
   override def modelEntities: Seq[Obj] = Seq(
-    ObjectNodeModel,
-    ScalarNodeModel,
-    ArrayNodeModel,
-    LinkNodeModel,
-    RecursiveShapeModel
+      ObjectNodeModel,
+      ScalarNodeModel,
+      ArrayNodeModel,
+      LinkNodeModel,
+      RecursiveShapeModel
   )
 
   override def serializableAnnotations(): Map[String, AnnotationGraphLoader] = Map.empty
 
   override def documentSyntaxes: Seq[String] = Seq(
-    "application/ld+json",
-    "application/json",
-    "application/amf+json"
+      "application/ld+json",
+      "application/json",
+      "application/amf+json"
   )
 
   override def canParse(root: Root): Boolean = {
@@ -56,10 +56,7 @@ object AMFGraphPlugin extends AMFDocumentPlugin with PlatformSecrets {
     }
   }
 
-  override def parse(root: Root,
-                     ctx: ParserContext,
-                     platform: Platform,
-                     options: ParsingOptions): Option[BaseUnit] =
+  override def parse(root: Root, ctx: ParserContext, platform: Platform, options: ParsingOptions): Option[BaseUnit] =
     root.parsed match {
       case parsed: SyamlParsedDocument if FlattenedGraphParser.canParse(parsed) =>
         Some(FlattenedGraphParser().parse(parsed.document, effectiveUnitUrl(root.location, options)))

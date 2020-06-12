@@ -15,6 +15,7 @@ import amf.core.model.domain.extensions.DomainExtension
 import amf.core.parser.{Annotations, FieldEntry, Value}
 import amf.core.traversal.ModelTraversalRegistry
 import amf.core.vocabulary.{Namespace, ValueType}
+import amf.plugins.document.graph.emitter.CommonEmitter
 import org.mulesoft.common.time.SimpleDateTime
 
 import scala.collection.mutable.ListBuffer
@@ -22,7 +23,7 @@ import scala.collection.mutable.ListBuffer
 /**
   * AMF RDF Model emitter
   */
-class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
+class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping with CommonEmitter{
 
   def emit(unit: BaseUnit, options: RenderOptions): Unit = Emitter(options).root(unit)
 
@@ -71,13 +72,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping {
         }
         createCustomExtensions(element)
 
-        val sourceMapId = if (id.endsWith("/")) {
-          id + "source-map"
-        } else if (id.contains("#") || id.startsWith("null")) { // TODO: remove this null case
-          id + "/source-map"
-        } else {
-          id + "#/source-map"
-        }
+        val sourceMapId = sourceMapIdFor(id)
         createSourcesNode(id, sources, sourceMapId)
       }
     }

@@ -1,8 +1,11 @@
 package amf.plugins.document.graph.emitter
 
 import amf.core.annotations.{Declares, References}
-import amf.core.model.domain.{AmfArray, AmfElement}
+import amf.core.metamodel.{Field, Obj}
+import amf.core.metamodel.domain.{ExternalSourceElementModel, ShapeModel}
+import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, ExternalSourceElement}
 import amf.core.parser.{Annotations, FieldEntry}
+import org.yaml.builder.DocBuilder.{Entry, Part}
 
 trait CommonEmitter {
 
@@ -22,4 +25,46 @@ trait CommonEmitter {
     ctx.addReferences(referencedElements)
   }
 
+  def sourceMapIdFor(id: String): String = {
+    if (id.endsWith("/")) {
+      id + "source-map"
+    } else if (id.contains("#") || id.startsWith("null")) {
+      id + "/source-map"
+    } else {
+      id + "#/source-map"
+    }
+  }
+
+  def getMetaModelFields(element: AmfObject, obj: Obj): Seq[Field] = {
+    val objFields = element match {
+      case e: ExternalSourceElement if e.isLinkToSource => obj.fields.filter(f => f != ExternalSourceElementModel.Raw)
+      case _                                            => obj.fields
+    }
+    // workaround for lazy values in shape
+    val lazyShapeFields = obj match {
+      case _: ShapeModel =>
+        Seq(
+            ShapeModel.CustomShapePropertyDefinitions,
+            ShapeModel.CustomShapeProperties
+        )
+      case _ => Nil
+    }
+    objFields ++ lazyShapeFields
+  }
+
+  def getTypesAsIris(obj: Obj): List[String] = obj.`type`.map(_.iri())
+
+  def createTypeNode[T](b: Entry[T], types: List[String])(implicit ctx: EmissionContext): Unit = {
+    b.entry(
+        "@type",
+        _.list { b =>
+          types.distinct.foreach(t => raw(b, ctx.emitIri(t)))
+        }
+    )
+  }
+
+  def createTypeNode[T](b: Entry[T], obj: Obj)(implicit ctx: EmissionContext): Unit =
+    createTypeNode(b, getTypesAsIris(obj))
+
+  def raw[T](b: Part[T], content: String): Unit = b += content
 }

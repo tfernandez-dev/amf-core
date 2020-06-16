@@ -133,21 +133,28 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
       }
     }
 
-    private def parseList(id: String, listElement: Type, node: YMap): Seq[AmfElement] = {
-      val buffer = ListBuffer[YNode]()
-      node.entries.sortBy(_.key.as[String]).foreach { entry =>
-        if (entry.key.as[String].startsWith(compactUriFromContext((Namespace.Rdfs + "_").iri()))) {
-          buffer += entry.value.as[Seq[YNode]].head
-        }
-      }
-      buffer.flatMap { n =>
-        listElement match {
-          case _: Obj => parse(n.as[YMap])
-          case _ =>
-            try { Some(str(value(listElement, n))) } catch {
-              case _: Exception => None
+    private def parseSortedArray(listElement: Type, rawNode: YMap): Seq[AmfElement] = {
+      def key(entry: YMapEntry): String = entry.key.as[String]
+      contentOfNode(rawNode) match {
+        case Some(node) =>
+          // Sorted array members
+          val members = node.entries.filter { entry =>
+            val property           = key(entry)
+            val sortedMemberPrefix = (Namespace.Rdfs + "_").iri()
+            property.startsWith(compactUriFromContext(sortedMemberPrefix))
+          }
+
+          // Parse members
+          members.sortBy(key).flatMap { entry =>
+            listElement match {
+              case _: Obj => parse(entry.value.as[YMap])
+              case _ =>
+                try { Some(str(value(listElement, entry.value))) } catch {
+                  case _: Exception => None
+                }
             }
-        }
+          }
+        case None => Seq.empty // Error already handled by contentOfNode
       }
     }
 
@@ -389,7 +396,8 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
         case Type.Any =>
           instance.set(f, any(node), annotations(nodes, sources, key))
         case l: SortedArray =>
-          instance.setArray(f, parseList(instance.id, l.element, node.as[YMap]), annotations(nodes, sources, key))
+          val parsed = parseSortedArray(l.element, node.as[YMap])
+          instance.setArray(f, parsed, annotations(nodes, sources, key))
         case a: Array =>
           val items = node.as[Seq[YNode]]
           val values: Seq[AmfElement] = a.element match {

@@ -66,7 +66,7 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       implicit executionContext: ExecutionContext): Future[RecursiveUnit] = {
     ExecutionLog.log(s"AMFCompiler#parserReferences: Recursive reference $fulllUrl")
     platform.resolve(fulllUrl, Environment(executionContext)) map { content =>
-      val recUnit = RecursiveUnit().withId(fulllUrl).withLocation(fulllUrl)
+      val recUnit = RecursiveUnit().adopted(fulllUrl).withLocation(fulllUrl)
       recUnit.withRaw(content.stream.toString)
       recUnit
     }

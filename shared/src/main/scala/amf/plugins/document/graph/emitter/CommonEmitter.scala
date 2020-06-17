@@ -5,6 +5,7 @@ import amf.core.metamodel.{Field, Obj}
 import amf.core.metamodel.domain.{ExternalSourceElementModel, ShapeModel}
 import amf.core.model.domain.{AmfArray, AmfElement, AmfObject, ExternalSourceElement}
 import amf.core.parser.{Annotations, FieldEntry}
+import amf.plugins.document.graph.MetaModelHelper
 import org.yaml.builder.DocBuilder.{Entry, Part}
 
 trait CommonEmitter {
@@ -28,28 +29,21 @@ trait CommonEmitter {
   def sourceMapIdFor(id: String): String = {
     if (id.endsWith("/")) {
       id + "source-map"
-    } else if (id.contains("#") || id.startsWith("null")) {
+    }
+    else if (id.contains("#") || id.startsWith("null")) {
       id + "/source-map"
-    } else {
+    }
+    else {
       id + "#/source-map"
     }
   }
 
   def getMetaModelFields(element: AmfObject, obj: Obj): Seq[Field] = {
-    val objFields = element match {
-      case e: ExternalSourceElement if e.isLinkToSource => obj.fields.filter(f => f != ExternalSourceElementModel.Raw)
-      case _                                            => obj.fields
+    val fields = MetaModelHelper.fieldsFrom(obj)
+    element match {
+      case e: ExternalSourceElement if e.isLinkToSource => fields.filter(f => f != ExternalSourceElementModel.Raw)
+      case _                                            => fields
     }
-    // workaround for lazy values in shape
-    val lazyShapeFields = obj match {
-      case _: ShapeModel =>
-        Seq(
-            ShapeModel.CustomShapePropertyDefinitions,
-            ShapeModel.CustomShapeProperties
-        )
-      case _ => Nil
-    }
-    objFields ++ lazyShapeFields
   }
 
   def getTypesAsIris(obj: Obj): List[String] = obj.`type`.map(_.iri())

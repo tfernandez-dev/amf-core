@@ -4,11 +4,11 @@ import amf.core.annotations._
 import amf.core.emitter.RenderOptions
 import amf.core.metamodel.Type.{Any, Array, ArrayLike, Bool, EncodedIri, Iri, LiteralUri, SortedArray, Str}
 import amf.core.metamodel._
-import amf.core.metamodel.document.{ModuleModel, SourceMapModel}
+import amf.core.metamodel.document.{FragmentModel, ModuleModel, SourceMapModel}
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
 import amf.core.metamodel.domain.{DomainElementModel, ExternalSourceElementModel, LinkableElementModel, ShapeModel}
 import amf.core.model.DataType
-import amf.core.model.document.{BaseUnit, SourceMap}
+import amf.core.model.document.{BaseUnit, EncodesModel, SourceMap}
 import amf.core.model.domain.DataNodeOps.adoptTree
 import amf.core.model.domain._
 import amf.core.model.domain.extensions.DomainExtension
@@ -18,8 +18,8 @@ import amf.plugins.document.graph.emitter.flattened.utils.{Emission, EmissionQue
 import org.mulesoft.common.time.SimpleDateTime
 import org.yaml.builder.DocBuilder
 import org.yaml.builder.DocBuilder.{Entry, Part, SType, Scalar}
-import scala.language.implicitConversions
 
+import scala.language.implicitConversions
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
@@ -60,7 +60,17 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
             unit.fields.removeField(ModuleModel.Declares)
             unit.fields.removeField(ModuleModel.References)
 
-            queueBaseUnitElements(unit)
+            unit match {
+              case u: EncodesModel if isSelfEncoded(u) =>
+                /**
+                  * If it self encoded we do not queue the encodes node because it will be emitted in the same node as
+                  * the base unit
+                  */
+                queueObjectFieldValues(u, (f, _) => f != FragmentModel.Encodes)
+                queueObjectFieldValues(u.encodes) // Still need to queue encodes elements
+              case _ =>
+                queueObjectFieldValues(unit)
+            }
 
             while (pending.hasPendingEmissions) {
               val emission = pending.nextEmission()
@@ -71,7 +81,12 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
               * Emit Base Unit. This will emit declarations also. We don't render the already rendered elements because
               * the queue avoids duplicate ids
               */
-            emitBaseUnit(unit)
+            if (isSelfEncoded(unit)) {
+              emitSelfEncodedBaseUnitNode(unit)
+            }
+            else {
+              emitBaseUnitNode(unit)
+            }
 
             // Check added declarations
             while (pending.hasPendingEmissions) {
@@ -83,6 +98,13 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
           }
       )
       ctx.emitContext(ob)
+    }
+  }
+
+  private def isSelfEncoded(unit: BaseUnit): Boolean = {
+    unit match {
+      case e: EncodesModel => Option(e.encodes).exists(_.id == e.id)
+      case _               => false
     }
   }
 
@@ -114,25 +136,60 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     ctx.emittingReferences(false)
   }
 
-  def queueBaseUnitElements(unit: BaseUnit): Unit = {
-    unit.fields.foreach {
-      case (field, value) =>
+  def queueObjectFieldValues(amfObject: AmfObject, filter: (Field, Value) => Boolean = (f, v) => true): Unit = {
+    amfObject.fields.foreach {
+      case (field, value) if filter(field, value) =>
         field.`type` match {
           case _: Obj =>
-            val amfObject = value.value.asInstanceOf[AmfObject]
-            pending.tryEnqueue(amfObject)
+            val valueObj = value.value.asInstanceOf[AmfObject]
+            pending.tryEnqueue(valueObj)
           case _: ArrayLike =>
-            val amfArray = value.value.asInstanceOf[AmfArray]
-            amfArray.values.foreach {
-              case amfObject: AmfObject => pending.tryEnqueue(amfObject)
-              case _                    => //Ignore
+            val valueArray = value.value.asInstanceOf[AmfArray]
+            valueArray.values.foreach {
+              case valueObj: AmfObject => pending.tryEnqueue(valueObj)
+              case _                   => //Ignore
             }
           case _ => // Ignore
         }
+      case _ => // Ignore
     }
   }
 
-  def emitBaseUnit(unit: BaseUnit): Unit = {
+  def emitSelfEncodedBaseUnitNode(unit: BaseUnit): Unit = {
+    unit match {
+      case u: EncodesModel =>
+        root.obj { b =>
+          val id         = u.id
+          val unitObj    = metaModel(u)
+          val encodedObj = metaModel(u.encodes)
+
+          createIdNode(b, id)
+
+          val allTypes = getTypesAsIris(unitObj) ++ getTypesAsIris(encodedObj)
+          createTypeNode(b, allTypes)
+
+          emitReferences(b, id, SourceMap(id, unit))
+          emitDeclarations(b, id, SourceMap(id, unit))
+
+          val sources = SourceMap(id, unit)
+
+          // Emit both unit and unit.encodes fields to the same node
+          emitFields(id, u.encodes, sources, b, getMetaModelFields(u.encodes, encodedObj))
+
+          pending.skip(id) // Skip emitting encodes node (since it is the same as this node)
+          emitFields(id, u, sources, b, getMetaModelFields(u, unitObj))
+
+          createCustomExtensions(u, b)
+
+          val sourceMapId: String = sourceMapIdFor(id)
+          createSourcesNode(sourceMapId, sources, b)
+
+        }
+      case _ => // Exception?
+    }
+  }
+
+  def emitBaseUnitNode(unit: BaseUnit): Unit = {
     val id = unit.id
 
     root.obj { b =>
@@ -142,6 +199,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
 
       val sources = SourceMap(id, unit)
       val obj     = metaModel(unit)
+      createTypeNode(b, obj)
       traverseMetaModel(id, unit, sources, obj, b)
       createCustomExtensions(unit, b)
 
@@ -172,7 +230,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     val sources = SourceMap(id, amfObject)
 
     val obj = metaModel(amfObject)
-
+    createTypeNode(b, obj)
     traverseMetaModel(id, amfObject, sources, obj, b)
 
     createCustomExtensions(amfObject, b)
@@ -182,8 +240,6 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   }
 
   def traverseMetaModel(id: String, element: AmfObject, sources: SourceMap, obj: Obj, b: Entry[T]): Unit = {
-    createTypeNode(b, obj)
-
     val modelFields: Seq[Field] = getMetaModelFields(element, obj)
 
     // no longer necessary?
@@ -197,10 +253,14 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
       case _ => // Nothing to do
     }
 
+    emitFields(id, element, sources, b, modelFields)
+
+  }
+
+  private def emitFields(id: String, element: AmfObject, sources: SourceMap, b: Entry[T], modelFields: Seq[Field]) = {
     modelFields.foreach { f =>
       emitStaticField(f, element, id, sources, b)
     }
-
   }
 
   private def emitStaticField(field: Field, element: AmfObject, id: String, sources: SourceMap, b: Entry[T]): Unit = {

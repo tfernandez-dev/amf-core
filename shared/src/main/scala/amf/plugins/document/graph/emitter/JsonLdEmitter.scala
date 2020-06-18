@@ -209,9 +209,7 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
   def createSortedArray(b: Part[T],
                         seq: Seq[AmfElement],
                         parent: String,
-                        element: Type,
-                        sources: Value => Unit,
-                        v: Option[Value] = None): Unit = {
+                        element: Type): Unit = {
     b.list {
       _.obj { b =>
         val id = s"$parent/list"
@@ -260,7 +258,6 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
                 }
             )
         }
-        v.foreach(sources)
       }
     }
   }
@@ -320,7 +317,8 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
         }
         sources(v)
       case a: SortedArray =>
-        createSortedArray(b, v.value.asInstanceOf[AmfArray].values, parent, a.element, sources, Some(v))
+        createSortedArray(b, v.value.asInstanceOf[AmfArray].values, parent, a.element)
+        sources(v)
       case a: Array =>
         b.list { b =>
           val seq = v.value.asInstanceOf[AmfArray]

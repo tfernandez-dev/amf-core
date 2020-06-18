@@ -295,9 +295,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
   def createSortedArray(b: Part[T],
                         seq: Seq[AmfElement],
                         parent: String,
-                        element: Type,
-                        sources: Value => Unit,
-                        v: Option[Value] = None): Unit = {
+                        element: Type): Unit = {
     b.obj { b =>
       val id = s"$parent/list"
       createIdNode(b, id)
@@ -347,7 +345,6 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
                     }
                 )
             }
-            v.foreach(sources)
         }
       }) with Metadata
       e.id = Some(id)
@@ -415,7 +412,8 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
         }
         sources(v)
       case a: SortedArray =>
-        createSortedArray(b, v.value.asInstanceOf[AmfArray].values, parent, a.element, sources, Some(v))
+        createSortedArray(b, v.value.asInstanceOf[AmfArray].values, parent, a.element)
+        sources(v)
       case a: Array =>
         b.list { b =>
           val seq = v.value.asInstanceOf[AmfArray]
@@ -698,7 +696,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
           b.entry(
               ctx.emitIri(ValueType(Namespace.SourceMaps, a).iri()),
               _.list(b =>
-                values.zipWithIndex.foreach {
+                values.zipWithIndex.foreach { // sortear
                   case (tuple, index) =>
                     createAnnotationValueNode(s"$id/$a/element_$index", b, tuple)
               })

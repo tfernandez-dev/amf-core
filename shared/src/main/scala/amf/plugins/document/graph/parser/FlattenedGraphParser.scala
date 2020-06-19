@@ -198,8 +198,7 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext) extends Graph
     private def parse(map: YMap): Option[AmfObject] = { // todo fix uses
       if (isReferenceNode(map)) {
         parseReferenceNode(map)
-      }
-      else {
+      } else {
         for {
           id           <- retrieveId(map, ctx)
           model        <- retrieveType(id, map)
@@ -403,16 +402,17 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext) extends Graph
     }
 
     private def parseObjectNodeProperties(obj: ObjectNode, map: YMap, fields: Seq[Field]): Unit = {
+      val ignoredFields =
+        Seq("@id", "@type", "smaps", DomainElementModel.Sources.value.iri(), Namespace.Document + "name")
+
       map.entries.foreach { entry =>
-        val uri = expandUriFromContext(entry.key.as[String])
-        val v   = entry.value
-        if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() && uri != "smaps" &&
-            uri != (Namespace.Document + "name")
-              .iri() && !fields.exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
-          v.as[Seq[YMap]]
-            .headOption
-            .flatMap(parse)
-            .collect({ case d: amf.core.model.domain.DataNode => obj.addProperty(uri, d) })
+        val fieldUri        = expandUriFromContext(entry.key.as[String])
+        val fieldValue      = entry.value
+        val isAlreadyParsed = fields.exists(_.value.iri() == fieldUri)
+        if (!ignoredFields.contains(fieldUri) && !isAlreadyParsed) { // we do this to prevent parsing name of annotations
+          parse(fieldValue.as[YMap]).collect {
+            case d: amf.core.model.domain.DataNode => obj.addProperty(fieldUri, d)
+          }
         }
       }
     }
@@ -621,7 +621,7 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext) extends Graph
 object FlattenedGraphParser extends GraphContextHelper with GraphParserHelpers {
   def apply(): FlattenedGraphParser =
     new FlattenedGraphParser()(
-        new GraphParserContext(eh = DefaultParserErrorHandler.withRun())
+      new GraphParserContext(eh = DefaultParserErrorHandler.withRun())
     )
 
   /**
@@ -635,7 +635,7 @@ object FlattenedGraphParser extends GraphContextHelper with GraphParserHelpers {
     document.document.node.value match {
       case m: YMap =>
         implicit val ctx: GraphParserContext = new GraphParserContext(
-            eh = IgnoringErrorHandler()
+          eh = IgnoringErrorHandler()
         )
         m.key("@context").foreach(entry => parseCompactUris(entry.value))
         m.key("@graph") match {

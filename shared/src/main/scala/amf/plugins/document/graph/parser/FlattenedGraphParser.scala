@@ -354,8 +354,9 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext) extends Graph
           map
             .key(compactUriFromContext(uri))
             .map(entry => {
-              val extension = DomainExtension()
-              val obj       = entry.value.as[YMap]
+              val extension  = DomainExtension()
+              val entryValue = entry.value
+              val obj        = contentOfNode(entryValue).getOrElse(entryValue.as[YMap])
 
               parseScalarProperty(obj, DomainExtensionModel.Name)
                 .map(extension.withName)

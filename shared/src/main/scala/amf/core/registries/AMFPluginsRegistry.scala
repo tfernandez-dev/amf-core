@@ -154,6 +154,35 @@ object AMFPluginsRegistry {
     }
   }
 
+  def unregisterDocumentPlugin(documentPlugin: AMFDocumentPlugin):Unit = {
+    documentPluginIDRegistry.remove(documentPlugin.ID)
+
+    documentPlugin.serializableAnnotations().foreach {
+      case (name, _) =>
+        AMFDomainRegistry.unregisterAnnotation(name)
+    }
+
+    documentPlugin.documentSyntaxes.foreach { mediaType =>
+      documentPluginRegistry.get(mediaType) match {
+        case Some(seq) => documentPluginRegistry.update(mediaType, seq.filterNot(_ == documentPlugin))
+        case _ => None
+      }
+    }
+
+    documentPlugin.vendors.foreach { vendor =>
+      documentPluginVendorsRegistry.get(vendor) match {
+        case Some(seq) => documentPluginVendorsRegistry.update(vendor, seq.filterNot(_ == documentPlugin))
+        case _ => None
+      }
+    }
+
+    documentPlugin.modelEntities.foreach { entity =>
+      AMFDomainRegistry.unregisterModelEntity(entity)
+    }
+    documentPlugin.modelEntitiesResolver.foreach(resolver =>
+      AMFDomainRegistry.unregisterModelEntityResolver(resolver))
+  }
+
   def registerPayloadValidationPlugin(validationPlugin: AMFPayloadValidationPlugin): Unit = {
     payloadValidationPluginIDRegistry.get(validationPlugin.ID) match {
       case Some(_) =>

@@ -1,6 +1,6 @@
 package amf.plugins.document.graph.parser
 
-import amf.core.metamodel.Type
+import amf.core.metamodel.{Obj, Type}
 import amf.core.metamodel.Type._
 import amf.core.metamodel.document.SourceMapModel
 import amf.core.metamodel.domain.DomainElementModel
@@ -16,6 +16,20 @@ import org.yaml.model._
 import scala.collection.mutable
 
 trait GraphParserHelpers extends GraphContextHelper {
+
+  protected def nodeIsOfType(node: YNode, obj: Obj)(implicit ctx: GraphParserContext): Boolean = {
+    node.value match {
+      case map: YMap =>
+        map.key("@type").exists { entry =>
+          val types = entry.value.as[YSequence].nodes.flatMap(_.asScalar)
+          types.exists(`type` => {
+            val typeIri = expandUriFromContext(`type`.text)
+            obj.`type`.map(_.iri()).contains(typeIri)
+          })
+        }
+      case _ => false
+    }
+  }
 
   private def parseSourceNode(map: YMap)(implicit ctx: GraphParserContext): SourceMap = {
     val result = SourceMap()

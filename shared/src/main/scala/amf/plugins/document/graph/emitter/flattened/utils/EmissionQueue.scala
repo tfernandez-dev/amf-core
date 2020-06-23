@@ -45,6 +45,10 @@ case class EmissionQueue[T]() {
     next
   }
 
+  def skip(id: String): Unit = {
+    knownIds += id
+  }
+
   /**
     *   Returns true if an emission should be added to the queue
     *

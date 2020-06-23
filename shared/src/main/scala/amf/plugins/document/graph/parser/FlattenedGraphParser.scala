@@ -1,23 +1,10 @@
 package amf.plugins.document.graph.parser
 import amf.client.parse.{DefaultParserErrorHandler, IgnoringErrorHandler}
 import amf.core.annotations.DomainExtensionAnnotation
-import amf.core.metamodel.Type.{
-  Array,
-  Bool,
-  Iri,
-  LiteralUri,
-  RegExp,
-  SortedArray,
-  Str
-}
+import amf.core.metamodel.Type.{Array, Bool, Iri, LiteralUri, RegExp, SortedArray, Str}
 import amf.core.metamodel.document.{BaseUnitModel, DocumentModel}
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.domain.{
-  DomainElementModel,
-  ExternalSourceElementModel,
-  LinkableElementModel,
-  ShapeModel
-}
+import amf.core.metamodel.domain.{DomainElementModel, ExternalSourceElementModel, LinkableElementModel}
 import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj, Type}
 import amf.core.model.DataType
 import amf.core.model.document._
@@ -27,7 +14,8 @@ import amf.core.parser._
 import amf.core.registries.AMFDomainRegistry
 import amf.core.remote.Platform
 import amf.core.unsafe.TrunkPlatform
-import amf.core.vocabulary.Namespace
+import amf.core.vocabulary.{Namespace, ValueType}
+import amf.plugins.document.graph.MetaModelHelper._
 import amf.plugins.features.validation.CoreValidations.{
   NodeNotFound,
   NotLinkable,
@@ -41,8 +29,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
-class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
-    extends GraphParser {
+class FlattenedGraphParser()(implicit val ctx: GraphParserContext) extends GraphParser {
 
   override def canParse(document: SyamlParsedDocument): Boolean = FlattenedGraphParser.canParse(document)
 
@@ -59,6 +46,15 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
     private val referencesMap                           = mutable.Map[String, DomainElement]()
     private val cache                                   = mutable.Map[String, AmfObject]()
     private val graphMap: mutable.HashMap[String, YMap] = mutable.HashMap.empty
+
+    def getRawNode(id: String): Option[YMap] = {
+      graphMap.get(id) match {
+        case None =>
+          ctx.eh.violation(UnableToParseDocument, "", s"Cannot find node with $id")
+          None
+        case node => node
+      }
+    }
 
     def parse(document: YDocument, location: String): BaseUnit = {
       document.node.value match {
@@ -79,25 +75,63 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
       }
     }
 
+    private def isSelfEncoded(node: YNode) = nodeIsOfType(node, BaseUnitModel) && nodeIsOfType(node, DomainElementModel)
+
     private def parseGraph(graph: YNode): Option[BaseUnit] = {
       populateGraphMap(graph.as[YSequence])
       getRootNodeFromGraphMap match {
+        case Some(rootNode) if isSelfEncoded(rootNode) =>
+          parseSelfEncodedBaseUnit(rootNode)
         case Some(rootNode) =>
-          parse(rootNode) match {
-            case Some(b: BaseUnit) =>
-              Some(b)
-            case Some(_) =>
-              ctx.eh.violation(UnableToParseDocument, "", "Root node is not a Base Unit")
-              None
-            case _ =>
-              ctx.eh.violation(UnableToParseDocument, "", "Unable to parse root node")
-              None
-          }
-
+          parseBaseUnit(rootNode)
         case None =>
           ctx.eh.violation(UnableToParseDocument, "", "Cannot find root node for flattened JSON-LD")
           None
       }
+    }
+
+    private def parseRootNodeWithModel(rootNode: YMap, model: Obj) = {
+      for {
+        id      <- retrieveId(rootNode, ctx)
+        sources <- Option(retrieveSources(id, rootNode))
+        finalId <- Option(transformIdFromContext(id))
+        instance <- {
+          buildType(finalId, rootNode, model)(annotations(nodes, sources, finalId))
+        }
+        parsed <- {
+          parseNodeFields(rootNode, fieldsFrom(model), sources, finalId, instance)
+        }
+      } yield {
+        cache(id) = parsed
+        parsed
+      }
+
+    }
+
+    private def parseSelfEncodedBaseUnit(rootNode: YMap): Option[BaseUnit] = {
+      val parsed = for {
+        id           <- retrieveId(rootNode, ctx)
+        encodesModel <- retrieveTypeIgnoring(id, rootNode, BaseUnitModel.`type` :+ (Namespace.Meta + "DialectInstance"))
+        unitModel    <- retrieveTypeIgnoring(id, rootNode, encodesModel.`type`)
+        encoded      <- parseRootNodeWithModel(rootNode, encodesModel)
+        baseUnit     <- parseRootNodeWithModel(rootNode, unitModel)
+      } yield {
+        baseUnit
+      }
+
+      baseUnitOrError(parsed)
+    }
+
+    private def parseBaseUnit(rootNode: YMap): Option[BaseUnit] = {
+      val parsed = for {
+        id     <- retrieveId(rootNode, ctx)
+        model  <- retrieveType(id, rootNode)
+        parsed <- parseNode(rootNode, id, model)
+      } yield {
+        parsed
+      }
+
+      baseUnitOrError(parsed)
     }
 
     private def populateGraphMap(graphNodes: YSequence): Unit = {
@@ -123,12 +157,15 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
       }
     }
 
-    private def retrieveType(id: String, map: YMap): Option[Obj] = {
-      val stringTypes = ts(map, id)
-      stringTypes.find(findType(_).isDefined) match {
+    private def retrieveType(id: String, map: YMap): Option[Obj] = retrieveTypeIgnoring(id, map, Nil)
+
+    private def retrieveTypeIgnoring(id: String, map: YMap, ignored: Seq[ValueType]): Option[Obj] = {
+      val ignoredIris = ignored.map(_.iri())
+      val typeIris    = ts(map, id).diff(ignoredIris)
+      typeIris.find(findType(_).isDefined) match {
         case Some(t) => findType(t)
         case None =>
-          ctx.eh.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $stringTypes", map)
+          ctx.eh.violation(UnableToParseNode, id, s"Error parsing JSON-LD node, unknown @types $typeIris", map)
           None
       }
     }
@@ -159,82 +196,89 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
     }
 
     private def parse(map: YMap): Option[AmfObject] = { // todo fix uses
-      if (isJsonLdLink(map)) {
-        retrieveId(map, ctx).flatMap { id =>
-          cache.get(id) match {
-            case Some(parsed) => Some(parsed)
-            case None         =>
-              // Cache miss
-              nodeFromId(id).flatMap(parse)
-          }
+      if (isReferenceNode(map)) {
+        parseReferenceNode(map)
+      } else {
+        for {
+          id           <- retrieveId(map, ctx)
+          model        <- retrieveType(id, map)
+          parsedObject <- parseNode(map, id, model)
+        } yield {
+          cache(id) = parsedObject
+          parsedObject
         }
-
       }
-      else {
-        retrieveId(map, ctx)
-          .flatMap(value => retrieveType(value, map).map(value2 => (value, value2)))
-          .flatMap {
-            case (id, model) =>
-              val sources               = retrieveSources(id, map)
-              val transformedId: String = transformIdFromContext(id)
-              buildType(transformedId, map, model)(annotations(nodes, sources, transformedId)) match {
-                case Some(builder) =>
-                  val instance: AmfObject = builder
-                  instance.withId(transformedId)
+    }
 
-                  checkLinkables(instance)
+    private def parseNode(map: YMap, id: String, model: Obj): Option[AmfObject] = {
+      val sources               = retrieveSources(id, map)
+      val transformedId: String = transformIdFromContext(id)
+      buildType(transformedId, map, model)(annotations(nodes, sources, transformedId)) match {
+        case Some(builder) =>
+          val fields = fieldsFrom(model)
+          parseNodeFields(map, fields, sources, transformedId, builder)
+        case _ => None
+      }
+    }
 
-                  // workaround for lazy values in shape
-                  val modelFields = model match {
-                    case shapeModel: ShapeModel =>
-                      shapeModel.fields ++ Seq(
-                          ShapeModel.CustomShapePropertyDefinitions,
-                          ShapeModel.CustomShapeProperties
-                      )
-                    case _ => model.fields
-                  }
+    private def parseNodeFields(node: YMap,
+                                fields: Seq[Field],
+                                sources: SourceMap,
+                                transformedId: String,
+                                instance: AmfObject) = {
+      instance.withId(transformedId)
+      checkLinkables(instance)
 
-                  modelFields.foreach(f => {
-                    val k = compactUriFromContext(f.value.iri())
-                    map.key(k) match {
-                      case Some(entry) =>
-                        traverse(instance, f, value(f.`type`, entry.value), sources, k)
-                      case _ =>
-                    }
-                  })
+      traverseFields(node, fields, instance, sources)
 
-                  // parsing custom extensions
-                  instance match {
-                    case l: DomainElement with Linkable =>
-                      parseLinkableProperties(map, l)
-                    case ex: ExternalDomainElement if unresolvedExtReferencesMap.get(ex.id).isDefined =>
-                      unresolvedExtReferencesMap.get(ex.id).foreach { element =>
-                        ex.raw
-                          .option()
-                          .foreach(element.set(ExternalSourceElementModel.Raw, _))
-                      }
-                    case obj: ObjectNode =>
-                      parseObjectNodeProperties(obj, map, modelFields)
-
-                    case _ => // ignore
-                  }
-                  instance match {
-                    case elm: DomainElement => parseCustomProperties(map, elm)
-                    case _                  => // ignore
-                  }
-
-                  nodes = nodes + (transformedId -> instance)
-                  Some(instance)
-                case _ => None
-              }
-
+      // parsing custom extensions
+      instance match {
+        case l: DomainElement with Linkable =>
+          parseLinkableProperties(node, l)
+        case ex: ExternalDomainElement if unresolvedExtReferencesMap.contains(ex.id) =>
+          unresolvedExtReferencesMap.get(ex.id).foreach { element =>
+            ex.raw
+              .option()
+              .foreach(element.set(ExternalSourceElementModel.Raw, _))
           }
+        case obj: ObjectNode =>
+          parseObjectNodeProperties(obj, node, fields)
+
+        case _ => // ignore
+      }
+      instance match {
+        case elm: DomainElement => parseCustomProperties(node, elm)
+        case _                  => // ignore
       }
 
+      nodes = nodes + (transformedId -> instance)
+      Some(instance)
+    }
+
+    private def traverseFields(map: YMap, fields: Seq[Field], instance: AmfObject, sources: SourceMap): Unit = {
+      fields.foreach(f => {
+        val k = compactUriFromContext(f.value.iri())
+        map.key(k) match {
+          case Some(entry) =>
+            traverse(instance, f, value(f.`type`, entry.value), sources, k)
+          case _ => // Ignore
+        }
+      })
+    }
+
+    private def parseReferenceNode(node: YMap): Option[AmfObject] = {
+      retrieveId(node, ctx).flatMap { id =>
+        cache.get(id) match {
+          case Some(parsed) => Some(parsed)
+          case None         =>
+            // Cache miss
+            nodeFromId(id).flatMap(parse)
+        }
+      }
     }
 
     override protected def contentOfNode(n: YNode): Option[YMap] = {
-      val id: Option[String] = n.asOption[YMap].flatMap(retrieveId(_,ctx))
+      val id: Option[String] = n.asOption[YMap].flatMap(retrieveId(_, ctx))
       id.flatMap(nodeFromId)
     }
 
@@ -310,8 +354,9 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
           map
             .key(compactUriFromContext(uri))
             .map(entry => {
-              val extension = DomainExtension()
-              val obj       = entry.value.as[YMap]
+              val extension  = DomainExtension()
+              val entryValue = entry.value
+              val obj        = contentOfNode(entryValue).getOrElse(entryValue.as[YMap])
 
               parseScalarProperty(obj, DomainExtensionModel.Name)
                 .map(extension.withName)
@@ -357,22 +402,23 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
       }
     }
 
-    private def parseObjectNodeProperties(obj: ObjectNode, map: YMap, fields: List[Field]): Unit = {
+    private def parseObjectNodeProperties(obj: ObjectNode, map: YMap, fields: Seq[Field]): Unit = {
+      val ignoredFields =
+        Seq("@id", "@type", "smaps", DomainElementModel.Sources.value.iri(), Namespace.Document + "name")
+
       map.entries.foreach { entry =>
-        val uri = expandUriFromContext(entry.key.as[String])
-        val v   = entry.value
-        if (uri != "@type" && uri != "@id" && uri != DomainElementModel.Sources.value.iri() && uri != "smaps" &&
-            uri != (Namespace.Document + "name")
-              .iri() && !fields.exists(_.value.iri() == uri)) { // we do this to prevent parsing name of annotations
-          v.as[Seq[YMap]]
-            .headOption
-            .flatMap(parse)
-            .collect({ case d: amf.core.model.domain.DataNode => obj.addProperty(uri, d) })
+        val fieldUri        = expandUriFromContext(entry.key.as[String])
+        val fieldValue      = entry.value
+        val isAlreadyParsed = fields.exists(_.value.iri() == fieldUri)
+        if (!ignoredFields.contains(fieldUri) && !isAlreadyParsed) { // we do this to prevent parsing name of annotations
+          parse(fieldValue.as[YMap]).collect {
+            case d: amf.core.model.domain.DataNode => obj.addProperty(fieldUri, d)
+          }
         }
       }
     }
 
-    private def isJsonLdLink(m: YMap): Boolean = m.entries.size == 1 && m.key("@id").isDefined
+    private def isReferenceNode(m: YMap): Boolean = m.entries.size == 1 && m.key("@id").isDefined
 
     private def traverse(instance: AmfObject, f: Field, node: YNode, sources: SourceMap, key: String) = {
       f.`type` match {
@@ -415,6 +461,18 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
       }
     }
 
+    private def baseUnitOrError(parsed: Option[AmfObject]) = {
+      parsed match {
+        case Some(b: BaseUnit) =>
+          Some(b)
+        case Some(_) =>
+          ctx.eh.violation(UnableToParseDocument, "", "Root node is not a Base Unit")
+          None
+        case _ =>
+          ctx.eh.violation(UnableToParseDocument, "", "Unable to parse root node")
+          None
+      }
+    }
     private def parseScalarProperty(definition: YMap, field: Field) =
       definition
         .key(compactUriFromContext(field.value.iri()))
@@ -561,7 +619,7 @@ class FlattenedGraphParser()(implicit val ctx: GraphParserContext)
   }
 }
 
-object FlattenedGraphParser extends GraphContextHelper {
+object FlattenedGraphParser extends GraphContextHelper with GraphParserHelpers {
   def apply(): FlattenedGraphParser =
     new FlattenedGraphParser()(
       new GraphParserContext(eh = DefaultParserErrorHandler.withRun())
@@ -596,15 +654,7 @@ object FlattenedGraphParser extends GraphContextHelper {
   private def isRootNode(node: YNode)(implicit ctx: GraphParserContext): Boolean = {
     node.value match {
       case map: YMap =>
-        val isBaseUnit = map.key("@type").exists { entry =>
-          val typesYSeq = entry.value.as[YSequence]
-          typesYSeq.nodes
-            .flatMap(_.asScalar)
-            .exists(t => {
-              BaseUnitModel.`type`
-                .exists(_.iri() == expandUriFromContext(t.text))
-            })
-        }
+        val isBaseUnit = nodeIsOfType(node, BaseUnitModel)
         val isRoot = map.entries.exists(entry => {
           val key = expandUriFromContext(entry.key.as[String])
           BaseUnitModel.Root.value.iri() == key && entry.value.as[Boolean]

@@ -40,7 +40,8 @@ class AMFSerializer(unit: BaseUnit,
     if (vendor == Vendor.AMF.name) {
       if (options.isFlattenedJsonLd) {
         FlattenedJsonLdEmitter.emit(unit, builder, options)
-      } else {
+      }
+      else {
         JsonLdEmitter.emit(unit, builder, options)
       }
     }
@@ -64,7 +65,8 @@ class AMFSerializer(unit: BaseUnit,
         val b = JsonOutputBuilder[W](writer, options.isPrettyPrint)
         if (options.isFlattenedJsonLd) {
           FlattenedJsonLdEmitter.emit(unit, b, options)
-        } else {
+        }
+        else {
           JsonLdEmitter.emit(unit, b, options)
         }
       }
@@ -98,14 +100,15 @@ class AMFSerializer(unit: BaseUnit,
     AMFPluginsRegistry.documentPluginForVendor(vendor).find { plugin =>
       plugin.documentSyntaxes.contains(mediaType) && plugin.canUnparse(unit)
     } match {
-      case Some(domainPlugin) => Some(domainPlugin)
-      case None               => AMFPluginsRegistry.documentPluginForMediaType(mediaType).find(_.canUnparse(unit))
+      case Some(domainPlugin) =>
+        Some(domainPlugin)
+      case None => AMFPluginsRegistry.documentPluginForMediaType(mediaType).find(_.canUnparse(unit))
     }
 
   private def getDomainPlugin: AMFDocumentPlugin =
     findDomainPlugin().getOrElse {
       throw new Exception(
-        s"Cannot serialize domain model '${unit.location()}' for detected media type $mediaType and vendor $vendor")
+          s"Cannot serialize domain model '${unit.location()}' for detected media type $mediaType and vendor $vendor")
     }
 }
 

@@ -22,14 +22,17 @@ object Syntax {
     override val extension: String = "txt"
   }
 
+  private val yamlMimes = Set(`TEXT/YAML`, `TEXT/X-YAML`, `TEXT/VND.YAML`, `APPLICATION/YAML`, `APPLICATION/X-YAML`,
+    `APPLICATION/RAML+YAML`, `APPLICATION/OPENAPI+YAML`, `APPLICATION/SWAGGER+YAML`, `APPLICATION/ASYNCAPI+YAML`,
+    `APPLICATION/ASYNC+YAML`)
+
+  private val jsonMimes = Set(`APPLICATION/JSON`, `APPLICATION/RAML+JSON`, `APPLICATION/OPENAPI+JSON`,
+    `APPLICATION/SWAGGER+JSON`, `APPLICATION/ASYNCAPI+JSON`, `APPLICATION/ASYNC+JSON`)
+
   /** Attempt to resolve [[Syntax]] from [[Mimes]]. */
   def unapply(mime: Option[String]): Option[Syntax] = mime match {
-    case Some(`TEXT/YAML`) | Some(`TEXT/X-YAML`) | Some(`APPLICATION/YAML`) | Some(`APPLICATION/X-YAML`) | Some(
-          `APPLICATION/RAML+YAML`) | Some(`APPLICATION/OPENAPI+YAML`) | Some(`APPLICATION/SWAGGER+YAML`) =>
-      Some(Yaml)
-    case Some(`APPLICATION/JSON`) | Some(`APPLICATION/RAML+JSON`) | Some(`APPLICATION/OPENAPI+JSON`) | Some(
-          `APPLICATION/SWAGGER+JSON`) =>
-      Some(Json)
+    case Some(m) if yamlMimes.contains(m) => Some(Yaml)
+    case Some(m) if jsonMimes.contains(m) => Some(Json)
     case _ => None
   }
 }

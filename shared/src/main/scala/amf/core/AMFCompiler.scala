@@ -12,7 +12,15 @@ import amf.core.exception.{CyclicReferenceException, UnsupportedMediaTypeExcepti
 import amf.core.model.document.{BaseUnit, ExternalFragment}
 import amf.core.model.domain.ExternalDomainElement
 import amf.core.parser.errorhandler.ParserErrorHandler
-import amf.core.parser.{ParsedDocument, ParsedReference, ParserContext, RefContainer, ReferenceKind, ReferenceResolutionResult, UnspecifiedReference}
+import amf.core.parser.{
+  ParsedDocument,
+  ParsedReference,
+  ParserContext,
+  RefContainer,
+  ReferenceKind,
+  ReferenceResolutionResult,
+  UnspecifiedReference
+}
 import amf.core.registries.AMFPluginsRegistry
 import amf.core.remote._
 import amf.core.services.RuntimeCompiler
@@ -331,7 +339,7 @@ class AMFCompiler(compilerContext: CompilerContext,
         val nodes = link.refs.map(_.node)
         link.resolve(compilerContext, nodes, domainPlugin.allowRecursiveReferences) flatMap {
           case ReferenceResolutionResult(_, Some(unit)) =>
-            verifyMatchingVendor(unit.sourceVendor, nodes)
+            verifyMatchingVendor(unit.sourceVendor, domainPlugin.vendors.map(Vendor.apply), nodes)
             verifyValidFragment(unit.sourceVendor, link.refs)
             val reference = ParsedReference(unit, link)
             handler.update(reference, compilerContext).map(Some(_))
@@ -355,11 +363,12 @@ class AMFCompiler(compilerContext: CompilerContext,
 
   private def resolve()(implicit executionContext: ExecutionContext): Future[Content] = compilerContext.resolveContent()
 
-  private def verifyMatchingVendor(refVendor: Option[Vendor], nodes: Seq[YNode]): Unit = refVendor match {
-    case Some(v) if vendor.nonEmpty && !v.name.contains(vendor.get) =>
-      nodes.foreach(compilerContext.violation(InvalidCrossSpec, "Cannot reference fragments of another spec", _))
-    case _ => // Nothing to do
-  }
+  private def verifyMatchingVendor(refVendor: Option[Vendor], rootVendors: Seq[Vendor], nodes: Seq[YNode]): Unit =
+    refVendor match {
+      case Some(v) if !rootVendors.contains(v) =>
+        nodes.foreach(compilerContext.violation(InvalidCrossSpec, "Cannot reference fragments of another spec", _))
+      case _ => // Nothing to do
+    }
 
   def verifyValidFragment(refVendor: Option[Vendor], refs: Seq[RefContainer]): Unit = refVendor match {
     case Some(v) if v.isRaml =>

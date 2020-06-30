@@ -52,7 +52,7 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
       } recover {
         case e: CyclicReferenceException if allowRecursiveRefs =>
           val fullUrl = e.history.last
-          resolveRecursiveUnit(fullUrl).map(u => ReferenceResolutionResult(None, Some(u)))
+          resolveRecursiveUnit(fullUrl, compilerContext).map(u => ReferenceResolutionResult(None, Some(u)))
         case e: Throwable =>
           Future(ReferenceResolutionResult(Some(e), None))
       }
@@ -62,10 +62,10 @@ case class Reference(url: String, refs: Seq[RefContainer]) extends PlatformSecre
     }
   }
 
-  protected def resolveRecursiveUnit(fulllUrl: String)(
+  protected def resolveRecursiveUnit(fulllUrl: String, compilerContext: CompilerContext)(
       implicit executionContext: ExecutionContext): Future[RecursiveUnit] = {
     ExecutionLog.log(s"AMFCompiler#parserReferences: Recursive reference $fulllUrl")
-    platform.resolve(fulllUrl, Environment(executionContext)) map { content =>
+    platform.resolve(fulllUrl, compilerContext.environment) map { content =>
       val recUnit = RecursiveUnit().adopted(fulllUrl).withLocation(fulllUrl)
       recUnit.withRaw(content.stream.toString)
       recUnit

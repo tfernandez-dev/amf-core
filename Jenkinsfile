@@ -6,7 +6,7 @@ pipeline {
   }
   environment {
     NEXUS = credentials('exchange-nexus')
-    GITHUB_ORG = 'mulesoft'
+    GITHUB_ORG = 'aml-org'
     GITHUB_REPO = 'amf-core'
   }
   stages {

@@ -10,20 +10,7 @@ class TransformationTraversal(val transformation: TransformationData) {
 
   def traverse(element: AmfObject, traversalPath: TraversalPath = ObjectIdTraversalPath()): AmfObject = {
     if (!traversalPath.hasVisited(element)) traverseElement(element, traversalPath)
-    else {
-      element match {
-        // target of the link has been traversed, we still visit the link in case a transformer wants to
-        // transform links/references, but we will not traverse to avoid loops
-        case linkable: Linkable if linkable.isLink =>
-          if (transformation.predicate(element)) {
-            transformation.transformation(element, true).orNull // passing the cycle boolean flat!
-          } else {
-            element
-          }
-        // traversed and not visited
-        case _ => element
-      }
-    }
+    else element
   }
 
   protected def traverseElement(element: AmfObject, traversalPath: TraversalPath): AmfObject = {

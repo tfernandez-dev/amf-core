@@ -4,7 +4,7 @@ import amf.core.unsafe.PlatformSecrets
 import amf.core.validation.SeverityLevels.VIOLATION
 import amf.core.validation.core.ValidationSpecification
 import amf.core.vocabulary.Namespace
-import amf.{ProfileName, ProfileNames}
+import amf.{AmlProfile, ProfileName, ProfileNames}
 
 /** Access parser, resolution and render validations together. */
 object Validations extends PlatformSecrets {
@@ -46,7 +46,9 @@ trait Validations {
     else acc + (validation.id -> default)
   }
 
-  protected def all(lvl: String): Map[ProfileName, String] = ProfileNames.specProfiles.map(_ -> lvl).toMap
+  protected def all(lvl: String): Map[ProfileName, String] = {
+    ProfileNames.specProfiles.map(_ -> lvl).toMap + (AmlProfile -> lvl)
+  }
 
   private lazy val default = all(VIOLATION)
 

@@ -194,7 +194,13 @@ trait CollectionConverter {
     def toScala: Option[Client] = toScalaOption(from)
   }
 
-//  implicit class ClientOptionOpsWithEC[Client](from: ClientOption[Client])(
+  implicit class ClientMapOps[Internal, Client](from: ClientMap[Client])(
+    implicit m: ClientInternalMatcher[Client, Internal]
+  ) {
+    def asInternal: Map[String,Internal] = asInternalMap(from, m)
+  }
+
+  //  implicit class ClientOptionOpsWithEC[Client](from: ClientOption[Client])(
 //      implicit executionContext: ExecutionContext) {
 //    def toScala: Option[Client] = toScalaOptionWithEC(from)
 //  }
@@ -262,6 +268,11 @@ trait CollectionConverter {
   protected def asInternalSeqWithEC[Client, Internal](
       from: ClientList[Client],
       m: ClientInternalMatcherWithEC[Client, Internal])(implicit executionContext: ExecutionContext): Seq[Internal]
+
+  protected def asInternalMap[Client, Internal](
+      from: ClientMap[Client],
+       m: ClientInternalMatcher[Client, Internal]): Map[String, Internal]
+
 }
 
 trait FieldConverter extends CollectionConverter {

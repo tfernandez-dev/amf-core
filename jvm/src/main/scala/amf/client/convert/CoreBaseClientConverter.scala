@@ -89,4 +89,11 @@ trait CoreBaseClientConverter extends CoreBaseConverter {
 
 //  override protected def toClientOptionWithEC[E](from: Option[E])(
 //      implicit executionContext: ExecutionContext): ClientOption[E] = from.asJava
+
+  override protected def asInternalMap[Client, Internal](from: ClientMap[Client], m: ClientInternalMatcher[Client, Internal]): Map[String, Internal] = {
+    from.asScala.toMap.foldLeft(Map[String,Internal]()) { case (acc, (e,i)) =>
+      acc + (e -> m.asInternal(i))
+    }
+  }
+
 }

@@ -12,6 +12,7 @@ trait Metadata {
   var id: Option[String]     = None
   var isDeclaration: Boolean = false
   var isReference: Boolean   = false
+  var isExternal: Boolean    = false
 }
 
 /**
@@ -24,12 +25,19 @@ case class EmissionQueue[T]() {
   private val queue: Queue[Emission[T] with Metadata] = new Queue()
   // Ids in queue or previously in queue
   private val knownIds: mutable.HashSet[String] = mutable.HashSet[String]()
+  private val pendingExternalLinks: mutable.HashMap[String, Emission[T] with Metadata] = mutable.HashMap[String, Emission[T] with Metadata]()
 
   def tryEnqueue(e: Emission[T] with Metadata): Try[Unit] = {
-    if (accepts(e)) {
+    if (e.isExternal) { // store the external links for later emission
+      e.id.map { id =>
+        if (!knownIds.contains(id)) pendingExternalLinks.put(id, e)
+      }
+      Success((): Unit)
+    } else if (accepts(e)) {
       queue += e
       e.id.map { id =>
         knownIds += id
+        pendingExternalLinks.remove(id)
       }
       Success((): Unit)
     }
@@ -39,9 +47,16 @@ case class EmissionQueue[T]() {
   }
 
   def hasPendingEmissions: Boolean = !queue.isEmpty
+  def hasPendingExternalEmissions: Boolean =  pendingExternalLinks.nonEmpty
 
   def nextEmission(): Emission[T] with Metadata = {
     val next = queue.dequeue
+    next
+  }
+
+  def nextExternalEmission(): Emission[T] with Metadata = {
+    val (id, next) = pendingExternalLinks.head
+    pendingExternalLinks.remove(id)
     next
   }
 

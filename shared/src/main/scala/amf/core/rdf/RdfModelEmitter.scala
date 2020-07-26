@@ -156,6 +156,9 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping with Comm
 
     private def objectValue(subject: String, property: String, t: Type, v: Value): Unit = {
       t match {
+        // if this is an external link, emit jus the URI without the dialect class so the validation is not triggered
+        case e: DomainElementModel if v.value.isInstanceOf[DomainElement] && v.value.asInstanceOf[DomainElement].isExternalLink.option().getOrElse(false) =>
+          rdfmodel.addTriple(subject, property, v.value.asInstanceOf[DomainElement].id)
         case t: DomainElement with Linkable if t.isLink =>
           link(subject, property, t)
         case _: Obj =>
@@ -265,7 +268,7 @@ class RdfModelEmitter(rdfmodel: RdfModel) extends MetaModelTypeMapping with Comm
         elementWithLink.fields.removeField(LinkableElementModel.Target)
       }
 
-      // add the liking triple
+      // add the liking triplea
       rdfmodel.addTriple(subject, property, elementWithLink.id)
       // recursion on the object
       traverse(elementWithLink)

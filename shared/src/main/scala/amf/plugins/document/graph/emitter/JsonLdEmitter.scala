@@ -407,12 +407,17 @@ class JsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderOptions)(i
     def emit(b: Part[T]): Unit = {
       cache.get(element.id) match {
         case Some(value) => b.+=(value)
-        case None        => b.obj(traverse(element, _)).foreach(cache.put(element.id, _))
+        case None  if isExternalLink(element) => {
+          b.obj(traverse(element, _))
+        } // don't add references to the cache, duplicated IDs
+        case None => b.obj(traverse(element, _)).foreach(cache.put(element.id, _))
       }
     }
 
     if (inArray) emit(b) else b.list(emit)
   }
+
+  private def isExternalLink(element: AmfObject) = element.isInstanceOf[DomainElement] && element.asInstanceOf[DomainElement].isExternalLink.option().getOrElse(false)
 
   private def extractToLink(shape: Shape, b: Part[T], inArray: Boolean = false): Unit = {
     if (!ctx.isDeclared(shape) && !ctx.isInReferencedShapes(shape)) {

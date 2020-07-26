@@ -1,7 +1,7 @@
 package amf.client.model.domain
 
 import amf.client.convert.CoreClientConverters._
-import amf.client.model.AmfObjectWrapper
+import amf.client.model.{AmfObjectWrapper, BoolField}
 import amf.core.model.domain.{DomainElement => InternalDomainElement, Graph => InternalGraph}
 import amf.core.parser.Range
 import amf.core.unsafe.PlatformSecrets
@@ -33,6 +33,12 @@ trait DomainElement extends AmfObjectWrapper with PlatformSecrets {
 
   def withId(id: String): this.type = {
     _internal.withId(id)
+    this
+  }
+
+  def isExternalLink: BoolField = _internal.isExternalLink
+  def withIsExternalLink(isExternalLink: Boolean): DomainElement = {
+    _internal.withIsExternalLink(isExternalLink)
     this
   }
 

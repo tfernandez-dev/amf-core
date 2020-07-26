@@ -95,6 +95,21 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
               ctx.emittingReferences = emission.isReference
               emission.fn(root)
             }
+
+            // Now process external links, not declared as part of the unit
+            while(pending.hasPendingExternalEmissions) {
+              val emission = pending.nextExternalEmission()
+              ctx.emittingDeclarations = emission.isDeclaration
+              ctx.emittingReferences = emission.isReference
+              emission.fn(root)
+            }
+            // new regular nodes might have been generated, annotations for example
+            while (pending.hasPendingEmissions) {
+              val emission = pending.nextEmission()
+              ctx.emittingDeclarations = emission.isDeclaration
+              ctx.emittingReferences = emission.isReference
+              emission.fn(root)
+            }
           }
       )
       ctx.emitContext(ob)
@@ -220,6 +235,7 @@ class FlattenedJsonLdEmitter[T](val builder: DocBuilder[T], val options: RenderO
     e.id = Some(id)
     e.isDeclaration = ctx.emittingDeclarations
     e.isReference = ctx.emittingReferences
+    e.isExternal = amfObject.isInstanceOf[DomainElement] && amfObject.asInstanceOf[DomainElement].isExternalLink.option().getOrElse(false)
     e
   }
 

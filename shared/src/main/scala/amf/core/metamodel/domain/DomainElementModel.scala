@@ -1,9 +1,9 @@
 package amf.core.metamodel.domain
 
-import amf.core.metamodel.Type.Array
+import amf.core.metamodel.Type.{Array, Bool}
 import amf.core.metamodel.document.SourceMapModel
 import amf.core.metamodel.domain.extensions.DomainExtensionModel
-import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj, domain}
+import amf.core.metamodel.{Field, ModelDefaultBuilder, Obj}
 import amf.core.vocabulary.Namespace.{Document, SourceMaps}
 import amf.core.vocabulary.{Namespace, ValueType}
 
@@ -63,6 +63,11 @@ trait DomainElementModel extends Obj with ModelDefaultBuilder {
   // I need lazy evaluation here.
   // It cannot even be defined in the list of fields below
   lazy val CustomDomainProperties = Field(Array(DomainExtensionModel), Document + "customDomainProperties", ModelDoc(ModelVocabularies.AmlDoc,"custom domain properties", "Extensions provided for a particular domain element."))
+
+  /**
+   * Marks this domain element as a reference to the element identified by the provide ID
+   */
+  val IsExternalLink = Field(Bool, Document + "isExternalLink", ModelDoc(ModelVocabularies.AmlDoc, "isExternalLink", "Marks this domain element as a reference to the actual element identified by the same URI"))
 
 }
 

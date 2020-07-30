@@ -1,17 +1,19 @@
 package amf.core.validation
 
+import amf.core.validation.core.ValidationProfile.{SeverityLevel, ValidationIri}
 import amf.core.validation.core.{ValidationProfile, ValidationSpecification}
 import amf.core.vocabulary.Namespace
 
 import scala.collection.mutable
 
 class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpecification] = mutable.HashMap(),
-                           val info: mutable.HashMap[String, ValidationSpecification] = mutable.HashMap(),
-                           val warning: mutable.HashMap[String, ValidationSpecification] = mutable.HashMap(),
-                           val violation: mutable.HashMap[String, ValidationSpecification] = mutable.HashMap(),
                            val all: mutable.HashMap[String, ValidationSpecification] = mutable.HashMap()) {
 
-  def update(other: ValidationSpecification) = {
+  val levelsIndex: mutable.HashMap[ValidationIri, SeverityLevel] = mutable.HashMap.empty
+
+  def findLevel(id: ValidationIri): Option[SeverityLevel] = levelsIndex.get(id)
+
+  def update(other: ValidationSpecification): Unit = {
     all.get(other.name) match {
       case Some(added) => all.update(other.name, other withTargets added)
       case None        => all += other.name -> other
@@ -22,62 +24,50 @@ class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpec
     // we aggregate all of the validations to the total validations map
     profile.validations.foreach { update }
 
-    profile.infoLevel.foreach { id =>
-      val validation = setLevel(id, SeverityLevels.INFO)
-      setNested(profile,validation)
-    }
-    profile.warningLevel.foreach { id =>
-      val validation = setLevel(id, SeverityLevels.WARNING)
-      setNested(profile,validation)
-    }
-    profile.violationLevel.foreach { id =>
-      val validation = setLevel(id, SeverityLevels.VIOLATION)
-      setNested(profile,validation)
+    val levels = Seq(SeverityLevels.INFO, SeverityLevels.WARNING, SeverityLevels.VIOLATION)
+
+    levels.foreach { level =>
+      profile.validationsWith(level).foreach { validation =>
+        val validationSpecification = setLevel(validation, level)
+        setNested(profile, validationSpecification)
+      }
     }
 
     profile.disabled foreach { id =>
-      val validationName = if (!id.startsWith("http://") && !id.startsWith("https://") && !id.startsWith("file:/")) {
-        Namespace.expand(id.replace(".", ":")).iri()
-      } else { id }
-      this.effective.remove(validationName)
+      val validationIri: ValidationIri = toIri(id)
+      this.effective.remove(validationIri)
     }
     this
-  }
-
-  protected def setNested(profile: ValidationProfile, validation: ValidationSpecification): Unit = {
-    profile.validations.filter(_.nested.contains(validation.name)).foreach { nestedValidation =>
-      effective.put(nestedValidation.id, nestedValidation)
-    }
   }
 
   def allEffective(specifications: Seq[ValidationSpecification]): EffectiveValidations = {
     specifications foreach { spec =>
       all += (spec.name       -> spec)
       effective += (spec.name -> spec)
-      violation += (spec.name -> spec)
+      levelsIndex(spec.name) = SeverityLevels.VIOLATION
     }
     this
   }
 
-  private def setLevel(id: String, targetLevel: String) = {
-    val validationName = if (!id.startsWith("http://") && !id.startsWith("https://") && !id.startsWith("file:/")) {
-      Namespace.expand(id.replace(".", ":")).iri()
-    } else { id }
-    all.get(validationName) match {
-      case None => throw new Exception(s"Cannot enable with $targetLevel level unknown validation $validationName")
+  private def setLevel(id: String, targetLevel: SeverityLevel): Unit = {
+    val validationIri: ValidationIri = toIri(id)
+    all.get(validationIri) match {
       case Some(validation) =>
-        info.remove(validationName)
-        warning.remove(validationName)
-        violation.remove(validationName)
-        targetLevel match {
-          case SeverityLevels.INFO      => info += (validationName      -> validation)
-          case SeverityLevels.WARNING   => warning += (validationName   -> validation)
-          case SeverityLevels.VIOLATION => violation += (validationName -> validation)
-        }
-        effective += (validationName -> validation)
-        validation
+        levelsIndex.update(validationIri, targetLevel)
+        effective += (validationIri -> validation)
+      case None => // Ignore
     }
   }
+
+  private def toIri(id: String): ValidationIri = {
+    if (!isIri(id)) {
+      Namespace.expand(id.replace(".", ":")).iri()
+    } else {
+      id
+    }
+  }
+
+  private def isIri(id: String) = id.startsWith("https://") || id.startsWith("file:/") || id.startsWith("http://")
 
 }
 

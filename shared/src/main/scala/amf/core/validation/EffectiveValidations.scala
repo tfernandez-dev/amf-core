@@ -21,6 +21,8 @@ class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpec
   }
 
   def someEffective(profile: ValidationProfile): EffectiveValidations = {
+    val index = profile.index
+
     // we aggregate all of the validations to the total validations map
     profile.validations.foreach { update }
 
@@ -28,8 +30,14 @@ class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpec
 
     levels.foreach { level =>
       profile.validationsWith(level).foreach { validation =>
-        val validationSpecification = setLevel(validation, level)
-        setNested(profile, validationSpecification)
+        setLevel(validation, level)
+        index.parents.get(toIri(validation)) match {
+          case Some(parents) =>
+            parents.foreach { parent =>
+              effective.put(parent.id, parent)
+            }
+          case _ => // Nothing
+        }
       }
     }
 

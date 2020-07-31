@@ -41,7 +41,7 @@ class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpec
       }
     }
 
-    profile.disabled foreach { id =>
+    profile.severities.disabled foreach { id =>
       val validationIri: ValidationIri = toIri(id)
       this.effective.remove(validationIri)
     }
@@ -70,7 +70,8 @@ class EffectiveValidations(val effective: mutable.HashMap[String, ValidationSpec
   private def toIri(id: String): ValidationIri = {
     if (!isIri(id)) {
       Namespace.expand(id.replace(".", ":")).iri()
-    } else {
+    }
+    else {
       id
     }
   }

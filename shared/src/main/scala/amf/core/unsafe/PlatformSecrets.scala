@@ -18,18 +18,6 @@ trait PlatformSecrets {
   val platform: Platform = PlatformBuilder()
 }
 
-// TODO: Removed from core @modularization
-/*
-class TrunkDialectsRegistry(platform: Platform) extends PlatformDialectRegistry(platform) {
-  add(VocabularyLanguageDefinition)
-  add(DialectLanguageDefinition)
-
-  override def registerDialect(uri: String) = throw new Exception("Not supported in trunk platform")
-
-  override def registerDialect(uri: String, dialect: String) = throw new Exception("Not supported in trunk platform")
-}
- */
-
 class TrunkValidator extends SHACLValidator {
   override def validate(data: String, dataMediaType: String, shapes: String, shapesMediaType: String)(
       implicit executionContext: ExecutionContext) =
@@ -88,11 +76,9 @@ case class TrunkPlatform(content: String,
     loaders()
   }
 
-
   /** Platform out of the box [ResourceLoader]s */
   override def loaders()(implicit executionContext: ExecutionContext): Seq[ResourceLoader] =
     wrappedPlatform.map(_.loaders()).getOrElse(Seq())
-
 
   override def findCharInCharSequence(s: CharSequence)(p: Char => Boolean): Option[Char] =
     wrappedPlatform.flatMap(_.findCharInCharSequence(s)(p))

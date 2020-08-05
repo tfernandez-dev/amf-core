@@ -39,9 +39,8 @@ class RdfModelParser()(implicit val ctx: RdfParserContext) extends RdfParserComm
             Document()
         }
       case _ =>
-        ctx.eh.violation(UnableToParseRdfDocument,
-                         location,
-                         s"Unable to parse RDF model for location root node: $location")
+        ctx.eh
+          .violation(UnableToParseRdfDocument, location, s"Unable to parse RDF model for location root node: $location")
         Document()
     }
 
@@ -55,6 +54,6 @@ class RecursionControl(private var visited: Set[String] = Set()) {
   def visited(node: Node): Unit = {
     this.visited = visited + node.subject
   }
-  def hasVisited(node: Node): Boolean               = visited.contains(node.subject)
-  def hasVisited(property: PropertyObject): Boolean = visited.contains(property.value)
+  def hasVisited(node: Node): Boolean        = visited.contains(node.subject)
+  def hasVisited(property: RDFTerm): Boolean = visited.contains(property.value)
 }

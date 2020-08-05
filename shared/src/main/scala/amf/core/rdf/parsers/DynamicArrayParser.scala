@@ -3,11 +3,12 @@ package amf.core.rdf.parsers
 import amf.core.model.domain.{ArrayNode, DataNode}
 import amf.core.parser.Annotations
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.{PropertyObject, RdfParserCommon, RdfParserContext, Uri}
+import amf.core.rdf.{RDFTerm, RdfParserCommon, RdfParserContext, Uri}
 import amf.core.vocabulary.Namespace
 
-class DynamicArrayParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetriever)(implicit val ctx: RdfParserContext) extends RdfParserCommon{
-  def parse(propertyObject: PropertyObject): ArrayNode = {
+class DynamicArrayParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetriever)(implicit val ctx: RdfParserContext)
+    extends RdfParserCommon {
+  def parse(propertyObject: RDFTerm): ArrayNode = {
     val nodeAnnotations = linkFinder.findLink(propertyObject) match {
       case Some(node) =>
         val sources = sourcesRetriever.retrieve(node)
@@ -20,7 +21,7 @@ class DynamicArrayParser(linkFinder: NodeFinder, sourcesRetriever: SourcesRetrie
     array
   }
 
-  private def parseDynamicArrayInner(entry: PropertyObject, acc: Seq[DataNode] = Nil): Seq[DataNode] = {
+  private def parseDynamicArrayInner(entry: RDFTerm, acc: Seq[DataNode] = Nil): Seq[DataNode] = {
     linkFinder.findLink(entry) match {
       case Some(n) =>
         val nextNode  = n.getProperties((Namespace.Rdf + "next").iri()).getOrElse(Nil).headOption

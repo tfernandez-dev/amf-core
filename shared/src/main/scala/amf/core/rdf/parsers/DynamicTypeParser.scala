@@ -17,7 +17,7 @@ class DynamicTypeParser(
     sorter: DefaultNodeClassSorter = new DefaultNodeClassSorter())(implicit val ctx: RdfParserContext)
     extends RdfParserCommon {
 
-  def parse(property: PropertyObject): Option[DataNode] = {
+  def parse(property: RDFTerm): Option[DataNode] = {
     linkFinder.findLink(property).map { node =>
       val sources = sourcesRetriever.retrieve(node)
       val builder = retrieveDynamicType(node).get
@@ -61,7 +61,8 @@ class DynamicTypeParser(
             if (k == LinkNodeModel.Alias.value.iri() && entries.head.isInstanceOf[Literal]) {
               val parsedScalar = DynamicLiteralParser.parse(entries.head.asInstanceOf[Literal])
               parsedScalar.value.option().foreach(link.withAlias)
-            } else if (k == LinkNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
+            }
+            else if (k == LinkNodeModel.Value.value.iri() && entries.head.isInstanceOf[Literal]) {
               val parsedScalar = DynamicLiteralParser.parse(entries.head.asInstanceOf[Literal])
               parsedScalar.value.option().foreach(link.withLink)
             }
@@ -89,7 +90,7 @@ class DynamicTypeParser(
     }
   }
 
-  def isRDFArray(entry: PropertyObject): Boolean = {
+  def isRDFArray(entry: RDFTerm): Boolean = {
     entry match {
       case id @ Uri(_) =>
         linkFinder.findLink(id) match {
@@ -114,9 +115,9 @@ class DynamicTypeParser(
   }
 
   private val dynamicBuilders: mutable.Map[String, Annotations => AmfObject] = mutable.Map(
-    LinkNode.builderType.iri()        -> domain.LinkNode.apply,
-    ArrayNode.builderType.iri()       -> domain.ArrayNode.apply,
-    ScalarNodeModel.`type`.head.iri() -> domain.ScalarNode.apply,
-    ObjectNode.builderType.iri()      -> domain.ObjectNode.apply
+      LinkNode.builderType.iri()        -> domain.LinkNode.apply,
+      ArrayNode.builderType.iri()       -> domain.ArrayNode.apply,
+      ScalarNodeModel.`type`.head.iri() -> domain.ScalarNode.apply,
+      ObjectNode.builderType.iri()      -> domain.ObjectNode.apply
   )
 }

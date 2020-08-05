@@ -18,7 +18,7 @@ import amf.core.parser.Annotations
 import amf.core.rdf.converter.{AnyTypeConverter, ScalarTypeConverter, StringIriUriRegexParser}
 import amf.core.rdf.graph.NodeFinder
 import amf.core.rdf.helper.PluginEntitiesFacade
-import amf.core.rdf.{Literal, Node, PropertyObject, RdfParserCommon, RdfParserContext, RecursionControl, Uri}
+import amf.core.rdf.{Literal, Node, RDFTerm, RdfParserCommon, RdfParserContext, RecursionControl, Uri}
 import amf.core.vocabulary.Namespace
 import amf.plugins.features.validation.CoreValidations.UnableToParseRdfDocument
 
@@ -82,14 +82,14 @@ class ObjectParser(val rootId: String,
     model match {
       case shapeModel: ShapeModel =>
         shapeModel.fields ++ Seq(
-          ShapeModel.CustomShapePropertyDefinitions,
-          ShapeModel.CustomShapeProperties
+            ShapeModel.CustomShapePropertyDefinitions,
+            ShapeModel.CustomShapeProperties
         )
       case _ => model.fields
     }
   }
 
-  protected def key(node: Node, property: String): Seq[PropertyObject] =
+  protected def key(node: Node, property: String): Seq[RDFTerm] =
     node.getProperties(property).getOrElse(Nil)
 
   private def parseLinkableProperties(node: Node, instance: DomainElement with Linkable): Unit = {
@@ -127,7 +127,7 @@ class ObjectParser(val rootId: String,
 
   private def traverse(instance: AmfObject,
                        f: Field,
-                       properties: Seq[PropertyObject],
+                       properties: Seq[RDFTerm],
                        sources: SourceMap,
                        key: String): Unit = {
     val property = properties.head
@@ -147,18 +147,18 @@ class ObjectParser(val rootId: String,
             }
           case _ =>
             ctx.eh.violation(
-              UnableToParseRdfDocument,
-              instance.id,
-              s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
+                UnableToParseRdfDocument,
+                instance.id,
+                s"Error parsing RDF graph node, unknown linked node for property $key in node ${instance.id}")
         }
 
       case array: SortedArray if properties.length == 1 =>
         parseList(instance, array, f, properties, annots(sources, key))
       case _: SortedArray =>
         ctx.eh.violation(
-          UnableToParseRdfDocument,
-          instance.id,
-          s"Error, more than one sorted array values found in node for property $key in node ${instance.id}")
+            UnableToParseRdfDocument,
+            instance.id,
+            s"Error, more than one sorted array values found in node for property $key in node ${instance.id}")
       case a: Array =>
         val items = properties
         val values: Seq[AmfElement] = a.element match {
@@ -178,20 +178,20 @@ class ObjectParser(val rootId: String,
     }
   }
 
-  def parseDynamicType(id: PropertyObject): Option[DataNode] =
+  def parseDynamicType(id: RDFTerm): Option[DataNode] =
     new DynamicTypeParser(nodeFinder, sourcesRetriever).parse(id)
 
   private def parseList(instance: AmfObject,
                         l: SortedArray,
                         field: Field,
-                        properties: Seq[PropertyObject],
+                        properties: Seq[RDFTerm],
                         annotations: Annotations): Unit =
     instance.setArray(field, parseList(l.element, findLink(properties.head)), annotations)
 
-  private def parseScalar(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
+  private def parseScalar(instance: AmfObject, field: Field, property: RDFTerm, annotations: Annotations): Unit =
     ScalarTypeConverter.tryConvert(field.`type`, property)(ctx.eh).foreach(instance.set(field, _, annotations))
 
-  private def parseAny(instance: AmfObject, field: Field, property: PropertyObject, annotations: Annotations): Unit =
+  private def parseAny(instance: AmfObject, field: Field, property: RDFTerm, annotations: Annotations): Unit =
     AnyTypeConverter.tryConvert(property)(ctx.eh).foreach(instance.set(field, _, annotations))
 
   private def parseList(listElement: Type, maybeCollection: Option[Node]): Seq[AmfElement] = {
@@ -214,7 +214,7 @@ class ObjectParser(val rootId: String,
   }
 
   private def getRdfProperties(maybeCollection: Option[Node]) = {
-    val properties = ListBuffer[PropertyObject]()
+    val properties = ListBuffer[RDFTerm]()
     maybeCollection.foreach { collection =>
       collection.getKeys().foreach { entry =>
         if (entry.startsWith((Namespace.Rdfs + "_").iri())) {
@@ -241,7 +241,7 @@ class ObjectParser(val rootId: String,
     }
   }
 
-  private def findLink(property: PropertyObject) = nodeFinder.findLink(property)
+  private def findLink(property: RDFTerm) = nodeFinder.findLink(property)
 
   protected def retrieveSources(node: Node): SourceMap = sourcesRetriever.retrieve(node)
 

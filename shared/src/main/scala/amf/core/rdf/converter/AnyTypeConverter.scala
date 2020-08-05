@@ -3,7 +3,7 @@ package amf.core.rdf.converter
 import amf.core.errorhandling.ErrorHandler
 import amf.core.model.DataType
 import amf.core.model.domain.AmfScalar
-import amf.core.rdf.{Literal, PropertyObject, Uri}
+import amf.core.rdf.{Literal, RDFTerm, Uri}
 import amf.plugins.features.validation.CoreValidations.UnableToConvertToScalar
 import org.mulesoft.common.time.SimpleDateTime
 
@@ -18,7 +18,7 @@ object AnyTypeConverter extends Converter {
   private val xsdDateTime: String = DataType.DateTime
   private val xsdDate: String     = DataType.Date
 
-  def tryConvert(property: PropertyObject)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
+  def tryConvert(property: RDFTerm)(implicit errorHandler: ErrorHandler): Option[AmfScalar] = {
     property match {
       case Literal(v, typed) =>
         typed match {

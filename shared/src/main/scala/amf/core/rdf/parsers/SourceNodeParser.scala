@@ -3,7 +3,7 @@ package amf.core.rdf.parsers
 import amf.core.metamodel.document.SourceMapModel
 import amf.core.model.document.SourceMap
 import amf.core.rdf.graph.NodeFinder
-import amf.core.rdf.{Node, PropertyObject, RdfModel, Uri}
+import amf.core.rdf.{Node, RDFTerm, RdfModel, Uri}
 import amf.core.vocabulary.Namespace.SourceMaps
 
 class SourceNodeParser(linkFinder: NodeFinder) {
@@ -18,8 +18,8 @@ class SourceNodeParser(linkFinder: NodeFinder) {
             properties.foreach { property =>
               linkFinder.findLink(property) match {
                 case Some(linkedNode) =>
-                  val k: PropertyObject = linkedNode.getProperties(SourceMapModel.Element.value.iri()).get.head
-                  val v: PropertyObject = linkedNode.getProperties(SourceMapModel.Value.value.iri()).get.head
+                  val k: RDFTerm = linkedNode.getProperties(SourceMapModel.Element.value.iri()).get.head
+                  val v: RDFTerm = linkedNode.getProperties(SourceMapModel.Value.value.iri()).get.head
                   consumer(k.value, v.value)
                 case _ => //
               }
@@ -39,4 +39,3 @@ object AnnotationName {
     case _                                      => None
   }
 }
-

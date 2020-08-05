@@ -1,6 +1,6 @@
 package amf.core.validation.core
 
-import amf.core.rdf.RdfModel
+import amf.core.rdf.{RDFTerm, RdfModel}
 import amf.core.validation.core.ValidationSpecification.PARSER_SIDE_VALIDATION
 import amf.core.validation.model.PropertyPath
 import amf.core.vocabulary.Namespace
@@ -69,8 +69,8 @@ case class PropertyConstraint(ramlPropertyId: String,
                               custom: Option[(EntryBuilder, String) => Unit] = None,
                               customRdf: Option[(RdfModel, String) => Any] = None,
                               /**
-                               * for qualified constraints
-                               */
+                                * for qualified constraints
+                                */
                               atLeast: Option[(Int, String)] = None,
                               atMost: Option[(Int, String)] = None,
                               value: Option[String] = None,
@@ -79,12 +79,12 @@ case class PropertyConstraint(ramlPropertyId: String,
                               disjointWithProperty: Option[String] = None,
                               lessThanProperty: Option[String] = None,
                               lessThanOrEqualsToProperty: Option[String] = None,
-                             )
+)
 
 case class QueryConstraint(
-                            prefixes: Map[String,String],
-                            query: String
-                          )
+    prefixes: Map[String, String],
+    query: String
+)
 
 case class ValidationSpecification(name: String,
                                    // shacl:message
@@ -128,19 +128,18 @@ case class ValidationSpecification(name: String,
                                    closed: Option[Boolean] = None,
                                    functionConstraint: Option[FunctionConstraint] = None,
                                    custom: Option[(EntryBuilder, String) => Unit] = None,
-                                  /*
-                                   * Nested validations
-                                   */
+                                   /*
+                                    * Nested validations
+                                    */
                                    nested: Option[String] = None,
-                                  /*
-                                   * transition from JS functions to complex ones
-                                   */
+                                   /*
+                                    * transition from JS functions to complex ones
+                                    */
                                    replacesFunctionConstraint: Option[String] = None,
-                                  /*
-                                   * Query validation
-                                   */
-                                   query: Option[QueryConstraint] = None
-                                  ) {
+                                   /*
+                                    * Query validation
+                                    */
+                                   query: Option[QueryConstraint] = None) {
 
   val id: String = {
     if (name.startsWith("http://") || name.startsWith("https://") || name.startsWith("file:")) {

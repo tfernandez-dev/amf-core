@@ -2,12 +2,12 @@ package amf.core.rdf
 
 import org.mulesoft.common.io.Output
 
-class PropertyObject(val value: String)
-case class Literal(override val value: String, literalType: Option[String]) extends PropertyObject(value)
-case class Uri(override val value: String)                                  extends PropertyObject(value)
-case class Node(subject: String, classes: Seq[String], private val properties: Map[String, Seq[PropertyObject]]) {
+abstract class RDFTerm(val value: String)
+case class Literal(override val value: String, literalType: Option[String] = None) extends RDFTerm(value)
+case class Uri(override val value: String)                                         extends RDFTerm(value)
+case class Node(subject: String, classes: Seq[String], private val properties: Map[String, Seq[RDFTerm]]) {
 
-  def getProperties(iri: String): Option[Seq[PropertyObject]] = {
+  def getProperties(iri: String): Option[Seq[RDFTerm]] = {
     properties.get(iri).map(_.sortWith((t1, t2) => (t1.value compareTo t2.value) > 0))
   }
 
